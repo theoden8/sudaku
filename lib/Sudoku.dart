@@ -57,27 +57,38 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
 
 
 enum ConstraintType {
-  ONE_OF, EQUAL, ALLDIFF,
+  ONE_OF, EQUAL, ALLDIFF, GENERIC
 }
 
-class Constraint {
+abstract class Constraint {
+  static const int
+    NOT_RUN = -2,
+    SUCCESS = 1,
+    INSUFFICIENT = 0,
+    VIOLATED = -1;
+
+  Sudoku sd;
+  int status = Constraint.NOT_RUN;
   List<int> condition;
+  List<int> successCondition = null;
   BitArray variables;
-  BitArray domain;
-  ConstraintType type;
+  ConstraintType type = ConstraintType.GENERIC;
   int start;
   bool active = true;
   int colorId = 0;
 
-  Constraint(final List<int> condition, BitArray variables, BitArray domain, ConstraintType ct, int start) {
-    this.condition = List<int>()..addAll(condition);
-    this.variables = variables;
-    this.domain = domain;
-    this.type = ct;
-    this.start = start;
+  Constraint(Sudoku sd, BitArray variables) {
+    this.sd = sd;
+    sd.guard(() {
+      this.condition = List<int>()..addAll(sd.buf);
+    });
+    this.variables = variables.clone();
+    this.start = -1;
   }
 
-  bool isActive(Sudoku sd) {
+  Iterable<int> getValues();
+
+  bool isActive() {
     if(!this.active) {
       return false;
     }
@@ -97,50 +108,145 @@ class Constraint {
     this.active = false;
   }
 
-  static const int
-    SUCCESS = 1,
-    INSUFFICIENT = 0,
-    VIOLATED = -1;
+  int _apply();
 
-  bool hasVariable(int variable) {
+  bool checkSuccessCondition() {
+    if(this.successCondition == null) {
+      return false;
+    }
+    for(int i = 0; i < sd.ne4; ++i) {
+      int val = this.successCondition[i];
+      if(val != 0 && val != sd[i]) {
+        return false;
+      }
+    }
     return true;
   }
 
-  int _applyOneof(Sudoku sd) {
-    int count = 0;
-    int remaining = -1;
-    assert(domain.cardinality == 1);
-    int value = domain.asIntIterable().first;
-    for(int v in variables.asIntIterable()) {
-      if(sd[v] == 0) {
-        if(remaining != -1) {
-          return Constraint.VIOLATED;
-        }
-        remaining = v;
-      } else {
-        domain.clearBit(sd[v]);
+  bool checkStart() {
+    return start != -1 && start < sd.changes.length - 1;
+  }
+
+  bool checkMemoizedPass() {
+    return this.checkStart() && this.checkSuccessCondition();
+  }
+
+  void apply() {
+    print('apply constraint ${this.type}');
+    if(this.checkMemoizedPass()) {
+      print('success by condition');
+      return;
+    } else {
+      this.successCondition = null;
+    }
+    var currentCondition = List<int>()..addAll(sd.buf);
+    // re-calculated:
+    // this.status = Constraint.NOT_RUN;
+    this.status = this._apply();
+    if(status == Constraint.SUCCESS) {
+      sd.guard(() {
+        this.successCondition = currentCondition;
+      });
+      if(!sd.assist.dryRunMode) {
+        this.start = sd.changes.length;
       }
     }
-    if(count == 0) {
-      return Constraint.INSUFFICIENT;
+  }
+
+  String toString() {
+    return '${this.type}';
+  }
+}
+
+class ConstraintOneOf extends Constraint {
+  int value;
+
+  ConstraintOneOf(Sudoku sd, BitArray variables, int value) : super(sd, variables) {
+    this.value = value;
+    this.type = ConstraintType.ONE_OF;
+  }
+
+  BitArray getDomain(int variable) {
+    var dom = sd.getDomain(variable);
+    return dom;
+  }
+
+  @override
+  Iterable<int> getValues() {
+    return <int>[this.value];
+  }
+
+  @override
+  int _apply() {
+    // there is variable that inevitably is assigned to value
+    int remainingUnique = -1;
+    for(int v in this.variables.asIntIterable()) {
+      var dom = sd.getDomain(v);
+      if(dom.cardinality == 1 && dom[this.value]) {
+        if(remainingUnique == -1) {
+          print('remainingUnique $v');
+          remainingUnique = v;
+        } else {
+          return Constraint.VIOLATED;
+        }
+      }
+    }
+    if(remainingUnique != -1) {
+      sd.setAssistantChange(remainingUnique, value);
+      return Constraint.SUCCESS;
+    }
+    // there is only one variable that can hold the value
+    int remaining = -1;
+    for(int v in this.variables.asIntIterable()) {
+      if(sd.getDomain(v)[this.value]) {
+        if(remaining == -1) {
+          remaining = v;
+        } else {
+          return Constraint.INSUFFICIENT;
+        }
+      }
+    }
+    if(remaining == -1) {
+      return Constraint.VIOLATED;
     }
     sd.setAssistantChange(remaining, value);
     return Constraint.SUCCESS;
   }
 
-  int _applyEqual(Sudoku sd) {
-    int val = 0;
-    for(int v in variables.asIntIterable()) {
-      if(sd[v] != 0) {
-        if(val != 0) {
-          return Constraint.VIOLATED;
-        }
-        val = sd[v];
-      }
+  @override
+  String toString() {
+    return '${super.toString()} dom=${<int>[this.value]}';
+  }
+}
+
+class ConstraintEqual extends Constraint {
+  ConstraintEqual(Sudoku sd, BitArray variables) : super(sd, variables) {
+    this.type = ConstraintType.EQUAL;
+  }
+
+  @override
+  Iterable<int> getValues() {
+    var dom = sd.getFullDomain();
+    for(int v in this.variables.asIntIterable()) {
+      dom = dom & sd.getDomain(v);
     }
-    if(val == 0) {
+    return dom.asIntIterable();
+  }
+
+  @override
+  int _apply() {
+    var dom = sd.getFullDomain();
+    for(int v in this.variables.asIntIterable()) {
+      dom = dom & sd.getDomain(v);
+    }
+    dom.clearBit(0);
+    if(dom.isEmpty) {
+      return Constraint.VIOLATED;
+    } else if(dom.cardinality > 1) {
       return Constraint.INSUFFICIENT;
     }
+    // one unique value for all of them
+    int val = dom.asIntIterable().first;
     for(int v in variables.asIntIterable()) {
       if(sd[v] == 0) {
         sd.setAssistantChange(v, val);
@@ -148,71 +254,197 @@ class Constraint {
     }
     return Constraint.SUCCESS;
   }
+}
 
-  int _applyAlldiff(Sudoku sd) {
+class ConstraintAllDiff extends Constraint {
+  BitArray domain;
+  int length;
+  List<int> indexMap;
+
+  List<BitArray> domainCache;
+  List<int> assigned;
+
+  ConstraintAllDiff(Sudoku sd, BitArray variables, BitArray domain) : super(sd, variables) {
     assert(variables.cardinality == domain.cardinality);
-    BitArray newDomain = domain.clone();
-    int index = -1;
-    for(int v in variables.asIntIterable()) {
-      if(sd[v] != 0) {
-        if(!newDomain[sd[v]]) {
-          return Constraint.VIOLATED;
-        }
-        newDomain.clearBit(sd[v]);
-      } else {
-        if(index != -1) {
-          return Constraint.INSUFFICIENT;
-        }
-        index = v;
-      }
-    }
-    int value = newDomain.asIntIterable().first;
-    sd.setAssistantChange(index, value);
-    return Constraint.SUCCESS;
+    this.type = ConstraintType.ALLDIFF;
+    this.domain = domain.clone();
+    this.length = this.domain.cardinality;
+    this.indexMap = List<int>.generate(this.length, (i) => this.variables.asIntIterable().toList()[i]);
+    this.clearDomainCache();
+    this.resetAssigned();
+    print('indexMap: $indexMap');
   }
 
-  int apply(Sudoku sd) {
-    print('apply constraint ${this.type}');
-    switch(this.type) {
-      case ConstraintType.ONE_OF: return this._applyOneof(sd); break;
-      case ConstraintType.EQUAL: return this._applyEqual(sd); break;
-      case ConstraintType.ALLDIFF: return this._applyAlldiff(sd); break;
+  void resetAssigned() {
+    this.assigned = List<int>.generate(this.length, (i) => sd[this.indexMap[i]]);
+    print('assigned $assigned');
+  }
+
+  void clearDomainCache() {
+    this.domainCache = List<BitArray>.generate(this.length, (i) => null);
+  }
+
+  BitArray getDomain(int variable) {
+    int ind = this.indexMap.indexOf(variable);
+    if(this.domainCache[ind] == null) {
+      var dom = null;
+      if(this.assigned[ind] != 0) {
+        dom = sd.getEmptyDomain()..setBit(this.assigned[ind]);
+      } else {
+        dom = sd.getDomain(variable) & this.domain;
+        for(var val in this.assigned) {
+          dom.clearBit(val);
+        }
+      }
+      assert(dom != null);
+      this.domainCache[ind] = dom;
     }
-    return Constraint.VIOLATED;
+    return this.domainCache[ind];
+  }
+
+  // check if a given variable can be assigned a given value
+  bool isValue(int variable, int value) {
+    int antiCount = 0;
+    for(int v in this.variables.asIntIterable()) {
+      var dom = this.getDomain(v);
+      if(v == variable) {
+        // the only value possible in this cell
+        if(dom.cardinality == 1 && dom[value]) {
+          // print('is value [$variable] = $value, because the only left');
+          return true;
+        } else if(!dom[value]) {
+          return false;
+        }
+      } else {
+        // this value is available in another cell
+        if(dom[value]) {
+          return false;
+        }
+        // or it is not
+        ++antiCount;
+        // print('[$v] denies $value');
+      }
+    }
+    // all other cells can't have this value
+    if(antiCount == this.length - 1) {
+      // print('is value [$variable] = $value, because everyone else denies');
+    }
+    return antiCount == this.length - 1;
+  }
+
+  int getVariableAssignment(int variable) {
+    var values = List<int>();
+    for(int val in this.domain.asIntIterable()) {
+      if(this.isValue(variable, val)) {
+        values.add(val);
+      }
+    }
+    if(values.length == 0) {
+      // print('inconclusive [$variable]');
+      return 0;
+    } else if(values.length == 1) {
+      // print('can assign [$variable] = $values');
+      return values.first;
+    } else {
+      // print('variable [$variable] violation values $values');
+      return -1;
+    }
+  }
+
+  int _applyCached() {
+    // at least one assignment per pass
+    for(int i = 0; i < this.length; ++i) {
+      // pass over the variables
+      for(int variable in this.variables.asIntIterable()) {
+        if(this.getDomain(variable).isEmpty) {
+          // deadend
+          return Constraint.VIOLATED;
+        }
+        int ind = this.indexMap.indexOf(variable);
+        if(this.assigned[ind] != 0) {
+          continue;
+        }
+        int val = this.getVariableAssignment(variable);
+        if(val > 0) {
+          this.assigned[ind] = val;
+          this.clearDomainCache();
+        } else if(val == -1) {
+          // two values fit this exact cell, leads to overlap
+          return Constraint.VIOLATED;
+        }
+      }
+      // if all is assigned everything is good
+      int zeros = 0;
+      for(int x in this.assigned) {
+        if(x == 0) {
+          ++zeros;
+        }
+      }
+      // finalize
+      if(zeros == 0) {
+        for(int i = 0; i < this.length; ++i) {
+          sd.setAssistantChange(this.indexMap[i], this.assigned[i]);
+        }
+        return Constraint.SUCCESS;
+      }
+    }
+    return Constraint.INSUFFICIENT;
+  }
+
+  @override
+  Iterable<int> getValues() {
+    return this.domain.asIntIterable();
+  }
+
+  @override
+  int _apply() {
+    this.resetAssigned();
+    int code = this._applyCached();
+    this.clearDomainCache();
+    return code;
+  }
+
+  @override
+  String toString() {
+    return '${super.toString()} dom=${this.domain.asIntIterable()}';
   }
 }
 
 class SudokuAssist {
   Sudoku sd;
   List<Constraint> constraints;
+  List<Constraint> newlySucceeded;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
     this.constraints = List<Constraint>();
+    this.newlySucceeded = List<Constraint>();
   }
 
-  void addConstraint(ConstraintType ct, BitArray variables, BitArray domain) {
-    constraints.add(Constraint(List<int>()..addAll(sd.buf), variables.clone(), domain.clone(), ct, sd.changes.length));
+  void addConstraint(Constraint ct) {
+    constraints.add(ct);
   }
 
-  void addOneOf(BitArray variables, int value) {
-    this.addConstraint(ConstraintType.ONE_OF, variables, sd.getEmptyDomain()..setBit(value));
-  }
-
-  void addEqual(BitArray variables) {
-    this.addConstraint(ConstraintType.EQUAL, variables, sd.getEmptyDomain());
-  }
-
-  void addAllDiff(BitArray variables, BitArray domain) {
-    this.addConstraint(ConstraintType.ALLDIFF, variables, domain);
+  bool dryRunMode = false;
+  void dryRun() {
+    print('dry running constraints');
+    this.dryRunMode = true;
+    this.apply();
+    this.dryRunMode = false;
   }
 
   void apply() {
+    newlySucceeded = List<Constraint>();
     for(var constr in this.constraints) {
-      if(!constr.isActive(sd)) {
+      if(!constr.isActive()) {
         continue;
       }
-      constr.apply(this.sd);
+      int beforeStatus = constr.status;
+      constr.apply();
+      int afterStatus = constr.status;
+      if(beforeStatus != afterStatus && !this.dryRunMode && afterStatus == Constraint.SUCCESS) {
+        this.newlySucceeded.add(constr);
+      }
     }
   }
 }
@@ -226,13 +458,8 @@ class SudokuChange {
     values = List<int>();
   }
 
-  bool isEmpty() {
-    return this.size() == 0;
-  }
-
-  int size() {
-    return indices.length;
-  }
+  int get length => indices.length;
+  bool get isEmpty => (this.length == 0);
 
   void registerChange(int index, int val) {
     indices.add(index);
@@ -375,7 +602,7 @@ class Sudoku {
     this.ne2 = n * n;
     this.ne4 = ne2 * ne2;
     this.ne6 = ne4 * ne2;
-    this.changes = List<SudokuChange>();
+    this.changes = List<SudokuChange>()..add(SudokuChange());
     this.assist = SudokuAssist(this);
     this._setupSudoku(a, ss);
   }
@@ -389,9 +616,12 @@ class Sudoku {
   }
 
   BitArray getDomain(int index) {
-    var dom = BitArray(ne2 + 1);
+    var dom = this.getEmptyDomain();
+    if(this[index] != 0) {
+      return dom..setBit(this[index]);
+    }
     int i = index ~/ ne2, j = index % ne2;
-    for(int t = 0; t < ne2 + 1; ++t) {
+    for(int t = 1; t < ne2 + 1; ++t) {
       dom.setBit(t);
     }
     for(int t = 0; t < ne2; ++t) {
@@ -416,7 +646,7 @@ class Sudoku {
   }
 
   BitArray getFullDomain() {
-    return BitArray(ne2 + 1)..setAll();
+    return BitArray(ne2 + 1)..setAll()..clearBit(0);
   }
 
   int operator[](int ind) {
@@ -430,6 +660,13 @@ class Sudoku {
     return val;
   }
 
+  int operator[]=(int ind, int val) {
+    this.guard(() {
+      this.buf[ind] = val;
+    });
+    return val;
+  }
+
   int index(int i, int j) {
     return i * ne2 + j;
   }
@@ -437,13 +674,11 @@ class Sudoku {
   // readonly
   int countUnknowns() {
     int c = 0;
-    this.guard(() {
-      for(int i = 0; i < ne4; ++i) {
-        if(this.buf[i] == 0) {
-          ++c;
-        }
+    for(int i = 0; i < ne4; ++i) {
+      if(this[i] == 0) {
+        ++c;
       }
-    });
+    }
     return c;
   }
 
@@ -457,10 +692,7 @@ class Sudoku {
       for(int j = 0; j < ne2; ++j) {
         var pos = <int>[(i*ne2)+j, (j*ne2)+i, ((i~/n)*n+(j~/n))*ne2+(i%n)*n+(j%n)];
         for(int k = 0; k < 3; ++k) {
-          int val = 0;
-          this.guard(() {
-            val = this.buf[pos[k]];
-          });
+          int val = this[pos[k]];
           if(val == 0) {
             continue;
           }
@@ -480,32 +712,31 @@ class Sudoku {
       this.changes.add(SudokuChange());
       this.changes.last.registerChange(index, val);
     });
-    this.guard(() {
-      this.buf[index] = val;
-    });
+    this[index] = val;
   }
 
   void setAssistantChange(int index, int val) {
+    if(this.assist.dryRunMode) {
+      return;
+    }
     this.guardChange(() {
       this.changes.last.registerChange(index, val);
     });
-    this.guard(() {
-      this.buf[index] = val;
-    });
+    this[index] = val;
   }
 
   void undoChange() {
     this.guardChange(() {
-      if(changes.length == 0) {
+      if(changes.isEmpty) {
         return;
       }
-      for(int i = 0; i < changes.last.size(); ++i) {
-        int ind = changes.last.indices[changes.last.size() - i - 1];
-        // int val = changes.last.values[changes.last.size() - i - 1];
+      for(int i = 0; i < changes.last.length; ++i) {
+        int ind = changes.last.indices[changes.last.length - i - 1];
+        // int val = changes.last.values[changes.last.length - i - 1];
         int precedingValue = 0;
         // same change stack
         for(SudokuChange c in changes.reversed) {
-          for(int j = 0; j < ((c == changes.last) ? c.size() - i - 1 : c.size()); ++j) {
+          for(int j = 0; j < ((c == changes.last) ? c.length - i - 1 : c.length); ++j) {
             int oldInd = c.indices[j];
             if(oldInd != ind) {
               continue;
@@ -522,6 +753,9 @@ class Sudoku {
         });
       }
       changes.removeLast();
+      if(changes.isEmpty) {
+        changes.add(SudokuChange());
+      }
     });
   }
 

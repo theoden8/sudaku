@@ -46,15 +46,17 @@ class OneofInteraction extends ConstraintInteraction {
 
   @override
   void onConstraintSelection() async {
-    BitArray dom = self.sd.getFullDomain();
+    BitArray dom = self.sd.getEmptyDomain();
     for(int v in self._multiSelect.asIntIterable()) {
-      dom = dom & self.sd.getDomain(v);
+      dom = dom | self.sd.getDomain(v);
     }
     var val = await self._selectValue(dom);
     if(val == null) {
       return;
     }
-    sd.assist.addOneOf(self._multiSelect, val);
+    sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect, val));
+    sd.assist.apply();
+    self.showAssistantResult();
     this.finish_up();
   }
 }
@@ -64,7 +66,9 @@ class EqualInteraction extends ConstraintInteraction {
 
   @override
   void onConstraintSelection() async {
-    sd.assist.addEqual(this.self._multiSelect);
+    sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect));
+    sd.assist.apply();
+    self.showAssistantResult();
     this.finish_up();
   }
 }
@@ -82,7 +86,9 @@ class AlldiffInteraction extends ConstraintInteraction {
     if(selection == null || selection.cardinality != self._multiSelect.cardinality) {
       return;
     }
-    sd.assist.addAllDiff(self._multiSelect, selection);
+    sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect, selection));
+    sd.assist.apply();
+    self.showAssistantResult();
     this.finish_up();
   }
 }
@@ -124,7 +130,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _handleOnPressCell(int index) {
-    if(this._multiSelect.cardinality == 0) {
+    if(this._multiSelect.isEmpty) {
       this._selectedCell = index;
     } else {
       this._multiSelect.invertBit(index);
@@ -133,7 +139,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _handleLongPressCell(int index) async {
-    if(this._multiSelect.cardinality == 0) {
+    if(this._multiSelect.isEmpty) {
       this.startMultiSelect();
       this._multiSelect.setBit(index);
       this.runSetState();
@@ -171,7 +177,10 @@ class SudokuScreenState extends State<SudokuScreen> {
     if(val != null) {
       setState(() {
         sd.setManualChange(index, val);
-        sd.assist.apply();
+        if(val != 0) {
+          sd.assist.apply();
+          this.showAssistantResult();
+        }
       });
     }
     if(sd.countUnknowns() == 0 && sd.check()) {
@@ -293,7 +302,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Color getCellColor(int index) {
-    if(this._multiSelect.cardinality == 0) {
+    if(this._multiSelect.isEmpty) {
       if(this._selectedCell == index) {
         return Colors.blue[100];
       } else if(this._selectedConstraint != null && this._selectedConstraint.variables[index]) {
@@ -378,43 +387,73 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
+  var _scaffoldBodyContext = null;
+  void showAssistantResult() async {
+    for(Constraint constr in sd.assist.newlySucceeded) {
+      Scaffold.of(this._scaffoldBodyContext).showSnackBar(
+        SnackBar(
+          elevation: 4.0,
+          content: Text(
+            constr.toString(),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+  }
+
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
-    var constraints = sd.assist.constraints;
+    var constraints = sd.assist.constraints.where((Constraint c) {
+      return !c.checkMemoizedPass();
+    }).toList();
     var listTiles = List<Widget>.generate(constraints.length, (i) {
-      return ListTile(
-        leading: Checkbox(
-          value: constraints[i].isActive(sd),
-          onChanged: (bool b) {
-            if(b) {
-              constraints[i].activate();
-            } else {
-              constraints[i].deactivate();
+      return  Card(
+        elevation: 1.0,
+        color: (int status) {
+          if(status == Constraint.SUCCESS) {
+            return Colors.green[100];
+          } else if(status == Constraint.VIOLATED) {
+            return Colors.red[100];
+          }
+          return Colors.white;
+        }(constraints[i].status),
+        child: ListTile(
+          leading: Checkbox(
+            value: constraints[i].isActive(),
+            onChanged: (bool b) {
+              if(b) {
+                constraints[i].activate();
+              } else {
+                constraints[i].deactivate();
+                if(this._selectedConstraint == constraints[i]) {
+                  this._selectedConstraint = null;
+                }
+              }
+              sd.assist.apply();
+              this.runSetState();
+              this.showAssistantResult();
+            }
+          ),
+          trailing: IconButton(
+            icon: Icon(Icons.cancel),
+            onPressed: () {
               if(this._selectedConstraint == constraints[i]) {
                 this._selectedConstraint = null;
               }
-            }
+              constraints.remove(constraints[i]);
+              this.runSetState();
+            },
+          ),
+          title: Text(
+            '${constraints[i].type} dom=${constraints[i].getValues()}',
+          ),
+          onTap: !constraints[i].isActive() ? null : () {
+            this._multiSelect.clearAll();
+            this._selectedConstraint = constraints[i];
             this.runSetState();
           }
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.cancel),
-          onPressed: () {
-            if(this._selectedConstraint == constraints[i]) {
-              this._selectedConstraint = null;
-            }
-            constraints.remove(constraints[i]);
-            this.runSetState();
-          },
-        ),
-        title: Text(
-          '${constraints[i].type} dom=${constraints[i].domain.asIntIterable()}',
-        ),
-        onTap: !constraints[i].isActive(sd) ? null : () {
-          this._multiSelect.clearAll();
-          this._selectedConstraint = constraints[i];
-          this.runSetState();
-        }
       );
     });
     if(this._selectedConstraint != null) {
@@ -454,7 +493,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ListTile(
           leading: Icon(Icons.link_off),
           title: Text('oneof'),
-          onTap: () async {
+          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = OneofInteraction(this);
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
@@ -464,7 +503,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ListTile(
           leading: Icon(Icons.link),
           title: Text('equal'),
-          onTap: () async {
+          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = EqualInteraction(this);
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
@@ -474,7 +513,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ListTile(
           leading: Icon(Icons.sort),
           title: Text('allDiff'),
-          onTap: () async {
+          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = AlldiffInteraction(this);
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
@@ -497,9 +536,14 @@ class SudokuScreenState extends State<SudokuScreen> {
               return;
             }
             if(sd.changes.length > 0) {
-              this._selectedCell = sd.changes.last.indices.first;
+              sd.guardChange(() {
+                if(!sd.changes.last.isEmpty) {
+                  this._selectedCell = sd.changes.last.indices.first;
+                }
+              });
             }
             sd.undoChange();
+            sd.assist.dryRun();
           });
         },
       ),
@@ -555,15 +599,20 @@ class SudokuScreenState extends State<SudokuScreen> {
           actions: this._makeToolbar(ctx),
         ),
         drawer: this._makeDrawer(ctx),
-        body: Container(
-          margin: const EdgeInsets.all(4.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              this._makeSudokuGrid(ctx),
-              this._makeConstraintList(ctx),
-            ],
-          ),
+        body: Builder(
+          builder: (ctx) {
+            this._scaffoldBodyContext = ctx;
+            return Container(
+              margin: const EdgeInsets.all(4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  this._makeSudokuGrid(ctx),
+                  this._makeConstraintList(ctx),
+                ],
+              ),
+            );
+          }
         ),
       ),
     );
