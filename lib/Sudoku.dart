@@ -68,36 +68,47 @@ abstract class Constraint {
     VIOLATED = -1;
 
   Sudoku sd;
-  int status = Constraint.NOT_RUN;
   List<int> condition;
-  List<int> successCondition = null;
   BitArray variables;
   ConstraintType type = ConstraintType.GENERIC;
-  int start;
   bool active = true;
-  int colorId = 0;
+
+  int get lastStatus => (this._statuses.length < 2) ? Constraint.NOT_RUN : this._statuses[this._statuses.length - 1];
+  int get status => (this._statuses.isEmpty) ? Constraint.NOT_RUN : this._statuses.last;
+  int ageLastRun = -1;
+  List<int> _statuses;
+  List<int> _successStreaks;
+  List<List<int>> _successConditions;
 
   Constraint(Sudoku sd, BitArray variables) {
     this.sd = sd;
-    sd.guard(() {
-      this.condition = List<int>()..addAll(sd.buf);
-    });
     this.variables = variables.clone();
-    this.start = -1;
+    this.updateCondition();
+    this._statuses = <int>[];
+    this._successStreaks = <int>[];
+    this._successConditions = <List<int>>[];
   }
 
   Iterable<int> getValues();
 
-  bool isActive() {
-    if(!this.active) {
-      return false;
-    }
+  bool checkInitialCondition() {
     for(int i = 0; i < sd.ne4; ++i) {
       if(this.condition[i] != 0 && this.condition[i] != sd.buf[i]) {
         return false;
       }
     }
     return true;
+  }
+
+  bool isActive() {
+    if(!this.active) {
+      return false;
+    }
+    return this.checkInitialCondition();
+  }
+
+  void updateCondition() {
+    this.condition = sd.assist.currentCondition;
   }
 
   void activate() {
@@ -111,11 +122,11 @@ abstract class Constraint {
   int _apply();
 
   bool checkSuccessCondition() {
-    if(this.successCondition == null) {
+    if(this._successConditions.isEmpty || this.status != Constraint.SUCCESS) {
       return false;
     }
     for(int i = 0; i < sd.ne4; ++i) {
-      int val = this.successCondition[i];
+      int val = this._successConditions.last[i];
       if(val != 0 && val != sd[i]) {
         return false;
       }
@@ -123,33 +134,35 @@ abstract class Constraint {
     return true;
   }
 
-  bool checkStart() {
-    return start != -1 && start < sd.changes.length - 1;
-  }
-
-  bool checkMemoizedPass() {
-    return this.checkStart() && this.checkSuccessCondition();
+  void retract() {
+    if(!this._statuses.isEmpty) {
+      this._statuses.removeLast();
+      if(!this._successStreaks.isEmpty && this._successConditions.length == this._successStreaks.last) {
+        this._successStreaks.removeLast();
+        this._successConditions.removeLast();
+      }
+    }
   }
 
   void apply() {
     print('apply constraint ${this.type}');
-    if(this.checkMemoizedPass()) {
+    if(this.checkSuccessCondition()) {
       print('success by condition');
       return;
-    } else {
-      this.successCondition = null;
     }
-    var currentCondition = List<int>()..addAll(sd.buf);
-    // re-calculated:
-    // this.status = Constraint.NOT_RUN;
-    this.status = this._apply();
-    if(status == Constraint.SUCCESS) {
+    var currentCondition = sd.assist.currentCondition;
+    int newStatus = this._apply();
+    if(sd.age == this.ageLastRun) {
+      this._statuses.last = newStatus;
+      return;
+    } else {
+      this._statuses.add(newStatus);
+    }
+    if(this.lastStatus != Constraint.SUCCESS && this.status == Constraint.SUCCESS) {
       sd.guard(() {
-        this.successCondition = currentCondition;
+        this._successStreaks.add(this._successConditions.length);
+        this._successConditions.add(currentCondition);
       });
-      if(!sd.assist.dryRunMode) {
-        this.start = sd.changes.length;
-      }
     }
   }
 
@@ -167,7 +180,7 @@ class ConstraintOneOf extends Constraint {
   }
 
   BitArray getDomain(int variable) {
-    var dom = sd.getDomain(variable);
+    var dom = sd.assist.getDomain(variable);
     return dom;
   }
 
@@ -181,7 +194,7 @@ class ConstraintOneOf extends Constraint {
     // there is variable that inevitably is assigned to value
     int remainingUnique = -1;
     for(int v in this.variables.asIntIterable()) {
-      var dom = sd.getDomain(v);
+      var dom = sd.assist.getDomain(v);
       if(dom.cardinality == 1 && dom[this.value]) {
         if(remainingUnique == -1) {
           print('remainingUnique $v');
@@ -198,7 +211,7 @@ class ConstraintOneOf extends Constraint {
     // there is only one variable that can hold the value
     int remaining = -1;
     for(int v in this.variables.asIntIterable()) {
-      if(sd.getDomain(v)[this.value]) {
+      if(sd.assist.getDomain(v)[this.value]) {
         if(remaining == -1) {
           remaining = v;
         } else {
@@ -228,7 +241,7 @@ class ConstraintEqual extends Constraint {
   Iterable<int> getValues() {
     var dom = sd.getFullDomain();
     for(int v in this.variables.asIntIterable()) {
-      dom = dom & sd.getDomain(v);
+      dom = dom & sd.assist.getDomain(v);
     }
     return dom.asIntIterable();
   }
@@ -237,7 +250,7 @@ class ConstraintEqual extends Constraint {
   int _apply() {
     var dom = sd.getFullDomain();
     for(int v in this.variables.asIntIterable()) {
-      dom = dom & sd.getDomain(v);
+      dom = dom & sd.assist.getDomain(v);
     }
     dom.clearBit(0);
     if(dom.isEmpty) {
@@ -291,7 +304,7 @@ class ConstraintAllDiff extends Constraint {
       if(this.assigned[ind] != 0) {
         dom = sd.getEmptyDomain()..setBit(this.assigned[ind]);
       } else {
-        dom = sd.getDomain(variable) & this.domain;
+        dom = sd.assist.getDomain(variable) & this.domain;
         for(var val in this.assigned) {
           dom.clearBit(val);
         }
@@ -410,39 +423,103 @@ class ConstraintAllDiff extends Constraint {
   }
 }
 
+class Eliminator {
+  Sudoku sd;
+
+  int get length => this.conditions.length;
+  List<List<int>> conditions;
+  List<BitArray> forbiddenValues;
+
+  Eliminator(Sudoku sd) {
+    this.sd = sd;
+    this.conditions = <List<int>>[];
+    this.forbiddenValues = <BitArray>[];
+  }
+
+  void eliminate(int variable, BitArray values) {
+    if(this.conditions.isEmpty || this.conditions.last != sd.assist.currentCondition) {
+      this.conditions.add(sd.assist.currentCondition);
+      this.forbiddenValues.add(BitArray(sd.ne4 * (sd.ne2 + 1)));
+    }
+    for(int val in values.asIntIterable()) {
+      this.forbiddenValues.last.setBit(sd.ne4 * variable + val);
+    }
+  }
+
+  bool checkCondition(int index) {
+    for(int i = 0; i < sd.ne4; ++i) {
+      if(this.conditions[index][i] != 0 && this.conditions[index][i] != sd.buf[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  BitArray getDomain(int variable) {
+    var dom = sd.getDomain(variable);
+    for(int i = 0; i < this.length; ++i) {
+      if(!this.checkCondition(i)) {
+        continue;
+      }
+      for(int val = 1; val < sd.ne2; ++val) {
+        if(!dom[val]) {
+          continue;
+        }
+        bool forbidden = this.forbiddenValues[i][sd.ne4 * variable + val];
+        if(forbidden) {
+          dom.clearBit(val);
+        }
+      }
+    }
+    return dom;
+  }
+}
+
 class SudokuAssist {
   Sudoku sd;
+  List<int> currentCondition;
   List<Constraint> constraints;
   List<Constraint> newlySucceeded;
+  Eliminator elim;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
     this.constraints = List<Constraint>();
     this.newlySucceeded = List<Constraint>();
+    this.elim = Eliminator(sd);
+  }
+
+  BitArray getDomain(int variable) {
+    return this.elim.getDomain(variable);
   }
 
   void addConstraint(Constraint ct) {
     constraints.add(ct);
   }
 
-  bool dryRunMode = false;
-  void dryRun() {
-    print('dry running constraints');
-    this.dryRunMode = true;
-    this.apply();
-    this.dryRunMode = false;
+  void updateCurrentCondition() {
+    sd.guard(() {
+      this.currentCondition = List<int>()..addAll(sd.buf);
+    });
+  }
+
+  void retract() {
+    this.updateCurrentCondition();
+    for(var constr in this.constraints) {
+      constr.retract();
+    }
   }
 
   void apply() {
+    this.updateCurrentCondition();
     newlySucceeded = List<Constraint>();
     for(var constr in this.constraints) {
       if(!constr.isActive()) {
         continue;
       }
-      int beforeStatus = constr.status;
       constr.apply();
-      int afterStatus = constr.status;
-      if(beforeStatus != afterStatus && !this.dryRunMode && afterStatus == Constraint.SUCCESS) {
+      if(constr.lastStatus != constr.status && constr.status == Constraint.SUCCESS) {
+        this.updateCurrentCondition();
         this.newlySucceeded.add(constr);
       }
     }
@@ -477,6 +554,8 @@ class Sudoku {
 
   bool _mutex = false;
   bool _changeMutex = false;
+
+  int get age => this.changes.length;
 
   void wait() {
     while(this._mutex)
@@ -716,9 +795,6 @@ class Sudoku {
   }
 
   void setAssistantChange(int index, int val) {
-    if(this.assist.dryRunMode) {
-      return;
-    }
     this.guardChange(() {
       this.changes.last.registerChange(index, val);
     });
@@ -757,6 +833,7 @@ class Sudoku {
         changes.add(SudokuChange());
       }
     });
+    this.assist.retract();
   }
 
   String toString() {

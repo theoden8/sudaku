@@ -4,11 +4,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:bit_array/bit_array.dart';
 
 
+import 'Sudoku.dart';
+
+
 class NumpadScreenArguments {
-  NumpadScreenArguments({this.n, this.domain, this.multiselectionMode});
-  final int n;
+  NumpadScreenArguments({this.domain, this.multiselectionMode, this.sd, this.variable});
   BitArray domain;
   int multiselectionMode;
+  Sudoku sd;
+  int variable = -1;
 }
 
 class NumpadScreen extends StatefulWidget {
@@ -21,24 +25,35 @@ class NumpadScreen extends StatefulWidget {
 
 class NumpadScreenState extends State<NumpadScreen> {
   BitArray multiselection;
-  int noSelected = 0;
+  Sudoku sd;
+  int variable;
   int multiselectionMode = 0;
   bool reset = true;
+
+  // bool get antiselectionMode => (this.multiselectionMode == 0 && this.variable != -1);
 
   void _handleOnPress(BuildContext ctx, int val) {
     if(this.multiselectionMode > 0) {
       this.multiselection.invertBit(val);
-      if(this.multiselection[val]) {
-        ++this.noSelected;
-      } else {
-        --this.noSelected;
-      }
       // print('multiselection ${multiselection.asIntIterable().toList()}');
       setState((){});
     } else {
+      // if(this.antiselectionMode) {
+      //   if(!this.multiselection.isEmpty) {
+      //     sd.assist.elim.eliminate(this.variable, this.multiselection);
+      //   }
+      // }
       Navigator.pop(ctx, val);
     }
   }
+
+  // void _handleOnLongPress(BuildContext ctx, int val) {
+  //   if(!this.antiselectionMode) {
+  //     return;
+  //   }
+  //   this.multiselection.invertBit(val);
+  //   setState(() {});
+  // }
 
   List<Widget> _makeToolbar(BuildContext ctx) {
      var toolbar = List<Widget>();
@@ -46,7 +61,7 @@ class NumpadScreenState extends State<NumpadScreen> {
       toolbar.add(
         IconButton(
           icon: Icon(Icons.save),
-          onPressed: (this.noSelected != this.multiselectionMode) ? null : () {
+          onPressed: (this.multiselection.cardinality != this.multiselectionMode) ? null : () {
             this.reset = true;
             Navigator.pop(ctx, multiselection);
           },
@@ -58,11 +73,16 @@ class NumpadScreenState extends State<NumpadScreen> {
 
   Widget build(BuildContext ctx) {
     final NumpadScreenArguments args = ModalRoute.of(ctx).settings.arguments;
-    final int n = args.n;
     final BitArray dom = args.domain;
+    this.variable = args.variable;
+    this.sd = args.sd;
+    final int n = sd.n;
     if(this.reset) {
-      this.multiselection = BitArray(n * n + 1);
-      this.noSelected = 0;
+      if(variable != -1) {
+        this.multiselection = dom ^ (dom & sd.assist.getDomain(variable));
+      } else {
+        this.multiselection = sd.getEmptyDomain();
+      }
       this.reset = false;
     }
     this.multiselectionMode = args.multiselectionMode;
@@ -94,14 +114,26 @@ class NumpadScreenState extends State<NumpadScreen> {
                   margin: EdgeInsets.all(sz * 0.1),
                   child: RaisedButton(
                     elevation: this.multiselection[val + 1] ? 0 : 4.0,
-                    color: this.multiselection[val + 1] ? Colors.yellow[100] : Colors.blue[100],
+                    color: () {
+                      if(this.multiselection[val + 1] && this.multiselectionMode > 0) {
+                        return Colors.yellow[100];
+                      // } else if(this.antiselectionMode && this.multiselection[val + 1]) {
+                      //   return Colors.red[100];
+                      } else {
+                        return Colors.blue[100];
+                      }
+                    }(),
                     onPressed: (!dom[val + 1] || (
                       this.multiselectionMode > 0
                       && !this.multiselection[val + 1]
-                      && this.noSelected == this.multiselectionMode))
+                      && this.multiselection.cardinality == this.multiselectionMode))
                     ? null : () {
                       this._handleOnPress(ctx, val + 1);
                     },
+                    // onLongPress: (!dom[val + 1] || !this.antiselectionMode)
+                    // ? null : () {
+                    //   this._handleOnLongPress(ctx, val + 1);
+                    // },
                     disabledColor: Colors.grey,
                     padding: EdgeInsets.all(0.0),
                     child: Text(

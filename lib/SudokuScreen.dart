@@ -50,7 +50,7 @@ class OneofInteraction extends ConstraintInteraction {
     for(int v in self._multiSelect.asIntIterable()) {
       dom = dom | self.sd.getDomain(v);
     }
-    var val = await self._selectValue(dom);
+    var val = await self._selectValue(dom, -1);
     if(val == null) {
       return;
     }
@@ -151,29 +151,30 @@ class SudokuScreenState extends State<SudokuScreen> {
       this.context,
       NumpadScreen.routeName,
       arguments: NumpadScreenArguments(
-        n: sd.n,
         domain: domain,
         multiselectionMode: maxNoValues,
+        sd: this.sd,
       ),
     );
     return selection;
   }
 
-  Future _selectValue(BitArray domain) async {
+  Future _selectValue(BitArray domain, int variable) async {
     final val = await Navigator.pushNamed(
       this.context,
       NumpadScreen.routeName,
       arguments: NumpadScreenArguments(
-        n: sd.n,
         domain: domain,
         multiselectionMode: 0,
+        variable: variable,
+        sd: this.sd,
       ),
     );
     return val;
   }
 
   Future<void> _selectCellValue(int index) async {
-    final val = await this._selectValue(sd.getDomain(index));
+    final val = await this._selectValue(sd.getDomain(index), index);
     if(val != null) {
       setState(() {
         sd.setManualChange(index, val);
@@ -405,25 +406,28 @@ class SudokuScreenState extends State<SudokuScreen> {
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
     var constraints = sd.assist.constraints.where((Constraint c) {
-      return !c.checkMemoizedPass();
+      return c.status != Constraint.SUCCESS;
     }).toList();
     var listTiles = List<Widget>.generate(constraints.length, (i) {
       return  Card(
         elevation: 1.0,
-        color: (int status) {
-          if(status == Constraint.SUCCESS) {
+        color: (Constraint c) {
+          if(c.status == Constraint.SUCCESS) {
             return Colors.green[100];
-          } else if(status == Constraint.VIOLATED) {
+          } else if(c.status == Constraint.VIOLATED) {
             return Colors.red[100];
           }
           return Colors.white;
-        }(constraints[i].status),
+        }(constraints[i]),
         child: ListTile(
           leading: Checkbox(
             value: constraints[i].isActive(),
             onChanged: (bool b) {
               if(b) {
                 constraints[i].activate();
+                // if(!constraints[i].checkInitialCondition()) {
+                //   constraints[i].updateCondition();
+                // }
               } else {
                 constraints[i].deactivate();
                 if(this._selectedConstraint == constraints[i]) {
@@ -441,7 +445,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               if(this._selectedConstraint == constraints[i]) {
                 this._selectedConstraint = null;
               }
-              constraints.remove(constraints[i]);
+              sd.assist.constraints.remove(constraints[i]);
               this.runSetState();
             },
           ),
@@ -543,7 +547,6 @@ class SudokuScreenState extends State<SudokuScreen> {
               });
             }
             sd.undoChange();
-            sd.assist.dryRun();
           });
         },
       ),
