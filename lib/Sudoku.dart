@@ -56,6 +56,58 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
 }
 
 
+class Buffer {
+  List<int> buf;
+  int get length => this.buf.length;
+  bool _mutex = false;
+
+  void guard(Function f) {
+    while(this._mutex)
+      ;
+    this._mutex = true;
+    f();
+    this._mutex = false;
+  }
+
+  Buffer(int length) {
+    this.buf = List<int>.generate(length, (i) => 0);
+  }
+
+  void setBuffer(List<int> newBuffer) {
+    this.guard(() {
+      this.buf = newBuffer;
+    });
+  }
+
+  List<int> _getBuffer() {
+    return this.buf;
+  }
+
+  List<int> getBuffer() {
+    List<int> buffer = null;
+    this.guard((){
+      buffer = List<int>()..addAll(this._getBuffer());
+    });
+    return buffer;
+  }
+
+  int operator[](int index) {
+    int val = null;
+    this.guard(() {
+      val = this.buf[index];
+    });
+    return val;
+  }
+
+  int operator[]=(int index, int val) {
+    this.guard(() {
+      this.buf[index] = val;
+    });
+    return val;
+  }
+}
+
+
 enum ConstraintType {
   ONE_OF, EQUAL, ALLDIFF, GENERIC
 }
@@ -68,7 +120,7 @@ abstract class Constraint {
     VIOLATED = -1;
 
   Sudoku sd;
-  List<int> condition;
+  Buffer condition;
   BitArray variables;
   ConstraintType type = ConstraintType.GENERIC;
   bool active = true;
@@ -78,22 +130,22 @@ abstract class Constraint {
   int ageLastRun = -1;
   List<int> _statuses;
   List<int> _successStreaks;
-  List<List<int>> _successConditions;
+  List<Buffer> _successConditions;
 
   Constraint(Sudoku sd, BitArray variables) {
     this.sd = sd;
-    this.variables = variables.clone();
     this.updateCondition();
+    this.variables = variables.clone();
     this._statuses = <int>[];
     this._successStreaks = <int>[];
-    this._successConditions = <List<int>>[];
+    this._successConditions = <Buffer>[];
   }
 
   Iterable<int> getValues();
 
   bool checkInitialCondition() {
     for(int i = 0; i < sd.ne4; ++i) {
-      if(this.condition[i] != 0 && this.condition[i] != sd.buf[i]) {
+      if(this.condition[i] != 0 && this.condition[i] != sd[i]) {
         return false;
       }
     }
@@ -159,10 +211,8 @@ abstract class Constraint {
       this._statuses.add(newStatus);
     }
     if(this.lastStatus != Constraint.SUCCESS && this.status == Constraint.SUCCESS) {
-      sd.guard(() {
-        this._successStreaks.add(this._successConditions.length);
-        this._successConditions.add(currentCondition);
-      });
+      this._successStreaks.add(this._successConditions.length);
+      this._successConditions.add(currentCondition);
     }
   }
 
@@ -427,32 +477,77 @@ class Eliminator {
   Sudoku sd;
 
   int get length => this.conditions.length;
-  List<List<int>> conditions;
+  List<Buffer> conditions;
   List<BitArray> forbiddenValues;
+
+  bool mutex = false;
+  void guard(Function f) {
+    while(mutex)
+      ;
+    mutex = true;
+    f();
+    mutex = false;
+  }
 
   Eliminator(Sudoku sd) {
     this.sd = sd;
-    this.conditions = <List<int>>[];
+    this.conditions = <Buffer>[];
     this.forbiddenValues = <BitArray>[];
   }
 
-  void eliminate(int variable, BitArray values) {
-    if(this.conditions.isEmpty || this.conditions.last != sd.assist.currentCondition) {
-      this.conditions.add(sd.assist.currentCondition);
-      this.forbiddenValues.add(BitArray(sd.ne4 * (sd.ne2 + 1)));
+  void removeObsoleteConditions() {
+    int i = 0;
+    while(i < this.length) {
+      this.guard(() {
+        if(this.forbiddenValues[i].isEmpty) {
+          this.conditions.removeAt(i);
+          this.forbiddenValues.removeAt(i);
+        } else {
+          ++i;
+        }
+      });
     }
-    for(int val in values.asIntIterable()) {
-      this.forbiddenValues.last.setBit(sd.ne4 * variable + val);
+  }
+
+  void eliminate(int variable, BitArray values) {
+    this.removeObsoleteConditions();
+    this.guard(() {
+      if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
+        this.conditions.add(sd.assist.currentCondition);
+        this.forbiddenValues.add(BitArray(sd.ne4 * (sd.ne2 + 1)));
+      }
+      for(int val in values.asIntIterable()) {
+        this.forbiddenValues.last.setBit(sd.ne4 * variable + val);
+      }
+    });
+  }
+
+  void reinstateValue(int variable, int value) {
+    for(int i = 0; i < this.length; ++i) {
+      print('reinstating [$variable] ?= $value');
+      this.guard(() {
+        this.forbiddenValues[i].clearBit(sd.ne4 * variable + value);
+      });
+    }
+  }
+
+  void reinstate(int variable, BitArray values) {
+    for(var val in values.asIntIterable()) {
+      this.reinstateValue(variable, val);
     }
   }
 
   bool checkCondition(int index) {
-    for(int i = 0; i < sd.ne4; ++i) {
-      if(this.conditions[index][i] != 0 && this.conditions[index][i] != sd.buf[i]) {
-        return false;
+    bool ret = true;
+    this.guard((){
+      for(int i = 0; i < sd.ne4; ++i) {
+        if(this.conditions[index][i] != 0 && this.conditions[index][i] != sd[i]) {
+          ret = false;
+          break;
+        }
       }
-    }
-    return true;
+    });
+    return ret;
   }
 
   BitArray getDomain(int variable) {
@@ -465,7 +560,10 @@ class Eliminator {
         if(!dom[val]) {
           continue;
         }
-        bool forbidden = this.forbiddenValues[i][sd.ne4 * variable + val];
+        bool forbidden;
+        this.guard(() {
+          forbidden = this.forbiddenValues[i][sd.ne4 * variable + val];
+        });
         if(forbidden) {
           dom.clearBit(val);
         }
@@ -475,9 +573,10 @@ class Eliminator {
   }
 }
 
+
 class SudokuAssist {
   Sudoku sd;
-  List<int> currentCondition;
+  Buffer currentCondition;
   List<Constraint> constraints;
   List<Constraint> newlySucceeded;
   Eliminator elim;
@@ -487,31 +586,56 @@ class SudokuAssist {
     this.constraints = List<Constraint>();
     this.newlySucceeded = List<Constraint>();
     this.elim = Eliminator(sd);
+    this.currentCondition = Buffer(sd.ne4);
   }
 
   BitArray getDomain(int variable) {
     return this.elim.getDomain(variable);
   }
 
+  BitArray getElimination(int variable) {
+    var dom = sd.getDomain(variable);
+    return dom ^ (dom & this.getDomain(variable));
+  }
+
+  void modifyEliminations(int variable, BitArray processedValues) {
+    var edom = this.getElimination(variable);
+    var diff = edom ^ processedValues;
+    var toReinstate = edom & diff;
+    var toEliminate = diff ^ toReinstate;
+    this.elim.reinstate(variable, toReinstate);
+    this.elim.eliminate(variable, toEliminate);
+  }
+
   void addConstraint(Constraint ct) {
     constraints.add(ct);
   }
 
+  bool checkConditionChange() {
+    if(this.currentCondition == null) {
+      return false;
+    }
+    for(int i = 0; i < sd.ne4; ++i) {
+      if(sd[i] != this.currentCondition[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void updateCurrentCondition() {
-    sd.guard(() {
-      this.currentCondition = List<int>()..addAll(sd.buf);
-    });
+    if(!this.checkConditionChange()) {
+      this.currentCondition.setBuffer(sd.buf.getBuffer());
+    }
   }
 
   void retract() {
-    this.updateCurrentCondition();
     for(var constr in this.constraints) {
       constr.retract();
     }
   }
 
   void apply() {
-    this.updateCurrentCondition();
     newlySucceeded = List<Constraint>();
     for(var constr in this.constraints) {
       if(!constr.isActive()) {
@@ -519,7 +643,6 @@ class SudokuAssist {
       }
       constr.apply();
       if(constr.lastStatus != constr.status && constr.status == Constraint.SUCCESS) {
-        this.updateCurrentCondition();
         this.newlySucceeded.add(constr);
       }
     }
@@ -544,41 +667,76 @@ class SudokuChange {
   }
 }
 
+class SudokuChangeList {
+  List<SudokuChange> changes;
+
+  bool _mutex = false;
+  dynamic guard(Function f) {
+    while(this._mutex)
+      ;
+    this._mutex = true;
+    var r = f();
+    this._mutex = false;
+    return r;
+  }
+
+  int get length => this.guard(() => this.changes.length);
+  bool get isEmpty => this.guard(() => this.changes.isEmpty);
+  SudokuChange get first => this.guard(() => this.changes.first);
+  SudokuChange get last => this.guard(() => this.changes.last);
+
+  SudokuChange operator[](int index) => this.guard(() => this.changes[index]);
+
+  SudokuChangeList() {
+    this.changes = <SudokuChange>[];
+    this.add();
+  }
+
+  void add() {
+    this.guard((){
+      this.changes.add(SudokuChange());
+    });
+  }
+
+  void registerChange(int index, int newval) {
+    this.guard(() {
+      this.changes.last.registerChange(index, newval);
+    });
+  }
+
+  void removeLast() {
+    if(this.isEmpty) {
+      return;
+    }
+    guard(() {
+      this.changes.removeLast();
+    });
+    if(this.isEmpty) {
+      this.add();
+    }
+  }
+
+  get reversed => this.guard(() => this.changes.reversed);
+}
+
 class Sudoku {
   BitArray hints;
-  List<int> buf;
-  List<SudokuChange> changes;
+  Buffer buf;
+  SudokuChangeList changes;
   int n, ne2, ne4, ne6;
 
   SudokuAssist assist;
 
   bool _mutex = false;
-  bool _changeMutex = false;
 
   int get age => this.changes.length;
 
-  void wait() {
+  void guard(Function() func) {
     while(this._mutex)
       ;
-  }
-
-  void guard(Function() func) {
-    this.wait();
     this._mutex = true;
     func();
     this._mutex = false;
-  }
-
-  void waitChange() {
-    while(this._changeMutex)
-      ;
-  }
-
-  void guardChange(Function() func) {
-    this.waitChange();
-    this._changeMutex = true;
-    func();
-    this._changeMutex = false;
   }
 
   void _renameBuffer() {
@@ -586,26 +744,20 @@ class Sudoku {
     renaming.shuffle();
     renaming.insert(0, 0);
     // print('renaming $renaming');
-    this.guard(() {
-      for(int i = 0; i < ne4; ++i) {
-        this.buf[i] = renaming[this.buf[i]];
-      }
-    });
+    for(int i = 0; i < ne4; ++i) {
+      this[i] = renaming[this.buf[i]];
+    }
   }
 
   void _mangleCrossTranspose() {
-    this.guard(() {
-      this.buf = this.buf.reversed.toList();
-    });
+    this.buf.setBuffer(this.buf._getBuffer().reversed.toList());
   }
 
   void _mangleTranspose() {
-    this.guard(() {
-      this.buf = List<int>.generate(ne4, (index) {
-        int i = index % ne2, j = index ~/ ne2;
-        return this.buf[j * ne2 + i];
-      });
-    });
+    this.buf.setBuffer(List<int>.generate(ne4, (index) {
+      int i = index % ne2, j = index ~/ ne2;
+      return this.buf[j * ne2 + i];
+    }));
   }
 
   void _mangleBuffer() {
@@ -620,46 +772,37 @@ class Sudoku {
   }
 
   void _setupSudoku(AssetBundle a, SudokuScreenState ss) async {
-    if(this._mutex) {
-      return;
-    }
-
+    this.buf = Buffer(ne4);
     var r = new Random();
     if(n == 2) {
       this.guard(() {
         switch(r.nextInt(2)) {
           case 0:
-            this.buf = <int>[
+            this.buf.setBuffer(<int>[
               1, 0, 0, 0,
               3, 2, 0, 0,
               0, 0, 2, 0,
               0, 0, 0, 1,
-            ];
+            ]);
           break;
           case 1:
-            this.buf = <int>[
+            this.buf.setBuffer(<int>[
               1, 0, 0, 0,
               0, 2, 0, 0,
               3, 0, 2, 0,
               0, 0, 0, 1,
-            ];
+            ]);
           break;
         }
       });
     } else if(n == 3) {
       var newBuf = await loadFrom1465(a);
-      this.guard(() {
-        this.buf = newBuf;
-      });
+      this.buf.setBuffer(newBuf);
     } else if(n == 4) {
       var newBuf = await loadFrom44(a);
-      this.guard(() {
-        this.buf = newBuf;
-      });
+      this.buf.setBuffer(newBuf);
     } else {
-      this.guard(() {
-        this.buf = List<int>.generate(this.ne4, (i) => r.nextInt(ne2 + 1));
-      });
+      this.buf.setBuffer(List<int>.generate(this.ne4, (i) => r.nextInt(ne2 + 1)));
     }
     // print(this.toString());
     this._mangleBuffer();
@@ -672,6 +815,7 @@ class Sudoku {
         }
       }
     });
+    this.assist.updateCurrentCondition();
     assert(this.check());
     ss.runSetState();
   }
@@ -681,17 +825,24 @@ class Sudoku {
     this.ne2 = n * n;
     this.ne4 = ne2 * ne2;
     this.ne6 = ne4 * ne2;
-    this.changes = List<SudokuChange>()..add(SudokuChange());
+    this.changes = SudokuChangeList();
     this.assist = SudokuAssist(this);
     this._setupSudoku(a, ss);
   }
 
   bool isHint(int ind) {
-    if(this.buf == null) {
+    if(this.hints == null) {
       return false;
     }
-    this.wait();
-    return this.hints[ind];
+    bool ret = false;
+    this.guard(() {
+      ret = this.hints[ind];
+    });
+    return ret;
+  }
+
+  bool checkIsComplete() {
+    return !this.buf._getBuffer().contains(0);
   }
 
   BitArray getDomain(int index) {
@@ -732,33 +883,17 @@ class Sudoku {
     if(this.buf == null) {
       return 0;
     }
-    int val = 0;
-    this.guard(() {
-      val = this.buf[ind];
-    });
-    return val;
+    return this.buf[ind];
   }
 
   int operator[]=(int ind, int val) {
-    this.guard(() {
-      this.buf[ind] = val;
-    });
+    this.buf[ind] = val;
+    this.assist.updateCurrentCondition();
     return val;
   }
 
   int index(int i, int j) {
     return i * ne2 + j;
-  }
-
-  // readonly
-  int countUnknowns() {
-    int c = 0;
-    for(int i = 0; i < ne4; ++i) {
-      if(this[i] == 0) {
-        ++c;
-      }
-    }
-    return c;
   }
 
   // readonly
@@ -787,59 +922,48 @@ class Sudoku {
   }
 
   void setManualChange(int index, int val) {
-    this.guardChange(() {
-      this.changes.add(SudokuChange());
-      this.changes.last.registerChange(index, val);
-    });
+    this.changes.add();
+    this.changes.registerChange(index, val);
     this[index] = val;
   }
 
   void setAssistantChange(int index, int val) {
-    this.guardChange(() {
-      this.changes.last.registerChange(index, val);
-    });
+    this.changes.last.registerChange(index, val);
     this[index] = val;
   }
 
   void undoChange() {
-    this.guardChange(() {
-      if(changes.isEmpty) {
-        return;
-      }
-      for(int i = 0; i < changes.last.length; ++i) {
-        int ind = changes.last.indices[changes.last.length - i - 1];
-        // int val = changes.last.values[changes.last.length - i - 1];
-        int precedingValue = 0;
-        // same change stack
-        for(SudokuChange c in changes.reversed) {
-          for(int j = 0; j < ((c == changes.last) ? c.length - i - 1 : c.length); ++j) {
-            int oldInd = c.indices[j];
-            if(oldInd != ind) {
-              continue;
-            }
-            precedingValue = c.values[j];
-            break;
+    if(this.changes.isEmpty) {
+      return;
+    }
+    for(int i = 0; i < changes.last.length; ++i) {
+      int ind = changes.last.indices[changes.last.length - i - 1];
+      // int val = changes.last.values[changes.last.length - i - 1];
+      int precedingValue = 0;
+      // same change stack
+      for(int c_ind in Iterable<int>.generate(this.changes.length, (c_ind) => this.changes.length - c_ind - 1)) {
+        var c = this.changes[c_ind];
+        for(int j = 0; j < ((c == changes.last) ? c.length - i - 1 : c.length); ++j) {
+          int oldInd = c.indices[j];
+          if(oldInd != ind) {
+            continue;
           }
-          if(precedingValue != 0) {
-            break;
-          }
+          precedingValue = c.values[j];
+          break;
         }
-        this.guard(() {
-          this.buf[ind] = precedingValue;
-        });
+        if(precedingValue != 0) {
+          break;
+        }
       }
-      changes.removeLast();
-      if(changes.isEmpty) {
-        changes.add(SudokuChange());
-      }
-    });
+    }
+    this.changes.removeLast();
     this.assist.retract();
   }
 
   String toString() {
     String s = "$n\n";
     for(int i = 0; i < ne4; ++i) {
-      s = "$s ${this.buf[i]}";
+      s = "$s ${this[i]}";
       if((i != ne4 - 1) && (i % ne2 == ne2 - 1)) {
         s = "$s\n";
       }

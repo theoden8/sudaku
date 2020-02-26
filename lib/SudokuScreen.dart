@@ -146,14 +146,14 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
   }
 
-  Future _selectValues(BitArray domain, int maxNoValues) async {
+  Future _selectValues(BitArray domain, int q) async {
     final selection = await Navigator.pushNamed(
       this.context,
       NumpadScreen.routeName,
       arguments: NumpadScreenArguments(
-        domain: domain,
-        multiselectionMode: maxNoValues,
         sd: this.sd,
+        domain: domain,
+        multiselectionMode: q,
       ),
     );
     return selection;
@@ -164,27 +164,32 @@ class SudokuScreenState extends State<SudokuScreen> {
       this.context,
       NumpadScreen.routeName,
       arguments: NumpadScreenArguments(
+        sd: this.sd,
         domain: domain,
         multiselectionMode: 0,
         variable: variable,
-        sd: this.sd,
       ),
     );
     return val;
   }
 
   Future<void> _selectCellValue(int index) async {
-    final val = await this._selectValue(sd.getDomain(index), index);
-    if(val != null) {
-      setState(() {
+    final ret = await this._selectValue(sd.getDomain(index), index);
+    if(ret != null) {
+      if(ret is int) {
+        int val = ret;
         sd.setManualChange(index, val);
         if(val != 0) {
           sd.assist.apply();
           this.showAssistantResult();
         }
-      });
+      } else if(ret is BitArray) {
+        BitArray e = ret;
+        sd.assist.modifyEliminations(index, e);
+      }
+      this.runSetState();
     }
-    if(sd.countUnknowns() == 0 && sd.check()) {
+    if(sd.checkIsComplete() && sd.check()) {
       this._showVictoryDialog();
     }
   }
@@ -540,11 +545,9 @@ class SudokuScreenState extends State<SudokuScreen> {
               return;
             }
             if(sd.changes.length > 0) {
-              sd.guardChange(() {
-                if(!sd.changes.last.isEmpty) {
-                  this._selectedCell = sd.changes.last.indices.first;
-                }
-              });
+              if(!sd.changes.last.isEmpty) {
+                this._selectedCell = sd.changes.last.indices.first;
+              }
             }
             sd.undoChange();
           });
@@ -558,13 +561,6 @@ class SudokuScreenState extends State<SudokuScreen> {
           }
         },
       ),
-      // IconButton(
-      //   icon: Icon(Icons.wrap_text),
-      //   onPressed: () {
-      //     sd.assist.apply();
-      //     this.runSetState();
-      //   },
-      // ),
       PopupMenuButton<int>(
         onSelected: (int opt) {
           switch(opt) {
