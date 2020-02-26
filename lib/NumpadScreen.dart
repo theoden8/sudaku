@@ -121,8 +121,9 @@ class MultiselectionInteraction extends NumpadInteraction {
 
   @override
   bool onPressEnabled(int val) {
-    return super.onPressEnabled(val)
-      && this.limit > numpad.multiselection.cardinality;
+    return super.onPressEnabled(val) && (
+      numpad.multiselection[val]
+      || this.limit > numpad.multiselection.cardinality);
   }
 
   @override

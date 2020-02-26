@@ -511,22 +511,25 @@ class Eliminator {
 
   void eliminate(int variable, BitArray values) {
     this.removeObsoleteConditions();
-    this.guard(() {
-      if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
-        this.conditions.add(sd.assist.currentCondition);
+    if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
+      this.conditions.add(sd.assist.currentCondition);
+      this.guard(() {
         this.forbiddenValues.add(BitArray(sd.ne4 * (sd.ne2 + 1)));
-      }
-      for(int val in values.asIntIterable()) {
-        this.forbiddenValues.last.setBit(sd.ne4 * variable + val);
-      }
-    });
+      });
+    }
+    for(int val in values.asIntIterable()) {
+      print('forbidden values size ${forbiddenValues.last.length} index [$variable]!=$val');
+      this.guard(() {
+        this.forbiddenValues.last.setBit((sd.ne2 + 1) * variable + val);
+      });
+    }
   }
 
   void reinstateValue(int variable, int value) {
     for(int i = 0; i < this.length; ++i) {
       print('reinstating [$variable] ?= $value');
       this.guard(() {
-        this.forbiddenValues[i].clearBit(sd.ne4 * variable + value);
+        this.forbiddenValues[i].clearBit((sd.ne2 + 1) * variable + value);
       });
     }
   }
@@ -562,7 +565,7 @@ class Eliminator {
         }
         bool forbidden;
         this.guard(() {
-          forbidden = this.forbiddenValues[i][sd.ne4 * variable + val];
+          forbidden = this.forbiddenValues[i][(sd.ne2 + 1) * variable + val];
         });
         if(forbidden) {
           dom.clearBit(val);

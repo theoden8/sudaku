@@ -50,7 +50,7 @@ class OneofInteraction extends ConstraintInteraction {
     for(int v in self._multiSelect.asIntIterable()) {
       dom = dom | self.sd.getDomain(v);
     }
-    var val = await self._selectValue(dom, -1);
+    var val = await self._selectValue(dom, null);
     if(val == null) {
       return;
     }
