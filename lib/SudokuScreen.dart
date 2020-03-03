@@ -535,6 +535,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   List<Widget> _makeToolbar(BuildContext ctx) {
     const int TOOLBAR_RESET = 0;
+    const int TOOLBAR_AUTOCOMPLETE = 1;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo),
@@ -550,6 +551,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               }
             }
             sd.undoChange();
+            this.runSetState();
           });
         },
       ),
@@ -567,9 +569,17 @@ class SudokuScreenState extends State<SudokuScreen> {
             case TOOLBAR_RESET:
               this._showResetDialog();
             break;
+            case TOOLBAR_AUTOCOMPLETE:
+              sd.assist.autoComplete = !sd.assist.autoComplete;
+            break;
           }
         },
         itemBuilder: (BuildContext ctx) => <PopupMenuEntry<int>>[
+          CheckedPopupMenuItem(
+            value: TOOLBAR_AUTOCOMPLETE,
+            checked: sd.assist.autoComplete,
+            child: Text('Assist'),
+          ),
           PopupMenuItem(
             value: TOOLBAR_RESET,
             child: Text('Reset'),

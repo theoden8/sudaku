@@ -6,19 +6,20 @@ import 'package:flutter/services.dart';
 
 
 import 'main.dart';
+
 import 'SudokuScreen.dart';
 
 
 Future<List<int>> loadFrom1465(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(1465);
-  print('random number == $r');
+  // print('random number == $r');
   int ne4 = 81;
   return await a.loadStructuredData("assets/top1465",
     (String s) async =>  List<int>.generate(ne4, (i) {
-      if(i == 0) {
-        print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
-      }
+      // if(i == 0) {
+      //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
+      // }
       int index = (ne4 + 1) * r + i;
       var c = s[index];
       assert(c != '\n');
@@ -30,13 +31,13 @@ Future<List<int>> loadFrom1465(AssetBundle a) async {
 Future<List<int>> loadFrom44(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(44);
-  print('random number == $r');
+  // print('random number == $r');
   int ne4 = 256;
   return await a.loadStructuredData<List<int>>("assets/top44",
     (String s) async => List<int>.generate(ne4, (i) {
-        if(i == 0) {
-          print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
-        }
+        // if(i == 0) {
+        //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
+        // }
         int index = (ne4 + 1) * r + i;
         var c = s[index];
         assert(c != '\n');
@@ -141,6 +142,10 @@ abstract class Constraint {
     this._successConditions = <Buffer>[];
   }
 
+  BitArray filteredDomain(BitArray dom, int variable) {
+    return dom;
+  }
+
   Iterable<int> getValues();
 
   bool checkInitialCondition() {
@@ -229,9 +234,29 @@ class ConstraintOneOf extends Constraint {
     this.type = ConstraintType.ONE_OF;
   }
 
-  BitArray getDomain(int variable) {
-    var dom = sd.assist.getDomain(variable);
-    return dom;
+  BitArray filteredDomain(BitArray dom, int variable) {
+    if(this.variables[variable]) {
+      return dom;
+    }
+    bool sameRow = true, sameCol = true, sameBox = true;
+    int row = sd.getCoordinateRow(variable),
+        col = sd.getCoordinateCol(variable),
+        box = sd.getCoordinateBox(variable);
+    for(int v in this.variables.asIntIterable()) {
+      if(sameRow && sd.getCoordinateRow(v) != row) {
+        sameRow = false;
+      }
+      if(sameCol && sd.getCoordinateCol(v) != col) {
+        sameCol = false;
+      }
+      if(sameBox && sd.getCoordinateBox(v) != box) {
+        sameBox = false;
+      }
+    }
+    if(sameRow || sameCol || sameBox) {
+      return dom..clearBit(value);
+    }
+    return super.filteredDomain(dom, variable);
   }
 
   @override
@@ -347,6 +372,31 @@ class ConstraintAllDiff extends Constraint {
     this.domainCache = List<BitArray>.generate(this.length, (i) => null);
   }
 
+  BitArray filteredDomain(BitArray dom, int variable) {
+    if(this.variables[variable]) {
+      return (dom & this.domain)..clearBits(this.assigned);
+    }
+    bool sameRow = true, sameCol = true, sameBox = true;
+    int row = sd.getCoordinateRow(variable),
+        col = sd.getCoordinateCol(variable),
+        box = sd.getCoordinateBox(variable);
+    for(int v in this.variables.asIntIterable()) {
+      if(sameRow && sd.getCoordinateRow(v) != row) {
+        sameRow = false;
+      }
+      if(sameCol && sd.getCoordinateCol(v) != col) {
+        sameCol = false;
+      }
+      if(sameBox && sd.getCoordinateBox(v) != box) {
+        sameBox = false;
+      }
+    }
+    if(sameRow || sameCol || sameBox) {
+      return dom & this.domain;
+    }
+    return super.filteredDomain(dom, variable);
+  }
+
   BitArray getDomain(int variable) {
     int ind = this.indexMap.indexOf(variable);
     if(this.domainCache[ind] == null) {
@@ -355,9 +405,7 @@ class ConstraintAllDiff extends Constraint {
         dom = sd.getEmptyDomain()..setBit(this.assigned[ind]);
       } else {
         dom = sd.assist.getDomain(variable) & this.domain;
-        for(var val in this.assigned) {
-          dom.clearBit(val);
-        }
+        dom.clearBits(this.assigned);
       }
       assert(dom != null);
       this.domainCache[ind] = dom;
@@ -553,8 +601,8 @@ class Eliminator {
     return ret;
   }
 
-  BitArray getDomain(int variable) {
-    var dom = sd.getDomain(variable);
+  BitArray filteredDomain(BitArray dom, int variable) {
+    var mask = sd.getEmptyDomain();
     for(int i = 0; i < this.length; ++i) {
       if(!this.checkCondition(i)) {
         continue;
@@ -568,11 +616,11 @@ class Eliminator {
           forbidden = this.forbiddenValues[i][(sd.ne2 + 1) * variable + val];
         });
         if(forbidden) {
-          dom.clearBit(val);
+          mask.setBit(val);
         }
       }
     }
-    return dom;
+    return mask..invertAll();
   }
 }
 
@@ -583,6 +631,7 @@ class SudokuAssist {
   List<Constraint> constraints;
   List<Constraint> newlySucceeded;
   Eliminator elim;
+  bool autoComplete = false;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
@@ -592,13 +641,36 @@ class SudokuAssist {
     this.currentCondition = Buffer(sd.ne4);
   }
 
+  BitArray filteredDomainConstrained(BitArray dom, int variable) {
+    var mask = dom.clone();
+    for(Constraint constr in this.constraints) {
+      if(!constr.isActive() || (constr.status != Constraint.NOT_RUN && constr.status != Constraint.INSUFFICIENT)) {
+        continue;
+      }
+      mask &= constr.filteredDomain(dom & mask, variable);
+    }
+    return mask;
+  }
+
+  BitArray filteredDomain(BitArray dom, int variable) {
+    BitArray mask = this.elim.filteredDomain(dom, variable);
+    mask = this.filteredDomainConstrained(mask, variable);
+    return mask;
+  }
+
   BitArray getDomain(int variable) {
-    return this.elim.getDomain(variable);
+    var dom = sd.getDomain(variable);
+    return dom & this.filteredDomain(dom, variable);
   }
 
   BitArray getElimination(int variable) {
     var dom = sd.getDomain(variable);
-    return dom ^ (dom & this.getDomain(variable));
+    return dom ^ (dom & this.elim.filteredDomain(dom, variable));
+  }
+
+  BitArray getConstrained(int variable) {
+    var dom = sd.getDomain(variable);
+    return dom ^ (dom & this.filteredDomainConstrained(dom, variable));
   }
 
   void modifyEliminations(int variable, BitArray processedValues) {
@@ -897,6 +969,18 @@ class Sudoku {
 
   int index(int i, int j) {
     return i * ne2 + j;
+  }
+
+  int getCoordinateRow(int ind) {
+    return ind ~/ ne2;
+  }
+
+  int getCoordinateCol(int ind) {
+    return ind % ne2;
+  }
+
+  int getCoordinateBox(int ind) {
+    return (this.getCoordinateRow(ind) ~/ n) + (this.getCoordinateCol(ind) ~/ n);
   }
 
   // readonly

@@ -35,6 +35,8 @@ abstract class NumpadInteraction {
       return Colors.yellow[100];
     } else if(numpad.antiselection[val]) {
       return Colors.red[100];
+    } else if(numpad.variable != null && !numpad.sd.assist.getConstrained(numpad.variable)[val]) {
+      return Colors.orange[100];
     }
     return Colors.blue[100];
   }
