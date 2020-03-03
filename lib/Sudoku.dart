@@ -710,8 +710,23 @@ class SudokuAssist {
     }
   }
 
+  void assistAutoComplete() {
+    if(!this.autoComplete) {
+      return;
+    }
+    for(int i = 0; i < sd.ne4; ++i) {
+      if(sd.buf[i] == 0) {
+        var dom = this.getDomain(i);
+        if(dom.cardinality == 1) {
+          sd.setAssistantChange(i, dom.asIntIterable().first);
+        }
+      }
+    }
+  }
+
   void apply() {
     newlySucceeded = List<Constraint>();
+    this.assistAutoComplete();
     for(var constr in this.constraints) {
       if(!constr.isActive()) {
         continue;
@@ -721,6 +736,7 @@ class SudokuAssist {
         this.newlySucceeded.add(constr);
       }
     }
+    this.assistAutoComplete();
   }
 }
 
