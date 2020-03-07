@@ -1,0 +1,667 @@
+import 'package:bit_array/bit_array.dart';
+
+import 'SudokuBuffer.dart';
+import 'SudokuDomain.dart';
+import 'Sudoku.dart';
+
+enum ConstraintType {
+  ONE_OF, EQUAL, ALLDIFF, GENERIC
+}
+
+abstract class Constraint {
+  static const int
+    NOT_RUN = -2,
+    SUCCESS = 1,
+    INSUFFICIENT = 0,
+    VIOLATED = -1;
+
+  Sudoku sd;
+  SudokuBuffer condition;
+  BitArray variables;
+  ConstraintType type = ConstraintType.GENERIC;
+  bool active = true;
+
+  int get lastStatus => (this._statuses.length < 2) ? Constraint.NOT_RUN : this._statuses[this._statuses.length - 1];
+  int get status => (this._statuses.isEmpty) ? Constraint.NOT_RUN : this._statuses.last;
+  int ageLastRun = -1;
+  List<int> _statuses;
+  List<int> _successStreaks;
+  List<SudokuBuffer> _successConditions;
+
+  Constraint(Sudoku sd, BitArray variables) {
+    this.sd = sd;
+    this.updateCondition();
+    this.variables = variables.clone();
+    this._statuses = <int>[];
+    this._successStreaks = <int>[];
+    this._successConditions = <SudokuBuffer>[];
+  }
+
+  int getCommonRow() {
+    int row = -1;
+    for(int variable in this.variables.asIntIterable()) {
+      int vrow = sd.getRow(variable);
+      if(row == -1) {
+        row = vrow;
+      } else if(row != vrow) {
+        return -1;
+      }
+    }
+    return row;
+  }
+
+  int getCommonCol() {
+    int col = -1;
+    for(int variable in this.variables.asIntIterable()) {
+      int vcol = sd.getCol(variable);
+      if(col == -1) {
+        col = vcol;
+      } else if(col != vcol) {
+        return -1;
+      }
+    }
+    return col;
+  }
+
+  int getCommonBox() {
+    int box = -1;
+    for(int variable in this.variables.asIntIterable()) {
+      int vbox = sd.getBox(variable);
+      if(box == -1) {
+        box = vbox;
+      } else if(box != vbox) {
+        return -1;
+      }
+    }
+    return box;
+  }
+
+  void filterTotalDomain(SudokuDomain sdom) {
+  }
+
+  Iterable<int> getValues();
+
+  bool checkInitialCondition() {
+    return this.condition.match(sd.buf);
+  }
+
+  bool isActive() {
+    return this.active && this.checkInitialCondition();
+  }
+
+  void updateCondition() {
+    this.condition = sd.assist.currentCondition;
+  }
+
+  void activate() {
+    this.active = true;
+  }
+
+  void deactivate() {
+    this.active = false;
+  }
+
+  int _apply();
+
+  bool checkSuccessCondition() {
+    return !this._successConditions.isEmpty
+      && this.status == Constraint.SUCCESS
+      &&  this._successConditions.last.match(sd.buf);
+  }
+
+  void retract() {
+    if(!this._statuses.isEmpty) {
+      this._statuses.removeLast();
+      if(!this._successStreaks.isEmpty && this._successConditions.length == this._successStreaks.last) {
+        this._successStreaks.removeLast();
+        this._successConditions.removeLast();
+      }
+    }
+  }
+
+  void apply() {
+    print('apply constraint ${this.type}');
+    if(this.checkSuccessCondition()) {
+      print('success by condition');
+      return;
+    }
+    var currentCondition = sd.assist.currentCondition;
+    int newStatus = this._apply();
+    if(sd.age == this.ageLastRun) {
+      this._statuses.last = newStatus;
+      return;
+    } else {
+      this._statuses.add(newStatus);
+    }
+    if(this.lastStatus != Constraint.SUCCESS && this.status == Constraint.SUCCESS) {
+      this._successStreaks.add(this._successConditions.length);
+      this._successConditions.add(currentCondition);
+    }
+  }
+
+  String toString() {
+    return '${this.type}';
+  }
+}
+
+class ConstraintOneOf extends Constraint {
+  int value;
+
+  ConstraintOneOf(Sudoku sd, BitArray variables, int value) : super(sd, variables) {
+    this.value = value;
+    this.type = ConstraintType.ONE_OF;
+  }
+
+  @override
+  void filterTotalDomain(SudokuDomain sdom) {
+    var affected = BitArray(sd.ne4);
+    int commonRow = super.getCommonRow(),
+        commonCol = super.getCommonCol(),
+        commonBox = super.getCommonBox();
+    if(commonRow != -1) {
+      affected.setBits(sd.iterateRow(commonRow));
+    }
+    if(commonCol != -1) {
+      affected.setBits(sd.iterateCol(commonCol));
+    }
+    if(commonBox != -1) {
+      affected.setBits(sd.iterateBox(commonBox));
+    }
+    affected.asIntIterable()
+      .where((v) => !this.variables[v])
+      .forEach((v) {
+        sdom[v].clearBit(this.value);
+      });
+  }
+
+  @override
+  Iterable<int> getValues() {
+    return <int>[this.value];
+  }
+
+  @override
+  int _apply() {
+    // there is variable that inevitably is assigned to value
+    int remainingUnique = -1;
+    for(int v in this.variables.asIntIterable()) {
+      var dom = sd.assist.getDomain(v);
+      if(dom.cardinality == 1 && dom[this.value]) {
+        if(remainingUnique == -1) {
+          print('remainingUnique $v');
+          remainingUnique = v;
+        } else {
+          return Constraint.VIOLATED;
+        }
+      }
+    }
+    if(remainingUnique != -1) {
+      sd.setAssistantChange(remainingUnique, value);
+      return Constraint.SUCCESS;
+    }
+    // there is only one variable that can hold the value
+    int remaining = -1;
+    for(int v in this.variables.asIntIterable()) {
+      if(sd.assist.getDomain(v)[this.value]) {
+        if(remaining == -1) {
+          remaining = v;
+        } else {
+          return Constraint.INSUFFICIENT;
+        }
+      }
+    }
+    if(remaining == -1) {
+      return Constraint.VIOLATED;
+    }
+    sd.setAssistantChange(remaining, value);
+    return Constraint.SUCCESS;
+  }
+
+  @override
+  String toString() {
+    return '${super.toString()} dom=${<int>[this.value]}';
+  }
+}
+
+class ConstraintEqual extends Constraint {
+  ConstraintEqual(Sudoku sd, BitArray variables) : super(sd, variables) {
+    this.type = ConstraintType.EQUAL;
+  }
+
+  @override
+  Iterable<int> getValues() {
+    var dom = sd.getFullDomain();
+    for(int v in this.variables.asIntIterable()) {
+      dom = dom & sd.assist.getDomain(v);
+    }
+    return dom.asIntIterable();
+  }
+
+  @override
+  int _apply() {
+    var dom = sd.getFullDomain();
+    for(int v in this.variables.asIntIterable()) {
+      dom = dom & sd.assist.getDomain(v);
+    }
+    dom.clearBit(0);
+    if(dom.isEmpty) {
+      return Constraint.VIOLATED;
+    } else if(dom.cardinality > 1) {
+      return Constraint.INSUFFICIENT;
+    }
+    // one unique value for all of them
+    int val = dom.asIntIterable().first;
+    for(int v in variables.asIntIterable()) {
+      if(sd[v] == 0) {
+        sd.setAssistantChange(v, val);
+      }
+    }
+    return Constraint.SUCCESS;
+  }
+}
+
+class ConstraintAllDiff extends Constraint {
+  BitArray domain;
+  int length;
+  List<int> indexMap;
+
+  List<BitArray> domainCache;
+  List<int> assigned;
+
+  ConstraintAllDiff(Sudoku sd, BitArray variables, BitArray domain) : super(sd, variables) {
+    assert(variables.cardinality == domain.cardinality);
+    this.type = ConstraintType.ALLDIFF;
+    this.domain = domain.clone();
+    this.length = this.domain.cardinality;
+    this.indexMap = List<int>.generate(this.length, (i) => this.variables.asIntIterable().toList()[i]);
+    this.clearDomainCache();
+    this.resetAssigned();
+    print('indexMap: $indexMap');
+  }
+
+  void resetAssigned() {
+    this.assigned = List<int>.generate(this.length, (i) => sd[this.indexMap[i]]);
+    print('assigned $assigned');
+  }
+
+  void clearDomainCache() {
+    this.domainCache = List<BitArray>.generate(this.length, (i) => null);
+  }
+
+  @override
+  void filterTotalDomain(SudokuDomain sdom) {
+    var affected = BitArray(sd.ne4);
+    int commonRow = super.getCommonRow(),
+        commonCol = super.getCommonCol(),
+        commonBox = super.getCommonBox();
+    if(commonRow != -1) {
+      affected.setBits(sd.iterateRow(commonRow));
+    }
+    if(commonCol != -1) {
+      affected.setBits(sd.iterateCol(commonCol));
+    }
+    if(commonBox != -1) {
+      affected.setBits(sd.iterateBox(commonBox));
+    }
+    affected.asIntIterable()
+      .where((v) => !this.variables[v])
+      .forEach((v) {
+        sdom[v].clearBits(this.domain.asIntIterable());
+      });
+  }
+
+  BitArray getDomain(int variable) {
+    int ind = this.indexMap.indexOf(variable);
+    if(this.domainCache[ind] == null) {
+      var dom = null;
+      if(this.assigned[ind] != 0) {
+        dom = sd.getEmptyDomain()..setBit(this.assigned[ind]);
+      } else {
+        dom = sd.assist.getDomain(variable) & this.domain;
+        dom.clearBits(this.assigned);
+      }
+      assert(dom != null);
+      this.domainCache[ind] = dom;
+    }
+    return this.domainCache[ind];
+  }
+
+  // check if a given variable can be assigned a given value
+  bool isValue(int variable, int value) {
+    int antiCount = 0;
+    for(int v in this.variables.asIntIterable()) {
+      var dom = this.getDomain(v);
+      if(v == variable) {
+        // the only value possible in this cell
+        if(dom.cardinality == 1 && dom[value]) {
+          // print('is value [$variable] = $value, because the only left');
+          return true;
+        } else if(!dom[value]) {
+          return false;
+        }
+      } else {
+        // this value is available in another cell
+        if(dom[value]) {
+          return false;
+        }
+        // or it is not
+        ++antiCount;
+        // print('[$v] denies $value');
+      }
+    }
+    // all other cells can't have this value
+    if(antiCount == this.length - 1) {
+      // print('is value [$variable] = $value, because everyone else denies');
+    }
+    return antiCount == this.length - 1;
+  }
+
+  int getVariableAssignment(int variable) {
+    var values = List<int>();
+    for(int val in this.domain.asIntIterable()) {
+      if(this.isValue(variable, val)) {
+        values.add(val);
+      }
+    }
+    if(values.length == 0) {
+      // print('inconclusive [$variable]');
+      return 0;
+    } else if(values.length == 1) {
+      // print('can assign [$variable] = $values');
+      return values.first;
+    } else {
+      // print('variable [$variable] violation values $values');
+      return -1;
+    }
+  }
+
+  int _applyCached() {
+    // at least one assignment per pass
+    for(int i = 0; i < this.length; ++i) {
+      // pass over the variables
+      for(int variable in this.variables.asIntIterable()) {
+        if(this.getDomain(variable).isEmpty) {
+          // deadend
+          return Constraint.VIOLATED;
+        }
+        int ind = this.indexMap.indexOf(variable);
+        if(this.assigned[ind] != 0) {
+          continue;
+        }
+        int val = this.getVariableAssignment(variable);
+        if(val > 0) {
+          this.assigned[ind] = val;
+          this.clearDomainCache();
+        } else if(val == -1) {
+          // two values fit this exact cell, leads to overlap
+          return Constraint.VIOLATED;
+        }
+      }
+      // if all is assigned everything is good
+      int zeros = 0;
+      for(int x in this.assigned) {
+        if(x == 0) {
+          ++zeros;
+        }
+      }
+      // finalize
+      if(zeros == 0) {
+        for(int i = 0; i < this.length; ++i) {
+          sd.setAssistantChange(this.indexMap[i], this.assigned[i]);
+        }
+        return Constraint.SUCCESS;
+      }
+    }
+    return Constraint.INSUFFICIENT;
+  }
+
+  @override
+  Iterable<int> getValues() {
+    return this.domain.asIntIterable();
+  }
+
+  @override
+  int _apply() {
+    this.resetAssigned();
+    int code = this._applyCached();
+    this.clearDomainCache();
+    return code;
+  }
+
+  @override
+  String toString() {
+    return '${super.toString()} dom=${this.domain.asIntIterable()}';
+  }
+}
+
+class Eliminator {
+  Sudoku sd;
+
+  int get length => this.conditions.length;
+  List<SudokuBuffer> conditions;
+  List<SudokuDomain> forbiddenValues;
+
+  bool mutex = false;
+  void guard(Function f) {
+    while(mutex)
+      ;
+    mutex = true;
+    f();
+    mutex = false;
+  }
+
+  Eliminator(Sudoku sd) {
+    this.sd = sd;
+    this.conditions = <SudokuBuffer>[];
+    this.forbiddenValues = <SudokuDomain>[];
+  }
+
+  EliminatorSubdomain operator[](int variable) {
+    return EliminatorSubdomain(this, variable);
+  }
+
+  void removeObsoleteConditions() {
+    int i = 0;
+    while(i < this.length) {
+      this.guard(() {
+        if(this.forbiddenValues[i].isEmpty) {
+          this.conditions.removeAt(i);
+          this.forbiddenValues.removeAt(i);
+        } else {
+          ++i;
+        }
+      });
+    }
+  }
+
+  bool checkCondition(int index) {
+    return Iterable<bool>.generate(this.length, (ind) =>
+      this.conditions[ind].match(sd.buf)
+    ).every((b) => b);
+  }
+
+  Iterable<int> iterateActiveConditions() sync* {
+    for(int i = 0; i < this.length; ++i) {
+      if(this.checkCondition(i)) {
+        yield i;
+      }
+    }
+  }
+
+  void _eliminate(int variable, Iterable<int> values) {
+    this.removeObsoleteConditions();
+    if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
+      this.conditions.add(sd.assist.currentCondition);
+      this.guard(() {
+        this.forbiddenValues.add(SudokuDomain(sd));
+      });
+    }
+    this.forbiddenValues.last[variable].setBits(values);
+  }
+
+  SudokuDomain getTotalElimination() {
+    var sdom = SudokuDomain(sd);
+    this.iterateActiveConditions()
+      .map((i) => this.forbiddenValues[i])
+      .forEach((edom) {
+        sdom |= edom;
+      });
+    return sdom;
+  }
+
+  void filterTotalDomain(SudokuDomain sdom) {
+    sdom &= ~this.getTotalElimination();
+  }
+}
+
+class EliminatorSubdomain {
+  Sudoku sd;
+  Eliminator elim;
+  int variable;
+
+  int get length => elim.length;
+
+  EliminatorSubdomain(Eliminator elim, int variable) {
+    this.sd = elim.sd;
+    this.elim = elim;
+    this.variable = variable;
+  }
+
+  bool operator[](int value) {
+    bool res = false;
+    this.elim.iterateActiveConditions()
+      .forEach((i) {
+        if(this.elim.forbiddenValues[i][this.variable][value]) {
+          res = true;
+        }
+      });
+    return res;
+  }
+
+  void reinstate(Iterable<int> values) {
+    this.elim.forbiddenValues.forEach((edom) {
+      edom[this.variable].clearBits(values);
+    });
+  }
+
+  void eliminate(Iterable<int> values) {
+    this.elim._eliminate(this.variable, values);
+  }
+
+  BitArray asBitArray() {
+    return this.elim.iterateActiveConditions()
+      .map<BitArray>((i) => this.elim.forbiddenValues[i][this.variable].asBitArray())
+      .fold(sd.getEmptyDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  void invertBits(Iterable<int> values) {
+    var ones = sd.getEmptyDomain()..setBits(values.where((val) => this[val]));
+    this.reinstate(values.where((val) => ones[val]));
+    this.eliminate(values.where((val) => !ones[val]));
+  }
+}
+
+class SudokuAssist {
+  Sudoku sd;
+  SudokuBuffer currentCondition;
+  List<Constraint> constraints;
+  List<Constraint> newlySucceeded;
+  Eliminator elim;
+  bool autoComplete = false;
+
+  SudokuAssist(Sudoku sd) {
+    this.sd = sd;
+    this.constraints = List<Constraint>();
+    this.newlySucceeded = List<Constraint>();
+    this.elim = Eliminator(sd);
+    this.currentCondition = SudokuBuffer(sd.ne4);
+  }
+
+  void filterTotalDomainConstrained(SudokuDomain sdom) {
+    this.constraints.where((constr) =>
+      constr.isActive() && (
+        constr.status == Constraint.NOT_RUN
+        || constr.status == Constraint.INSUFFICIENT
+      )
+    ).forEach((constr) {
+      constr.filterTotalDomain(sdom);
+    });
+  }
+
+  void filterTotalDomain(SudokuDomain sdom) {
+    this.elim.filterTotalDomain(sdom);
+    this.filterTotalDomainConstrained(sdom);
+  }
+
+  BitArray getDomain(int variable) {
+    return this.getTotalDomain()[variable].asBitArray();
+  }
+
+  SudokuDomain getTotalDomain() {
+    var sdom = sd.getTotalDomain();
+    this.filterTotalDomain(sdom);
+    return sdom;
+  }
+
+  SudokuDomain getTotalElimination() {
+    return this.elim.getTotalElimination();
+  }
+
+  SudokuDomain getTotalConstrained() {
+    var sdom = sd.getTotalDomain();
+    this.filterTotalDomainConstrained(sdom);
+    return sdom;
+  }
+
+  void modifyEliminations(int variable, BitArray processedValues) {
+    this.elim[variable].invertBits(processedValues.asIntIterable());
+  }
+
+  void addConstraint(Constraint ct) {
+    constraints.add(ct);
+  }
+
+  bool checkConditionChange() {
+    return this.currentCondition != null && this.currentCondition == sd.buf;
+  }
+
+  void updateCurrentCondition() {
+    if(!this.checkConditionChange()) {
+      this.currentCondition.setBuffer(sd.buf.getBuffer());
+    }
+  }
+
+  void retract() {
+    for(var constr in this.constraints) {
+      constr.retract();
+    }
+  }
+
+  void assistAutoComplete() {
+    if(!this.autoComplete) {
+      return;
+    }
+    var sdom = sd.getTotalDomain();
+    for(int i = 0; i < sd.ne4; ++i) {
+      if(sd.buf[i] == 0) {
+        if(sdom[i].cardinality == 1) {
+          sd.setAssistantChange(i, sdom[i].asIntIterable().first);
+        }
+      }
+    }
+  }
+
+  void apply() {
+    newlySucceeded = List<Constraint>();
+    this.assistAutoComplete();
+    for(var constr in this.constraints) {
+      if(!constr.isActive()) {
+        continue;
+      }
+      constr.apply();
+      if(constr.lastStatus != constr.status && constr.status == Constraint.SUCCESS) {
+        this.newlySucceeded.add(constr);
+      }
+    }
+    this.assistAutoComplete();
+  }
+}

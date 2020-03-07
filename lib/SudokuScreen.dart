@@ -7,6 +7,7 @@ import 'package:bit_array/bit_array.dart';
 
 import 'main.dart';
 import 'Sudoku.dart';
+import 'SudokuAssist.dart';
 import 'NumpadScreen.dart';
 
 
@@ -501,7 +502,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
         ListTile(
           leading: Icon(Icons.link_off),
-          title: Text('oneof'),
+          title: Text('One of'),
           onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = OneofInteraction(this);
             await this.interact.onConstraintSelection();
@@ -511,7 +512,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
         ListTile(
           leading: Icon(Icons.link),
-          title: Text('equal'),
+          title: Text('Equality'),
           onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = EqualInteraction(this);
             await this.interact.onConstraintSelection();
@@ -521,7 +522,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
         ListTile(
           leading: Icon(Icons.sort),
-          title: Text('allDiff'),
+          title: Text('All different'),
           onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = AlldiffInteraction(this);
             await this.interact.onConstraintSelection();
@@ -571,6 +572,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             break;
             case TOOLBAR_AUTOCOMPLETE:
               sd.assist.autoComplete = !sd.assist.autoComplete;
+              this.runSetState();
             break;
           }
         },

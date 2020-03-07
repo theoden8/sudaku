@@ -3,8 +3,8 @@ import 'package:flutter/cupertino.dart';
 
 import 'package:bit_array/bit_array.dart';
 
-
 import 'Sudoku.dart';
+import 'SudokuAssist.dart';
 
 
 class NumpadScreenArguments {
@@ -23,8 +23,15 @@ class NumpadScreen extends StatefulWidget {
   State createState() => NumpadScreenState();
 }
 
+enum NumpadInteractionType {
+  SELECT_VALUE,
+  MULTISELECTION,
+  ANTISELECTION,
+}
+
 abstract class NumpadInteraction {
   NumpadScreenState numpad;
+  NumpadInteractionType type;
 
   NumpadInteraction(NumpadScreenState numpad) {
     this.numpad = numpad;
@@ -35,7 +42,7 @@ abstract class NumpadInteraction {
       return Colors.yellow[100];
     } else if(numpad.antiselection[val]) {
       return Colors.red[100];
-    } else if(numpad.variable != null && !numpad.sd.assist.getConstrained(numpad.variable)[val]) {
+    } else if(!numpad.constrained[val]) {
       return Colors.orange[100];
     }
     return Colors.blue[100];
@@ -74,6 +81,7 @@ class ValueInteraction extends NumpadInteraction {
   ValueInteraction(NumpadScreenState ns) :
     super(ns)
   {
+    this.type = NumpadInteractionType.SELECT_VALUE;
     // numpad.multiselectionMode = 0;
   }
 
@@ -117,6 +125,7 @@ class MultiselectionInteraction extends NumpadInteraction {
   MultiselectionInteraction(NumpadScreenState ns, int q):
     super(ns)
   {
+    this.type = NumpadInteractionType.MULTISELECTION;
     // ns.multiselectionMode = this.limit = q;
     this.limit = q;
   }
@@ -155,6 +164,7 @@ class EliminatorInteraction extends NumpadInteraction {
   EliminatorInteraction(NumpadScreenState ns, int q):
     super(ns)
   {
+    this.type = NumpadInteractionType.ANTISELECTION;
   }
 
   @override
@@ -178,6 +188,7 @@ class EliminatorInteraction extends NumpadInteraction {
 }
 
 class NumpadScreenState extends State<NumpadScreen> {
+  BitArray constrained;
   BitArray antiselection;
   BitArray multiselection;
   NumpadInteraction interact = null;
@@ -203,13 +214,15 @@ class NumpadScreenState extends State<NumpadScreen> {
     if(!this.reset) {
       return;
     }
+    this.constrained = sd.getEmptyDomain();
     this.multiselection = sd.getEmptyDomain();
     this.antiselection = sd.getEmptyDomain();
     if(this.variable != null) {
-      this.antiselection = sd.assist.getElimination(variable);
+      this.antiselection = sd.assist.getTotalElimination()[variable].asBitArray();
+      this.constrained = sd.assist.getTotalConstrained()[variable].asBitArray();
     }
     if(multiselectionMode < 0) {
-      this.interact = EliminatorInteraction(this, -1);
+      this.interact = EliminatorInteraction(this, -multiselectionMode);
     } else if(multiselectionMode == 0) {
       this.interact = ValueInteraction(this);
     } else if(multiselectionMode > 0) {
