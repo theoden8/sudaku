@@ -1,16 +1,27 @@
-# sudokuapp
+# sudaku
 
-A new Flutter project.
+![](./assets/icon.png)
 
-## Getting Started
+## about
 
-This project is a starting point for a Flutter application.
+One of the most mechanical things about solving sudoku puzzles is manually choosing the values that are immediately implied as a consequence of risking/setting a cell. This app aims to alleviate this problem, by providing user with a language in which they can express a system of rules, from which autocompletions should be derived.
 
-A few resources to get you started if this is your first Flutter project:
+The system consists of a variety of constraints, such as alldifferent, one-of, and plain value elimination, which can be specified individually.
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+![solving](./screenshots/solving.jpg)
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## why not use a solver
+
+This program isn't designed to solve puzzles for you. It isn't designed to ask for your help to solve anything either. It doesn't perform brute-force for you or impose any serious arc consistency. You are still in control of your own logic and victim of your own mistakes.
+
+![selecting-constraint](./screenshots/selecting-constraint.jpg)
+
+## tools
+
+* [flutter](https://flutter.dev/)
+
+This is my first mobile application project, and I am being cautious about the language and features.
+
+## contributing
+
+Feel free to request a feature, post a bug, or make a pr. But keep in mind that this is an early stage of development.
