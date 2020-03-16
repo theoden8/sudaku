@@ -16,6 +16,10 @@ abstract class DomainInterface {
   Iterable<int> asIntIterable();
 }
 
+abstract class DomainFilterer {
+  void filterTotalDomain(SudokuDomain sdom);
+}
+
 class SudokuDomain extends DomainInterface {
   Sudoku sd;
   BitArray dom;
@@ -48,10 +52,15 @@ class SudokuDomain extends DomainInterface {
     sdom.guard(() {
       sdom.dom = dom;
     });
+    return sdom;
   }
 
   void reset() {
     this.dom = BitArray(sd.ne6 + sd.ne4);
+  }
+
+  void filter(DomainFilterer df) {
+    df.filterTotalDomain(this);
   }
 
   SudokuSubdomain operator[](int v) {
@@ -132,6 +141,7 @@ class SudokuDomain extends DomainInterface {
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom & other.dom);
     });});
+    return sdom;
   }
 
   SudokuDomain operator|(SudokuDomain other) {
@@ -139,6 +149,7 @@ class SudokuDomain extends DomainInterface {
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom | other.dom);
     });});
+    return sdom;
   }
 
   SudokuDomain operator^(SudokuDomain other) {
@@ -146,6 +157,7 @@ class SudokuDomain extends DomainInterface {
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom ^ other.dom);
     });});
+    return sdom;
   }
 
   SudokuDomain operator~() {

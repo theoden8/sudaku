@@ -9,7 +9,7 @@ import 'package:bit_array/bit_array.dart';
 // import 'package:redux/redux.dart';
 
 
-import 'NumpadScreen.dart';
+import 'SudokuNumpadScreen.dart';
 import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 

@@ -8,7 +8,7 @@ import 'package:bit_array/bit_array.dart';
 import 'main.dart';
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
-import 'NumpadScreen.dart';
+import 'SudokuNumpadScreen.dart';
 
 
 class SudokuScreen extends StatefulWidget {
@@ -51,7 +51,7 @@ class OneofInteraction extends ConstraintInteraction {
     for(int v in self._multiSelect.asIntIterable()) {
       dom = dom | self.sd.getDomain(v);
     }
-    var val = await self._selectValue(dom, null);
+    var val = await self._selectValue();
     if(val == null) {
       return;
     }
@@ -79,15 +79,29 @@ class AlldiffInteraction extends ConstraintInteraction {
 
   @override
   void onConstraintSelection() async {
-    BitArray dom = sd.getEmptyDomain();
-    for(int v in self._multiSelect.asIntIterable()) {
-      dom = dom | sd.getDomain(v);
-    }
-    var selection = await self._selectValues(dom, self._multiSelect.cardinality);
+    var selection = await self._selectValues(NumpadInteractionType.MULTISELECTION, self._multiSelect.cardinality);
     if(selection == null || selection.cardinality != self._multiSelect.cardinality) {
       return;
     }
     sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect, selection));
+    sd.assist.apply();
+    self.showAssistantResult();
+    this.finish_up();
+  }
+}
+
+class EliminatorInteraction extends ConstraintInteraction {
+  EliminatorInteraction(SudokuScreenState ss) : super(ss) {}
+
+  @override
+  void onConstraintSelection() async {
+    var selection = await self._selectValues(NumpadInteractionType.ANTISELECTION, -1);
+    if(selection == null || selection.cardinality == 0) {
+      return;
+    }
+    for(int v in self._multiSelect.asIntIterable()) {
+      sd.assist.elim[v].eliminate(selection.asIntIterable());
+    }
     sd.assist.apply();
     self.showAssistantResult();
     this.finish_up();
@@ -147,35 +161,41 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
   }
 
-  Future _selectValues(BitArray domain, int q) async {
-    final selection = await Navigator.pushNamed(
-      this.context,
-      NumpadScreen.routeName,
-      arguments: NumpadScreenArguments(
-        sd: this.sd,
-        domain: domain,
-        multiselectionMode: q,
-      ),
-    );
-    return selection;
+  BitArray getSelection() {
+    if(this._multiSelect.isEmpty) {
+      var res = BitArray(sd.ne4);
+      if(this._selectedCell != -1) {
+        res.setBit(this._selectedCell);
+      }
+      return res;
+    }
+    return this._multiSelect.clone();
   }
 
-  Future _selectValue(BitArray domain, int variable) async {
+  Future _selectValues(NumpadInteractionType nitype, int count) async {
+    var sel = this.getSelection();
+    if(sel.isEmpty) {
+      return null;
+    }
     final val = await Navigator.pushNamed(
       this.context,
       NumpadScreen.routeName,
       arguments: NumpadScreenArguments(
         sd: this.sd,
-        domain: domain,
-        multiselectionMode: 0,
-        variable: variable,
+        nitype: nitype,
+        count: count,
+        variables: this.getSelection(),
       ),
     );
     return val;
   }
 
+  Future _selectValue() async {
+    return await this._selectValues(NumpadInteractionType.SELECT_VALUE, 1);
+  }
+
   Future<void> _selectCellValue(int index) async {
-    final ret = await this._selectValue(sd.getDomain(index), index);
+    final ret = await this._selectValue();
     if(ret != null) {
       if(ret is int) {
         int val = ret;
@@ -508,7 +528,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
             this.runSetState();
-          }
+          },
         ),
         ListTile(
           leading: Icon(Icons.link),
@@ -518,7 +538,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
             this.runSetState();
-          }
+          },
         ),
         ListTile(
           leading: Icon(Icons.sort),
@@ -528,7 +548,17 @@ class SudokuScreenState extends State<SudokuScreen> {
             await this.interact.onConstraintSelection();
             Navigator.pop(ctx);
             this.runSetState();
-          }
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.report),
+          title: Text('Eliminate'),
+          onTap: (this._multiSelect.cardinality < 1) ? null : () async {
+            this.interact = EliminatorInteraction(this);
+            await this.interact.onConstraintSelection();
+            Navigator.pop(ctx);
+            this.runSetState();
+          },
         ),
       ],
     ),
@@ -597,7 +627,9 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     if(sd == null || sd.n != n) {
       // print('making new sudoku');
-      sd = Sudoku(n, DefaultAssetBundle.of(ctx), this);
+      sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
+        this.runSetState();
+      });
       this._multiSelect = BitArray(sd.ne4);
     }
 

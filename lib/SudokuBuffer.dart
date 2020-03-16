@@ -57,7 +57,7 @@ class SudokuBuffer {
   bool match(SudokuBuffer other) {
     assert(this.length == other.length);
     return !Iterable<bool>.generate(this.length, (i) => (
-      this[i] == 0 || this[i] != other[i]
+      this[i] == 0 || this[i] == other[i]
     )).contains(false);
   }
 

@@ -8,11 +8,11 @@ import 'SudokuAssist.dart';
 
 
 class NumpadScreenArguments {
-  NumpadScreenArguments({this.domain, this.multiselectionMode, this.sd, this.variable});
-  BitArray domain;
-  int multiselectionMode;
+  NumpadScreenArguments({this.nitype, this.count, this.sd, this.variables});
+  NumpadInteractionType nitype;
+  int count;
   Sudoku sd;
-  int variable = -1;
+  BitArray variables;
 }
 
 class NumpadScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ abstract class NumpadInteraction {
   }
 
   bool onPressEnabled(int val) {
-    return numpad.dom[val];
+    return numpad.available[val];
   }
   void handleOnPress(BuildContext ctx, int val);
 
@@ -61,7 +61,7 @@ abstract class NumpadInteraction {
   }
 
   List<Widget> makeToolbar(BuildContext ctx) {
-    if(numpad.variable == null) {
+    if(numpad.variables.cardinality > 1) {
       return <Widget>[];
     }
     return <Widget>[
@@ -92,7 +92,7 @@ class ValueInteraction extends NumpadInteraction {
 
   @override
   bool onLongPressEnabled(int val) {
-    return numpad.dom[val] && numpad.variable != null;
+    return numpad.available[val] && numpad.variables.cardinality == 1;
   }
 
   @override
@@ -120,21 +120,20 @@ class ValueInteraction extends NumpadInteraction {
 }
 
 class MultiselectionInteraction extends NumpadInteraction {
-  int limit = null;
+  int count = null;
 
-  MultiselectionInteraction(NumpadScreenState ns, int q):
+  MultiselectionInteraction(NumpadScreenState ns, int count):
     super(ns)
   {
     this.type = NumpadInteractionType.MULTISELECTION;
-    // ns.multiselectionMode = this.limit = q;
-    this.limit = q;
+    this.count = count;
   }
 
   @override
   bool onPressEnabled(int val) {
     return super.onPressEnabled(val) && (
       numpad.multiselection[val]
-      || this.limit > numpad.multiselection.cardinality);
+      || this.count > numpad.multiselection.cardinality);
   }
 
   @override
@@ -151,7 +150,7 @@ class MultiselectionInteraction extends NumpadInteraction {
     return [
       IconButton(
         icon: Icon(Icons.save),
-        onPressed: (numpad.multiselection.cardinality != this.limit) ? null : () {
+        onPressed: (numpad.multiselection.cardinality != this.count) ? null : () {
           numpad.reset = true;
           Navigator.pop(ctx, numpad.multiselection);
         },
@@ -191,11 +190,11 @@ class NumpadScreenState extends State<NumpadScreen> {
   BitArray constrained;
   BitArray antiselection;
   BitArray multiselection;
+  BitArray available;
   NumpadInteraction interact = null;
-  BitArray dom;
 
   Sudoku sd;
-  int variable;
+  BitArray variables;
   bool reset = true;
 
   void runSetState() {
@@ -210,23 +209,30 @@ class NumpadScreenState extends State<NumpadScreen> {
     return this.interact.handleOnLongPress(ctx, val);
   }
 
-  void _resetSelections(int multiselectionMode) {
+  void _resetSelections(NumpadInteractionType nitype, int count) {
     if(!this.reset) {
       return;
     }
-    this.constrained = sd.getEmptyDomain();
     this.multiselection = sd.getEmptyDomain();
-    this.antiselection = sd.getEmptyDomain();
-    if(this.variable != null) {
-      this.antiselection = sd.assist.getTotalElimination()[variable].asBitArray();
-      this.constrained = sd.assist.getTotalConstrained()[variable].asBitArray();
+    switch(nitype) {
+      case NumpadInteractionType.ANTISELECTION:
+        this.interact = EliminatorInteraction(this, count);
+      break;
+      case NumpadInteractionType.SELECT_VALUE:
+        this.interact = ValueInteraction(this);
+      break;
+      case NumpadInteractionType.MULTISELECTION:
+        this.interact = MultiselectionInteraction(this, count);
+      break;
     }
-    if(multiselectionMode < 0) {
-      this.interact = EliminatorInteraction(this, -multiselectionMode);
-    } else if(multiselectionMode == 0) {
-      this.interact = ValueInteraction(this);
-    } else if(multiselectionMode > 0) {
-      this.interact = MultiselectionInteraction(this, multiselectionMode);
+    if(nitype == NumpadInteractionType.SELECT_VALUE) {
+      this.available = sd.getCommonDomain(this.variables.asIntIterable());
+      this.antiselection = sd.assist.getCommonElimination(variables.asIntIterable());
+      this.constrained = sd.assist.getCommonConstrained(variables.asIntIterable());
+    } else {
+      this.available = sd.getRepresentativeDomain(this.variables.asIntIterable());
+      this.antiselection = sd.assist.getRepresentativeElimination(variables.asIntIterable());
+      this.constrained = sd.assist.getRepresentativeConstrained(variables.asIntIterable());
     }
     this.reset = false;
   }
@@ -237,12 +243,10 @@ class NumpadScreenState extends State<NumpadScreen> {
 
   Widget build(BuildContext ctx) {
     final NumpadScreenArguments args = ModalRoute.of(ctx).settings.arguments;
-    this.dom = args.domain;
-    this.variable = args.variable;
+    this.variables = args.variables;
     this.sd = args.sd;
     final int n = sd.n;
-    int multiselectionMode = args.multiselectionMode;
-    this._resetSelections(multiselectionMode);
+    this._resetSelections(args.nitype, args.count);
 
     bool isPortrait = MediaQuery.of(ctx).orientation == Orientation.portrait;
     final double w = (MediaQuery.of(ctx).size.width - 1.0) / n;

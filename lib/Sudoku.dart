@@ -4,13 +4,9 @@ import 'dart:async';
 import 'package:bit_array/bit_array.dart';
 import 'package:flutter/services.dart';
 
-
 import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
 import 'SudokuAssist.dart';
-
-import 'main.dart';
-import 'SudokuScreen.dart';
 
 
 Future<List<int>> loadFrom1465(AssetBundle a) async {
@@ -181,7 +177,7 @@ class Sudoku {
     }
   }
 
-  void _setupSudoku(AssetBundle a, SudokuScreenState ss) async {
+  void _setupSudoku(AssetBundle a, Function() callback_f) async {
     this.buf = SudokuBuffer(ne4);
     var r = new Random();
     if(n == 2) {
@@ -227,17 +223,17 @@ class Sudoku {
     });
     this.assist.updateCurrentCondition();
     assert(this.check());
-    ss.runSetState();
+    callback_f();
   }
 
-  Sudoku(int n, AssetBundle a, SudokuScreenState ss) {
+  Sudoku(int n, AssetBundle a, callback_f) {
     this.n = n;
     this.ne2 = n * n;
     this.ne4 = ne2 * ne2;
     this.ne6 = ne4 * ne2;
     this.changes = SudokuChangeList();
     this.assist = SudokuAssist(this);
-    this._setupSudoku(a, ss);
+    this._setupSudoku(a, callback_f);
   }
 
   bool isHint(int ind) {
@@ -270,39 +266,50 @@ class Sudoku {
   Iterable<int> iterateBox(int box) sync* {
     for(int i = 0; i < n; ++i) {
       for(int j = 0; j < n; ++j) {
-        yield ((box * n) + i) * ne2 + j;
+        yield (((box ~/ n) * n + i) * ne2) + ((box % n) * n + j);
       }
     }
   }
 
   BitArray getDomain(int index) {
-    if(this[index] != 0) {
-      return this.getEmptyDomain()..setBit(this[index]);
-    }
-    int i = index ~/ ne2, j = index % ne2;
-    var dom = this.getFullDomain()..clearBit(0);
-    for(int t = 0; t < ne2; ++t) {
-      var conflicts = <int>[
-        i * ne2 + t, // row
-        ne2 * t + j, // col
-        ((i ~/ n) * n + (t ~/ n)) * ne2 + (j ~/ n) * n + (t % n), // box
-      ];
-      for(int pos in conflicts) {
-        int val = this[pos];
-        if(index != pos && val != 0) {
-          dom.clearBit(val);
-        }
-      }
-    }
-    // print('getDomain: ${dom.asIntIterable().toList()}');
-    return dom;
+    return this.getTotalDomain()[index].asBitArray();
+  }
+
+  BitArray getCommonDomain(Iterable<int> indices) {
+    return indices
+      .map((i) => this.getDomain(i))
+      .fold(this.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  BitArray getRepresentativeDomain(Iterable<int> indices) {
+    return indices
+      .map((i) => this.getDomain(i))
+      .fold(this.getEmptyDomain(), (BitArray a, BitArray b) => (a | b));
   }
 
   SudokuDomain getTotalDomain() {
     var sdom = SudokuDomain(this);
     for(int i = 0; i < ne4; ++i) {
-      sdom[i] = this.getDomain(i);
+      int val = this[i];
+      if(val > 0) {
+        sdom[i].setBit(val);
+      } else {
+        sdom[i].assign(this.getFullDomain());
+      }
     }
+    List<int>.generate(ne4, (i) => i)
+      .where((i) => this[i] > 0)
+      .forEach((i) {
+        int val = this[i];
+        <int>[]
+          ..addAll(this.iterateRow(this.getRow(i)))
+          ..addAll(this.iterateCol(this.getCol(i)))
+          ..addAll(this.iterateBox(this.getBox(i)))
+          ..where((int j) => (this[j] != val))
+          .forEach((int j) {
+            sdom[j].clearBit(val);
+          });
+      });
     return sdom;
   }
 
@@ -340,7 +347,7 @@ class Sudoku {
   }
 
   int getBox(int ind) {
-    return (this.getRow(ind) ~/ n) + (this.getCol(ind) ~/ n);
+    return (this.getRow(ind) ~/ n) * n + (this.getCol(ind) ~/ n);
   }
 
   // readonly

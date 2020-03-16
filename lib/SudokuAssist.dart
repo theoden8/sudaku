@@ -8,7 +8,7 @@ enum ConstraintType {
   ONE_OF, EQUAL, ALLDIFF, GENERIC
 }
 
-abstract class Constraint {
+abstract class Constraint extends DomainFilterer {
   static const int
     NOT_RUN = -2,
     SUCCESS = 1,
@@ -218,7 +218,7 @@ class ConstraintOneOf extends Constraint {
 
   @override
   String toString() {
-    return '${super.toString()} dom=${<int>[this.value]}';
+    return 'One-of: ${this.value}';
   }
 }
 
@@ -429,11 +429,11 @@ class ConstraintAllDiff extends Constraint {
 
   @override
   String toString() {
-    return '${super.toString()} dom=${this.domain.asIntIterable()}';
+    return 'All different: ${this.domain.asIntIterable()}';
   }
 }
 
-class Eliminator {
+class Eliminator extends DomainFilterer {
   Sudoku sd;
 
   int get length => this.conditions.length;
@@ -498,14 +498,31 @@ class Eliminator {
     this.forbiddenValues.last[variable].setBits(values);
   }
 
+  BitArray getCommonElimination(Iterable<int> indices) {
+    var edom = this.getTotalElimination();
+    if(indices.isEmpty) {
+      return sd.getEmptyDomain();
+    }
+    return indices
+      .map((i) => edom[i].asBitArray())
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  BitArray getRepresentativeElimination(Iterable<int> indices) {
+    var edom = this.getTotalElimination();
+    return indices
+      .map((i) => edom[i].asBitArray())
+      .fold(sd.getEmptyDomain(), (BitArray a, BitArray b) => (a | b));
+  }
+
   SudokuDomain getTotalElimination() {
-    var sdom = SudokuDomain(sd);
+    var edom = SudokuDomain(sd);
     this.iterateActiveConditions()
       .map((i) => this.forbiddenValues[i])
-      .forEach((edom) {
-        sdom |= edom;
+      .forEach((fdom) {
+        edom |= fdom;
       });
-    return sdom;
+    return edom;
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
@@ -548,9 +565,12 @@ class EliminatorSubdomain {
   }
 
   BitArray asBitArray() {
+    if(this.elim.iterateActiveConditions().isEmpty) {
+      return sd.getEmptyDomain();
+    }
     return this.elim.iterateActiveConditions()
       .map<BitArray>((i) => this.elim.forbiddenValues[i][this.variable].asBitArray())
-      .fold(sd.getEmptyDomain(), (BitArray a, BitArray b) => (a & b));
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
   }
 
   void invertBits(Iterable<int> values) {
@@ -560,12 +580,71 @@ class EliminatorSubdomain {
   }
 }
 
-class SudokuAssist {
+class Constrainer extends DomainFilterer {
+  Sudoku sd;
+  List<Constraint> constraints;
+
+  Constrainer(Sudoku sd, List<Constraint> constraints) {
+    this.sd = sd;
+    this.constraints = constraints;
+  }
+
+  ConstrainerSubdomain operator[](int variable) {
+    return ConstrainerSubdomain(this, variable);
+  }
+
+  void filterTotalDomain(SudokuDomain sdom) {
+    this.constraints.where((constr) =>
+      constr.isActive() && (
+        constr.status == Constraint.NOT_RUN
+        || constr.status == Constraint.INSUFFICIENT
+      )
+    ).forEach((constr) {
+      sdom.filter(constr);
+    });
+  }
+
+  BitArray getCommonConstrained(Iterable<int> indices) {
+    var cdom = this.getTotalConstrained();
+    if(indices.isEmpty) {
+      return sd.getEmptyDomain();
+    }
+    return indices
+      .map((i) => cdom[i].asBitArray())
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  BitArray getRepresentativeConstrained(Iterable<int> indices) {
+    var cdom = this.getTotalConstrained();
+    return indices
+      .map((i) => cdom[i].asBitArray())
+      .fold(sd.getEmptyDomain(), (BitArray a, BitArray b) => (a | b));
+  }
+
+  SudokuDomain getTotalConstrained() {
+    return sd.getTotalDomain()..filter(this);
+  }
+}
+
+class ConstrainerSubdomain {
+  Sudoku sd;
+  Constrainer constr;
+  int variable;
+
+  ConstrainerSubdomain(Constrainer constr, int variable) {
+    this.sd = sd;
+    this.constr = constr;
+    this.variable = variable;
+  }
+}
+
+class SudokuAssist extends DomainFilterer {
   Sudoku sd;
   SudokuBuffer currentCondition;
   List<Constraint> constraints;
   List<Constraint> newlySucceeded;
   Eliminator elim;
+  Constrainer constr;
   bool autoComplete = false;
 
   SudokuAssist(Sudoku sd) {
@@ -573,23 +652,13 @@ class SudokuAssist {
     this.constraints = List<Constraint>();
     this.newlySucceeded = List<Constraint>();
     this.elim = Eliminator(sd);
+    this.constr = Constrainer(sd, this.constraints);
     this.currentCondition = SudokuBuffer(sd.ne4);
   }
 
-  void filterTotalDomainConstrained(SudokuDomain sdom) {
-    this.constraints.where((constr) =>
-      constr.isActive() && (
-        constr.status == Constraint.NOT_RUN
-        || constr.status == Constraint.INSUFFICIENT
-      )
-    ).forEach((constr) {
-      constr.filterTotalDomain(sdom);
-    });
-  }
-
   void filterTotalDomain(SudokuDomain sdom) {
-    this.elim.filterTotalDomain(sdom);
-    this.filterTotalDomainConstrained(sdom);
+    sdom.filter(this.elim);
+    sdom.filter(this.constr);
   }
 
   BitArray getDomain(int variable) {
@@ -597,19 +666,43 @@ class SudokuAssist {
   }
 
   SudokuDomain getTotalDomain() {
-    var sdom = sd.getTotalDomain();
-    this.filterTotalDomain(sdom);
-    return sdom;
+    return sd.getTotalDomain()..filter(this);
+  }
+
+  BitArray getCommonDomain(Iterable<int> indices) {
+    return indices
+      .map((i) => this.getDomain(i))
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  BitArray getRepresentativeDomain(Iterable<int> indices) {
+    return indices
+      .map((i) => this.getDomain(i))
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a | b));
   }
 
   SudokuDomain getTotalElimination() {
     return this.elim.getTotalElimination();
   }
 
+  BitArray getCommonElimination(Iterable<int> indices) {
+    return this.elim.getCommonElimination(indices);
+  }
+
+  BitArray getRepresentativeElimination(Iterable<int> indices) {
+    return this.elim.getRepresentativeElimination(indices);
+  }
+
   SudokuDomain getTotalConstrained() {
-    var sdom = sd.getTotalDomain();
-    this.filterTotalDomainConstrained(sdom);
-    return sdom;
+    return this.constr.getTotalConstrained();
+  }
+
+  BitArray getCommonConstrained(Iterable<int> indices) {
+    return this.constr.getCommonConstrained(indices);
+  }
+
+  BitArray getRepresentativeConstrained(Iterable<int> indices) {
+    return this.constr.getRepresentativeConstrained(indices);
   }
 
   void modifyEliminations(int variable, BitArray processedValues) {
