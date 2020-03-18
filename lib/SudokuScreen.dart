@@ -9,6 +9,7 @@ import 'main.dart';
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
 import 'SudokuNumpadScreen.dart';
+import 'SudokuAssistScreen.dart';
 
 
 class SudokuScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class SudokuScreen extends StatefulWidget {
 
 class SudokuScreenArguments {
   SudokuScreenArguments({this.n});
+
   final int n;
 }
 
@@ -149,6 +151,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   Future<void> _handleOnPressCell(int index) {
     if(this._multiSelect.isEmpty) {
       this._selectedCell = index;
+      this._selectCellValue(index);
     } else {
       this._multiSelect.invertBit(index);
     }
@@ -535,7 +538,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
         ListTile(
           leading: Icon(Icons.link),
-          title: Text('Equality'),
+          title: Text('Equivalence'),
           onTap: (this._multiSelect.cardinality < 2) ? null : () async {
             this.interact = EqualInteraction(this);
             await this.interact.onConstraintSelection();
@@ -568,8 +571,9 @@ class SudokuScreenState extends State<SudokuScreen> {
   );
 
   List<Widget> _makeToolbar(BuildContext ctx) {
-    const int TOOLBAR_RESET = 0;
-    const int TOOLBAR_AUTOCOMPLETE = 1;
+    const int
+      TOOLBAR_ASSIST = 0,
+      TOOLBAR_RESET = 1;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo),
@@ -603,17 +607,22 @@ class SudokuScreenState extends State<SudokuScreen> {
             case TOOLBAR_RESET:
               this._showResetDialog();
             break;
-            case TOOLBAR_AUTOCOMPLETE:
-              sd.assist.autoComplete = !sd.assist.autoComplete;
-              this.runSetState();
+            case TOOLBAR_ASSIST:
+              Navigator.pushNamed(
+                this.context,
+                SudokuAssistScreen.routeName,
+                arguments: SudokuAssistScreenArguments(
+                  sd: this.sd,
+                ),
+              );
+              sd.assist.apply();
             break;
           }
         },
         itemBuilder: (BuildContext ctx) => <PopupMenuEntry<int>>[
-          CheckedPopupMenuItem(
-            value: TOOLBAR_AUTOCOMPLETE,
-            checked: sd.assist.autoComplete,
-            child: Text('Assist'),
+          PopupMenuItem(
+            value: TOOLBAR_ASSIST,
+            child: Text('Assistant'),
           ),
           PopupMenuItem(
             value: TOOLBAR_RESET,
