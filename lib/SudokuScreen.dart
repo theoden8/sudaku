@@ -615,6 +615,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   sd: this.sd,
                 ),
               );
+              sd.assist.apply();
             break;
           }
         },
