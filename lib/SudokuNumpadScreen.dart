@@ -295,7 +295,7 @@ class NumpadScreenState extends State<NumpadScreen> {
                 child: Container(
                   margin: EdgeInsets.all(sz * 0.1),
                   child: RaisedButton(
-                    elevation: this.multiselection[val + 1] ? 0 : 4.0,
+                    elevation: (this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) ? 0 : 4.0,
                     color: this.interact.getColor(val + 1),
                     onPressed: !this.interact.onPressEnabled(val + 1)
                     ? null : () {
