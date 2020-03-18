@@ -35,7 +35,6 @@ class SudokuApp extends StatelessWidget {
       routes: {
         SudokuScreen.routeName: (ctx) => SudokuScreen(),
         SudokuAssistScreen.routeName: (ctx) => SudokuAssistScreen(),
-        NumpadScreen.routeName: (ctx) => NumpadScreen(),
       },
     );
   }

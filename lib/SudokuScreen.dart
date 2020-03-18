@@ -182,15 +182,19 @@ class SudokuScreenState extends State<SudokuScreen> {
     if(sel.isEmpty) {
       return null;
     }
-    final val = await Navigator.pushNamed(
-      this.context,
-      NumpadScreen.routeName,
-      arguments: NumpadScreenArguments(
-        sd: this.sd,
-        nitype: nitype,
-        count: count,
-        variables: this.getSelection(),
-      ),
+    final val = await showGeneralDialog(
+      context: this.context,
+      barrierDismissible: true,
+      barrierLabel: "Selecting value",
+      transitionDuration: Duration(milliseconds: 400),
+      pageBuilder: (_, __, ___) {
+        return NumpadScreen(
+          sd: this.sd,
+          nitype: nitype,
+          count: count,
+          variables: this.getSelection(),
+        );
+      },
     );
     return val;
   }
