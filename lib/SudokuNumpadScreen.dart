@@ -40,10 +40,16 @@ abstract class NumpadInteraction {
   Color getColor(int val) {
     if(numpad.multiselection[val]) {
       return Colors.yellow[100];
-    } else if(numpad.antiselection[val]) {
+    } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
+      if(numpad.antiselectionChanges[val]) {
+        return Colors.red[200];
+      }
       return Colors.red[100];
     } else if(!numpad.constrained[val]) {
       return Colors.orange[100];
+    }
+    if(numpad.antiselectionChanges[val]) {
+      return Colors.blue[200];
     }
     return Colors.blue[100];
   }
@@ -99,7 +105,7 @@ class ValueInteraction extends NumpadInteraction {
   void handleOnLongPress(BuildContext ctx, int val) {
     if(this.onLongPressEnabled(val)) {
       numpad.interact = EliminatorInteraction(this.numpad, -1);
-      numpad.antiselection.invertBit(val);
+      numpad.interact.handleOnPress(ctx, val);
       numpad.runSetState();
     }
   }
@@ -159,6 +165,14 @@ class MultiselectionInteraction extends NumpadInteraction {
   }
 }
 
+class EliminatorInteractionReturnType {
+  EliminatorInteractionReturnType({this.forbidden, this.antiselectionChanges});
+
+  BitArray
+    antiselectionChanges,
+    forbidden;
+}
+
 class EliminatorInteraction extends NumpadInteraction {
   EliminatorInteraction(NumpadScreenState ns, int q):
     super(ns)
@@ -169,6 +183,7 @@ class EliminatorInteraction extends NumpadInteraction {
   @override
   void handleOnPress(BuildContext ctx, int val) {
     numpad.antiselection.invertBit(val);
+    numpad.antiselectionChanges.setBit(val);
     numpad.runSetState();
   }
 
@@ -179,7 +194,10 @@ class EliminatorInteraction extends NumpadInteraction {
         icon: Icon(Icons.save),
         onPressed: () {
           numpad.reset = true;
-          Navigator.pop(ctx, numpad.antiselection);
+          Navigator.pop(ctx, EliminatorInteractionReturnType(
+            forbidden: numpad.forbidden ^ numpad.antiselection,
+            antiselectionChanges: numpad.antiselectionChanges
+          ));
         },
       ),
     ];
@@ -187,10 +205,14 @@ class EliminatorInteraction extends NumpadInteraction {
 }
 
 class NumpadScreenState extends State<NumpadScreen> {
-  BitArray constrained;
-  BitArray antiselection;
-  BitArray multiselection;
-  BitArray available;
+  BitArray
+    antiselectionChanges,
+    antiselection,
+    multiselection;
+  BitArray
+    available,
+    forbidden,
+    constrained;
   NumpadInteraction interact = null;
 
   Sudoku sd;
@@ -214,6 +236,8 @@ class NumpadScreenState extends State<NumpadScreen> {
       return;
     }
     this.multiselection = sd.getEmptyDomain();
+    this.antiselection = sd.getEmptyDomain();
+    this.antiselectionChanges = sd.getEmptyDomain();
     switch(nitype) {
       case NumpadInteractionType.ANTISELECTION:
         this.interact = EliminatorInteraction(this, count);
@@ -227,11 +251,11 @@ class NumpadScreenState extends State<NumpadScreen> {
     }
     if(nitype == NumpadInteractionType.SELECT_VALUE) {
       this.available = sd.getCommonDomain(this.variables.asIntIterable());
-      this.antiselection = sd.assist.getCommonElimination(variables.asIntIterable());
+      this.forbidden = sd.assist.getCommonElimination(variables.asIntIterable());
       this.constrained = sd.assist.getCommonConstrained(variables.asIntIterable());
     } else {
       this.available = sd.getRepresentativeDomain(this.variables.asIntIterable());
-      this.antiselection = sd.assist.getRepresentativeElimination(variables.asIntIterable());
+      this.forbidden = sd.assist.getRepresentativeElimination(variables.asIntIterable());
       this.constrained = sd.assist.getRepresentativeConstrained(variables.asIntIterable());
     }
     this.reset = false;

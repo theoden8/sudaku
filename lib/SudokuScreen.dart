@@ -96,11 +96,13 @@ class EliminatorInteraction extends ConstraintInteraction {
   @override
   void onConstraintSelection() async {
     var selection = await self._selectValues(NumpadInteractionType.ANTISELECTION, -1);
-    if(selection == null || selection.cardinality == 0) {
+    if(selection == null) {
       return;
     }
+    EliminatorInteractionReturnType changes = selection;
     for(int v in self._multiSelect.asIntIterable()) {
-      sd.assist.elim[v].eliminate(selection.asIntIterable());
+      var diff = (sd.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
+      sd.assist.elim[v].invertBits(diff.asIntIterable());
     }
     sd.assist.apply();
     self.showAssistantResult();
@@ -204,9 +206,10 @@ class SudokuScreenState extends State<SudokuScreen> {
           sd.assist.apply();
           this.showAssistantResult();
         }
-      } else if(ret is BitArray) {
-        BitArray e = ret;
-        sd.assist.modifyEliminations(index, e);
+      } else if(ret is EliminatorInteractionReturnType) {
+        EliminatorInteractionReturnType changes = ret;
+        var diff = (sd.assist.elim[index].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
+        sd.assist.elim[index].invertBits(diff.asIntIterable());
       }
       this.runSetState();
     }
