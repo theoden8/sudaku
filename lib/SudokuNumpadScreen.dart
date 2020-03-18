@@ -74,7 +74,6 @@ abstract class NumpadInteraction {
       IconButton(
         icon: Icon(Icons.report),
         onPressed: () {
-          // numpad.multiselectionMode = -1;
           numpad.interact = EliminatorInteraction(numpad, -1);
           numpad.runSetState();
         },
@@ -88,7 +87,6 @@ class ValueInteraction extends NumpadInteraction {
     super(ns)
   {
     this.type = NumpadInteractionType.SELECT_VALUE;
-    // numpad.multiselectionMode = 0;
   }
 
   @override
@@ -98,7 +96,7 @@ class ValueInteraction extends NumpadInteraction {
 
   @override
   bool onLongPressEnabled(int val) {
-    return numpad.available[val] && numpad.variables.cardinality == 1;
+    return numpad.available[val];
   }
 
   @override
@@ -116,7 +114,6 @@ class ValueInteraction extends NumpadInteraction {
       IconButton(
         icon: Icon(Icons.report),
         onPressed: () {
-          // this.multiselectionMode = -1;
           numpad.interact = EliminatorInteraction(numpad, -1);
           numpad.runSetState();
         },
@@ -311,7 +308,7 @@ class NumpadScreenState extends State<NumpadScreen> {
                     disabledColor: Colors.grey,
                     padding: EdgeInsets.all(0.0),
                     child: Text(
-                      (val + 1).toString(),
+                      sd.s_get(val + 1),
                       style: TextStyle(
                         fontSize: sz * 0.4,
                       ),
