@@ -199,26 +199,35 @@ class SudokuScreenState extends State<SudokuScreen> {
     return await this._selectValues(NumpadInteractionType.SELECT_VALUE, 1);
   }
 
-  Future<void> _selectCellValue(int index) async {
+  Future<void> _selectCellValues(Iterable<int> variables) async {
     final ret = await this._selectValue();
     if(ret != null) {
       if(ret is int) {
         int val = ret;
-        sd.setManualChange(index, val);
+        for(int v in variables) {
+          sd.setManualChange(v, val);
+        }
         if(val != 0) {
           sd.assist.apply();
           this.showAssistantResult();
         }
       } else if(ret is EliminatorInteractionReturnType) {
         EliminatorInteractionReturnType changes = ret;
-        var diff = (sd.assist.elim[index].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
-        sd.assist.elim[index].invertBits(diff.asIntIterable());
+        for(int v in variables) {
+          var diff = (sd.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
+          sd.assist.elim[v].invertBits(diff.asIntIterable());
+        }
       }
       this.runSetState();
     }
     if(sd.checkIsComplete() && sd.check()) {
       this._showVictoryDialog();
     }
+    this.endMultiSelect();
+  }
+
+  Future<void> _selectCellValue(int variable) async {
+    this._selectCellValues(<int>[variable]);
   }
 
   Future<void> _showResetDialog() async {
@@ -596,7 +605,9 @@ class SudokuScreenState extends State<SudokuScreen> {
       IconButton(
         icon: Icon(Icons.create),
         onPressed: () {
-          if(this._selectedCell != -1) {
+          if(this._multiSelect.cardinality > 0) {
+            this._selectCellValues(this._multiSelect.asIntIterable());
+          } else if(this._selectedCell != -1) {
             this._selectCellValue(this._selectedCell);
           }
         },
