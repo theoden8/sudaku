@@ -608,6 +608,7 @@ class Constrainer extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
+    this.filterWithBasicConstraints(sdom);
     this.constraints.where((constr) =>
       constr.isActive() && (
         constr.status == Constraint.NOT_RUN
@@ -616,6 +617,56 @@ class Constrainer extends DomainFilterer {
     ).forEach((constr) {
       sdom.filter(constr);
     });
+  }
+
+  void filterWithBasicConstraints(SudokuDomain sdom) {
+    if(!sd.assist.shouldUseBasicConstraints) {
+      return;
+    }
+  }
+
+  void assistBasicConstraints() {
+    if(!sd.assist.shouldUseBasicConstraints) {
+      return;
+    }
+    bool restart = true;
+    while(restart) {
+      var sdom = sd.assist.getTotalDomain();
+      restart = false;
+      for(int i = 0; i < sd.ne2; ++i) {
+        for(var line in <Iterable<int>>[sd.iterateRow(i), sd.iterateCol(i), sd.iterateBox(i)]) {
+          var free = line.where((v) => (sd[v] == 0));
+          // print('line $line');
+          // print('values ${line.map((v) => sd[v])}');
+          // print('free $free');
+          for(int v in free) {
+            if(sdom[v].cardinality == 1) {
+              int val = sdom[v].asIntIterable().first;
+              // print('unique [$v] = $val');
+              sd.setAssistantChange(v, val);
+              restart = true;
+              break;
+            } else {
+              for(int val in sdom[v].asBitArray().asIntIterable()) {
+                var others = free.where((w) => (v != w));
+                if(others
+                  .map((w) => !sdom[w][val])
+                  .fold(true, (bool a, bool b) => (a && b)))
+                {
+                  sd.setAssistantChange(v, val);
+                  // print('exclusive [$v] = $val');
+                  restart = true;
+                  break;
+                }
+              }
+            }
+            if(restart)break;
+          }
+          if(restart)break;
+        }
+        if(restart)break;
+      }
+    }
   }
 
   BitArray getCommonConstrained(Iterable<int> indices) {
@@ -661,6 +712,7 @@ class SudokuAssist extends DomainFilterer {
   Constrainer constr;
   bool autoComplete = false;
   bool useBasicConstraints = false;
+  bool get shouldUseBasicConstraints => autoComplete && useBasicConstraints;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
@@ -755,6 +807,9 @@ class SudokuAssist extends DomainFilterer {
           sd.setAssistantChange(i, sdom[i].asIntIterable().first);
         }
       }
+    }
+    if(this.useBasicConstraints) {
+      this.constr.assistBasicConstraints();
     }
   }
 
