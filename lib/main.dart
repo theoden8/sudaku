@@ -10,6 +10,7 @@ import 'package:bit_array/bit_array.dart';
 
 
 import 'SudokuNumpadScreen.dart';
+import 'SudokuAssistScreen.dart';
 import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 
@@ -33,6 +34,7 @@ class SudokuApp extends StatelessWidget {
       home: MenuScreen(),
       routes: {
         SudokuScreen.routeName: (ctx) => SudokuScreen(),
+        SudokuAssistScreen.routeName: (ctx) => SudokuAssistScreen(),
         NumpadScreen.routeName: (ctx) => NumpadScreen(),
       },
     );

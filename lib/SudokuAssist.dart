@@ -660,6 +660,7 @@ class SudokuAssist extends DomainFilterer {
   Eliminator elim;
   Constrainer constr;
   bool autoComplete = false;
+  bool useBasicConstraints = false;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
@@ -747,7 +748,7 @@ class SudokuAssist extends DomainFilterer {
     if(!this.autoComplete) {
       return;
     }
-    var sdom = sd.getTotalDomain();
+    var sdom = this.getTotalDomain();
     for(int i = 0; i < sd.ne4; ++i) {
       if(sd.buf[i] == 0) {
         if(sdom[i].cardinality == 1) {
