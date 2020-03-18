@@ -554,6 +554,12 @@ class EliminatorSubdomain {
     return res;
   }
 
+  bool operator[]=(int value, bool bit) {
+    if(this[value] != bit) {
+      this.invertBit(value);
+    }
+  }
+
   void reinstate(Iterable<int> values) {
     this.elim.forbiddenValues.forEach((edom) {
       edom[this.variable].clearBits(values);
@@ -571,6 +577,14 @@ class EliminatorSubdomain {
     return this.elim.iterateActiveConditions()
       .map<BitArray>((i) => this.elim.forbiddenValues[i][this.variable].asBitArray())
       .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+  }
+
+  void invertBit(int value) {
+    if(this[value]) {
+      this.eliminate(<int>[value]);
+    } else {
+      this.reinstate(<int>[value]);
+    }
   }
 
   void invertBits(Iterable<int> values) {
