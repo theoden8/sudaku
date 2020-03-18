@@ -7,18 +7,13 @@ import 'Sudoku.dart';
 import 'SudokuAssist.dart';
 
 
-class NumpadScreenArguments {
-  NumpadScreenArguments({this.nitype, this.count, this.sd, this.variables});
+class NumpadScreen extends StatefulWidget {
+  NumpadScreen({this.nitype, this.count, this.sd, this.variables});
+
   NumpadInteractionType nitype;
   int count;
   Sudoku sd;
   BitArray variables;
-}
-
-class NumpadScreen extends StatefulWidget {
-  static const String routeName = '/numpad_data';
-
-  NumpadScreen();
 
   State createState() => NumpadScreenState();
 }
@@ -263,11 +258,10 @@ class NumpadScreenState extends State<NumpadScreen> {
   }
 
   Widget build(BuildContext ctx) {
-    final NumpadScreenArguments args = ModalRoute.of(ctx).settings.arguments;
-    this.variables = args.variables;
-    this.sd = args.sd;
+    this.variables = widget.variables;
+    this.sd = widget.sd;
     final int n = sd.n;
-    this._resetSelections(args.nitype, args.count);
+    this._resetSelections(widget.nitype, widget.count);
 
     bool isPortrait = MediaQuery.of(ctx).orientation == Orientation.portrait;
     final double w = (MediaQuery.of(ctx).size.width - 1.0) / n;
