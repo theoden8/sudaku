@@ -8,14 +8,17 @@ import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
 import 'SudokuAssist.dart';
 
+Future<String> load1465(AssetBundle a) async {
+  return await a.loadString("assets/top1465");
+}
 
 Future<List<int>> loadFrom1465(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(1465);
   // print('random number == $r');
   int ne4 = 81;
-  return await a.loadStructuredData("assets/top1465",
-    (String s) async =>  List<int>.generate(ne4, (i) {
+  String s = await load1465(a);
+  return List<int>.generate(ne4, (i) {
       // if(i == 0) {
       //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
       // }
@@ -23,8 +26,12 @@ Future<List<int>> loadFrom1465(AssetBundle a) async {
       var c = s[index];
       assert(c != '\n');
       return (c == '.') ? 0 : int.parse(c);
-    }),
+    }
   );
+}
+
+Future<String> load44(AssetBundle a) async {
+  return await a.loadString("assets/top44");
 }
 
 Future<List<int>> loadFrom44(AssetBundle a) async {
@@ -32,26 +39,26 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
   int r = rng.nextInt(44);
   // print('random number == $r');
   int ne4 = 256;
-  return await a.loadStructuredData<List<int>>("assets/top44",
-    (String s) async => List<int>.generate(ne4, (i) {
-        // if(i == 0) {
-        //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
-        // }
-        int index = (ne4 + 1) * r + i;
-        var c = s[index];
-        assert(c != '\n');
-        switch(c) {
-          case '.': return 0;
-          case 'A': return 10;
-          case 'B': return 11;
-          case 'C': return 12;
-          case 'D': return 13;
-          case 'E': return 14;
-          case 'F': return 15;
-          case 'G': return 16;
-          default: return int.parse(c);
-        }
-    }),
+  String s = await load44(a);
+  return List<int>.generate(ne4, (i) {
+      // if(i == 0) {
+      //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
+      // }
+      int index = (ne4 + 1) * r + i;
+      var c = s[index];
+      assert(c != '\n');
+      switch(c) {
+        case '.': return 0;
+        case 'A': return 10;
+        case 'B': return 11;
+        case 'C': return 12;
+        case 'D': return 13;
+        case 'E': return 14;
+        case 'F': return 15;
+        case 'G': return 16;
+        default: return int.parse(c);
+      }
+    }
   );
 }
 
