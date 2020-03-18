@@ -151,6 +151,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   Future<void> _handleOnPressCell(int index) {
     if(this._multiSelect.isEmpty) {
       this._selectedCell = index;
+      this._selectCellValue(index);
     } else {
       this._multiSelect.invertBit(index);
     }
