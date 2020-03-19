@@ -58,8 +58,7 @@ class OneofInteraction extends ConstraintInteraction {
       return;
     }
     sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect, val));
-    sd.assist.apply();
-    self.showAssistantResult();
+    self.runAssistant();
     this.finish_up();
   }
 }
@@ -70,8 +69,7 @@ class EqualInteraction extends ConstraintInteraction {
   @override
   void onConstraintSelection() async {
     sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect));
-    sd.assist.apply();
-    self.showAssistantResult();
+    self.runAssistant();
     this.finish_up();
   }
 }
@@ -86,8 +84,7 @@ class AlldiffInteraction extends ConstraintInteraction {
       return;
     }
     sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect, selection));
-    sd.assist.apply();
-    self.showAssistantResult();
+    self.runAssistant();
     this.finish_up();
   }
 }
@@ -106,8 +103,7 @@ class EliminatorInteraction extends ConstraintInteraction {
       var diff = (sd.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
       sd.assist.elim[v].invertBits(diff.asIntIterable());
     }
-    sd.assist.apply();
-    self.showAssistantResult();
+    self.runAssistant();
     this.finish_up();
   }
 }
@@ -146,6 +142,12 @@ class SudokuScreenState extends State<SudokuScreen> {
         );
       },
     );
+  }
+
+  void _checkVictoryConditions() async {
+    if(sd.checkIsComplete() && sd.check()) {
+      this._showVictoryDialog();
+    }
   }
 
   Future<void> _handleOnPressCell(int index) {
@@ -209,11 +211,14 @@ class SudokuScreenState extends State<SudokuScreen> {
       if(ret is int) {
         int val = ret;
         for(int v in variables) {
-          sd.setManualChange(v, val);
+          if(v == variables.first) {
+            sd.setManualChange(v, val);
+          } else {
+            sd.setAssistantChange(v, val);
+          }
         }
         if(val != 0) {
-          sd.assist.apply();
-          this.showAssistantResult();
+          this.runAssistant();
         }
       } else if(ret is EliminatorInteractionReturnType) {
         EliminatorInteractionReturnType changes = ret;
@@ -224,9 +229,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       }
       this.runSetState();
     }
-    if(sd.checkIsComplete() && sd.check()) {
-      this._showVictoryDialog();
-    }
+    this._checkVictoryConditions();
     this.endMultiSelect();
   }
 
@@ -479,9 +482,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   this._selectedConstraint = null;
                 }
               }
-              sd.assist.apply();
-              this.runSetState();
-              this.showAssistantResult();
+              this.runAssistant();
             }
           ),
           trailing: IconButton(
@@ -491,7 +492,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 this._selectedConstraint = null;
               }
               sd.assist.constraints.remove(constraints[i]);
-              this.runSetState();
+              this.runAssistant();
             },
           ),
           title: Text(
@@ -583,6 +584,24 @@ class SudokuScreenState extends State<SudokuScreen> {
     ),
   );
 
+  void runAssistant() {
+    sd.assist.apply();
+    this.showAssistantResult();
+    this._checkVictoryConditions();
+    this.runSetState();
+  }
+
+  void _showAssistantOptions(BuildContext ctx) async {
+    await Navigator.pushNamed(
+      this.context,
+      SudokuAssistScreen.routeName,
+      arguments: SudokuAssistScreenArguments(
+        sd: this.sd,
+      ),
+    );
+    this.runAssistant();
+  }
+
   List<Widget> _makeToolbar(BuildContext ctx) {
     const int
       TOOLBAR_ASSIST = 0,
@@ -623,14 +642,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               this._showResetDialog();
             break;
             case TOOLBAR_ASSIST:
-              Navigator.pushNamed(
-                this.context,
-                SudokuAssistScreen.routeName,
-                arguments: SudokuAssistScreenArguments(
-                  sd: this.sd,
-                ),
-              );
-              sd.assist.apply();
+              this._showAssistantOptions(ctx);
             break;
           }
         },

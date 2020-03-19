@@ -120,9 +120,9 @@ abstract class Constraint extends DomainFilterer {
   }
 
   void apply() {
-    print('apply constraint ${this.type}');
+    // print('apply constraint ${this.type}');
     if(this.checkSuccessCondition()) {
-      print('success by condition');
+      // print('success by condition');
       return;
     }
     var currentCondition = sd.assist.currentCondition;
@@ -228,6 +228,17 @@ class ConstraintEqual extends Constraint {
   }
 
   @override
+  void filterTotalDomain(SudokuDomain sdom) {
+    var common = this.variables.asIntIterable()
+      .map((i) => sd.getDomain(i))
+      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+    this.variables.asIntIterable()
+      .forEach((v) {
+        sdom[v].assign(common);
+      });
+  }
+
+  @override
   Iterable<int> getValues() {
     var dom = sd.getFullDomain();
     for(int v in this.variables.asIntIterable()) {
@@ -306,6 +317,10 @@ class ConstraintAllDiff extends Constraint {
       .where((v) => !this.variables[v])
       .forEach((v) {
         sdom[v].clearBits(this.domain.asIntIterable());
+      });
+    this.variables.asIntIterable()
+      .forEach((v) {
+        sdom[v].assign(sdom[v].asBitArray() & this.domain);
       });
   }
 
@@ -608,7 +623,7 @@ class Constrainer extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
-    this.filterWithBasicConstraints(sdom);
+    this.filterWithDefaultConstraints(sdom);
     this.constraints.where((constr) =>
       constr.isActive() && (
         constr.status == Constraint.NOT_RUN
@@ -619,14 +634,14 @@ class Constrainer extends DomainFilterer {
     });
   }
 
-  void filterWithBasicConstraints(SudokuDomain sdom) {
-    if(!sd.assist.shouldUseBasicConstraints) {
+  void filterWithDefaultConstraints(SudokuDomain sdom) {
+    if(!sd.assist.shouldUseDefaultConstraints) {
       return;
     }
   }
 
-  void assistBasicConstraints() {
-    if(!sd.assist.shouldUseBasicConstraints) {
+  void assistDefaultConstraints() {
+    if(!sd.assist.shouldUseDefaultConstraints) {
       return;
     }
     bool restart = true;
@@ -711,8 +726,8 @@ class SudokuAssist extends DomainFilterer {
   Eliminator elim;
   Constrainer constr;
   bool autoComplete = false;
-  bool useBasicConstraints = false;
-  bool get shouldUseBasicConstraints => autoComplete && useBasicConstraints;
+  bool useDefaultConstraints = false;
+  bool get shouldUseDefaultConstraints => autoComplete && useDefaultConstraints;
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
@@ -808,21 +823,27 @@ class SudokuAssist extends DomainFilterer {
         }
       }
     }
-    if(this.useBasicConstraints) {
-      this.constr.assistBasicConstraints();
+    if(this.useDefaultConstraints) {
+      this.constr.assistDefaultConstraints();
     }
   }
 
   void apply() {
     newlySucceeded = List<Constraint>();
     this.assistAutoComplete();
-    for(var constr in this.constraints) {
-      if(!constr.isActive()) {
-        continue;
-      }
-      constr.apply();
-      if(constr.lastStatus != constr.status && constr.status == Constraint.SUCCESS) {
-        this.newlySucceeded.add(constr);
+    bool restart = true;
+    while(restart) {
+      restart = false;
+      for(var constr in this.constraints) {
+        if(!constr.isActive()) {
+          continue;
+        }
+        constr.apply();
+        if(constr.lastStatus != constr.status && constr.status == Constraint.SUCCESS) {
+          this.newlySucceeded.add(constr);
+          // restart = true;
+        }
+        if(restart)break;
       }
     }
     this.assistAutoComplete();

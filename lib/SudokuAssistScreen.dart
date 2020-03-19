@@ -63,18 +63,18 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           padding: const EdgeInsets.only(left: 32.0),
           child: ListTile(
             leading: Checkbox(
-              value: sd.assist.useBasicConstraints,
+              value: sd.assist.useDefaultConstraints,
               onChanged: (bool b) {
-                sd.assist.useBasicConstraints = b;
+                sd.assist.useDefaultConstraints = b;
                 this.runSetState();
               },
             ),
             title: Text(
-              'Use basic constraints (rows, columns, boxes)',
+              'Use default constraints (alldiff for rows, columns, boxes)',
               textAlign: TextAlign.left,
             ),
             onTap: () {
-              sd.assist.useBasicConstraints = !sd.assist.useBasicConstraints;
+              sd.assist.useDefaultConstraints = !sd.assist.useDefaultConstraints;
               this.runSetState();
             },
           ),
