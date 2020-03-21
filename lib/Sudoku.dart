@@ -63,86 +63,33 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
 }
 
 class SudokuChange {
-  List<int> indices;
-  List<int> values;
+  int variable;
+  int value;
+  bool assisted;
 
-  SudokuChange() {
-    indices = List<int>();
-    values = List<int>();
+  SudokuChange(int variable, int value, bool assisted) {
+    this.variable = variable;
+    this.value = value;
+    this.assisted = assisted;
   }
 
-  int get length => indices.length;
-  bool get isEmpty => (this.length == 0);
-
-  void registerChange(int index, int val) {
-    indices.add(index);
-    values.add(val);
+  @override
+  String toString() {
+    return '[$variable]=$value:$assisted';
   }
-}
-
-class SudokuChangeList {
-  List<SudokuChange> changes;
-
-  bool _mutex = false;
-  dynamic guard(Function f) {
-    while(this._mutex)
-      ;
-    this._mutex = true;
-    var r = f();
-    this._mutex = false;
-    return r;
-  }
-
-  int get length => this.guard(() => this.changes.length);
-  bool get isEmpty => this.guard(() => this.changes.isEmpty);
-  SudokuChange get first => this.guard(() => this.changes.first);
-  SudokuChange get last => this.guard(() => this.changes.last);
-
-  SudokuChange operator[](int index) => this.guard(() => this.changes[index]);
-
-  SudokuChangeList() {
-    this.changes = <SudokuChange>[];
-    this.add();
-  }
-
-  void add() {
-    this.guard((){
-      this.changes.add(SudokuChange());
-    });
-  }
-
-  void registerChange(int index, int newval) {
-    this.guard(() {
-      this.changes.last.registerChange(index, newval);
-    });
-  }
-
-  void removeLast() {
-    if(this.isEmpty) {
-      return;
-    }
-    guard(() {
-      this.changes.removeLast();
-    });
-    if(this.isEmpty) {
-      this.add();
-    }
-  }
-
-  get reversed => this.guard(() => this.changes.reversed);
 }
 
 class Sudoku {
   BitArray hints;
   SudokuBuffer buf;
-  SudokuChangeList changes;
+  List<SudokuChange> changes;
   int n, ne2, ne4, ne6;
 
   SudokuAssist assist;
 
   bool _mutex = false;
 
-  int get age => this.changes.length;
+  int get age => this.changes.where((c) => !c.assisted).length;
 
   void guard(Function() func) {
     while(this._mutex)
@@ -238,7 +185,7 @@ class Sudoku {
     this.ne2 = n * n;
     this.ne4 = ne2 * ne2;
     this.ne6 = ne4 * ne2;
-    this.changes = SudokuChangeList();
+    this.changes = <SudokuChange>[];
     this.assist = SudokuAssist(this);
     this._setupSudoku(a, callback_f);
   }
@@ -383,42 +330,66 @@ class Sudoku {
   }
 
   void setManualChange(int index, int val) {
-    this.changes.add();
-    this.changes.registerChange(index, val);
+    this.changes.add(SudokuChange(index, val, false));
     this[index] = val;
   }
 
   void setAssistantChange(int index, int val) {
-    this.changes.last.registerChange(index, val);
+    this.changes.add(SudokuChange(index, val, true));
     this[index] = val;
   }
 
+  SudokuChange getLastChange() {
+    SudokuChange lastChange = null;
+    this.guard(() {
+      lastChange = this.changes.last;
+    });
+    return lastChange;
+  }
+
   void undoChange() {
+    // print('undo change from $changes');
+    while(true) {
+      if(this.changes.isEmpty) {
+        return;
+      }
+      if(!this.getLastChange().assisted) {
+        break;
+      }
+      this.undoLastChange();
+    }
+    this.undoLastChange();
+  }
+
+  void undoLastChange() {
     if(this.changes.isEmpty) {
       return;
     }
-    for(int i = 0; i < changes.last.length; ++i) {
-      int ind = changes.last.indices[changes.last.length - i - 1];
-      // int val = changes.last.values[changes.last.length - i - 1];
-      int precedingValue = 0;
-      // same change stack
-      for(int c_ind in Iterable<int>.generate(this.changes.length, (c_ind) => this.changes.length - c_ind - 1)) {
-        var c = this.changes[c_ind];
-        for(int j = 0; j < ((c == changes.last) ? c.length - i - 1 : c.length); ++j) {
-          int oldInd = c.indices[j];
-          if(oldInd != ind) {
-            continue;
-          }
-          precedingValue = c.values[j];
-          break;
-        }
-        if(precedingValue != 0) {
-          break;
-        }
-      }
-    }
+    var lastChange = this.getLastChange();
+    int lastVariable = lastChange.variable;
+    int precedingValue = this.findPrecedingValue(lastVariable);
+    // print('preceding value for $lastVariable is $precedingValue');
+    this[lastVariable] = precedingValue;
     this.changes.removeLast();
-    this.assist.retract();
+  }
+
+  int findPrecedingValue(int variable) {
+    int val = 0;
+    this.guard(() {
+      var hist = this.changes
+        .reversed
+        .where((c) => (c.variable == variable));
+      // print('hist $hist');
+      if(hist.length < 2) {
+        val = 0;
+        return;
+      }
+      // reagann and brezhnev running a cross
+      // brezhnev took the honored second place
+      // and reagann came second last
+      val = hist.take(2).last.value;
+    });
+    return val;
   }
 
   String toString() {
