@@ -621,7 +621,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               return;
             }
             if(!sd.changes.isEmpty) {
-              this._selectedCell = sd.getLastChange().variable;
+              this._selectedCell = sd.getLastChange().assisted ? -1 : sd.getLastChange().variable;
             }
             sd.undoChange();
             this.runAssistant();
