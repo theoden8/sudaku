@@ -284,12 +284,12 @@ class ConstraintAllDiff extends Constraint {
     this.indexMap = List<int>.generate(this.length, (i) => this.variables.asIntIterable().toList()[i]);
     this.clearDomainCache();
     this.resetAssigned();
-    print('indexMap: $indexMap');
+    // print('indexMap: $indexMap');
   }
 
   void resetAssigned() {
     this.assigned = List<int>.generate(this.length, (i) => sd[this.indexMap[i]]);
-    print('assigned $assigned');
+    // print('assigned $assigned');
   }
 
   void clearDomainCache() {

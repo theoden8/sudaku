@@ -620,13 +620,11 @@ class SudokuScreenState extends State<SudokuScreen> {
               this.endMultiSelect();
               return;
             }
-            if(sd.changes.length > 0) {
-              if(!sd.changes.last.isEmpty) {
-                this._selectedCell = sd.changes.last.indices.first;
-              }
+            if(!sd.changes.isEmpty) {
+              this._selectedCell = sd.getLastChange().assisted ? -1 : sd.getLastChange().variable;
             }
             sd.undoChange();
-            this.runSetState();
+            this.runAssistant();
           });
         },
       ),
