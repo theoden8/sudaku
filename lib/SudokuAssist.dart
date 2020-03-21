@@ -229,9 +229,7 @@ class ConstraintEqual extends Constraint {
 
   @override
   void filterTotalDomain(SudokuDomain sdom) {
-    var common = this.variables.asIntIterable()
-      .map((i) => sd.getDomain(i))
-      .fold(sd.getFullDomain(), (BitArray a, BitArray b) => (a & b));
+    var common = sd.getCommonDomain(this.variables.asIntIterable());
     this.variables.asIntIterable()
       .forEach((v) {
         sdom[v].assign(common);

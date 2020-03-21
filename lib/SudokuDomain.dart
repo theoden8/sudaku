@@ -2,10 +2,13 @@ import 'package:bit_array/bit_array.dart';
 
 import 'Sudoku.dart';
 
-abstract class DomainInterface {
+abstract class DomainInterfaceReadOnly {
   bool get isEmpty;
   int get length;
   int get cardinality;
+}
+
+abstract class DomainInterface extends DomainInterfaceReadOnly {
   void setBit(int index);
   void setBits(Iterable<int> indices);
   void clearBit(int index);
