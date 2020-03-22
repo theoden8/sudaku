@@ -12,7 +12,7 @@ import 'SudokuAssist.dart';
 Future<List<int>> loadFrom1465(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(1465 + 87);
-  print('loading dataset $r');
+  // print('loading dataset $r');
   int ne4 = 81;
   String s = "";
   s += await a.loadString("assets/top1465");
@@ -395,6 +395,17 @@ class Sudoku {
   void setAssistantChange(int index, int val) {
     this.changes.add(SudokuChange(index, val, true));
     this[index] = val;
+  }
+
+  bool isVariableManual(int index) {
+    if(this[index] == 0) {
+      return false;
+    }
+    return !this.changes
+      .reversed
+      .where((c) => (c.variable == index))
+      .first
+      .assisted;
   }
 
   SudokuChange getLastChange() {

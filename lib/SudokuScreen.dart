@@ -374,12 +374,20 @@ class SudokuScreenState extends State<SudokuScreen> {
     return Colors.white;
   }
 
+  Color getCellTextColor(int index) {
+    if(sd.isVariableManual(index)) {
+      return Colors.black;
+    }
+    return Colors.grey[500];
+  }
+
   Widget _makeSudokuCellMutable(int index, double sz) {
     int i = index ~/ sd.ne2, j = index % sd.ne2;
     int sdval = sd[index];
     return FlatButton(
       padding: const EdgeInsets.all(0.0),
       color: this.getCellColor(index),
+      textColor: this.getCellTextColor(index),
       onPressed: () {
         this._handleOnPressCell(index);
       },
