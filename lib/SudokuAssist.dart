@@ -621,7 +621,7 @@ class Constrainer extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
-    if(sd.assist.hintConstrained) {
+    if(!sd.assist.hintConstrained) {
       return;
     }
     this.filterWithDefaultConstraints(sdom);
