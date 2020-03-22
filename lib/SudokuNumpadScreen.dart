@@ -242,13 +242,29 @@ class NumpadScreenState extends State<NumpadScreen> {
       break;
     }
     if(nitype == NumpadInteractionType.SELECT_VALUE) {
-      this.available = sd.getCommonDomain(this.variables.asIntIterable());
+      if(this.sd.assist.hintAvailable) {
+        this.available = sd.getCommonDomain(this.variables.asIntIterable());
+      } else {
+        this.available = sd.getFullDomain();
+      }
       this.forbidden = sd.assist.getCommonElimination(variables.asIntIterable());
-      this.constrained = sd.assist.getCommonConstrained(variables.asIntIterable());
+      if(sd.assist.hintConstrained) {
+        this.constrained = sd.assist.getCommonConstrained(variables.asIntIterable());
+      } else {
+        this.constrained = sd.getFullDomain();
+      }
     } else {
-      this.available = sd.getRepresentativeDomain(this.variables.asIntIterable());
+      if(this.sd.assist.hintAvailable) {
+        this.available = sd.getRepresentativeDomain(this.variables.asIntIterable());
+      } else {
+        this.available = sd.getFullDomain();
+      }
       this.forbidden = sd.assist.getRepresentativeElimination(variables.asIntIterable());
-      this.constrained = sd.assist.getRepresentativeConstrained(variables.asIntIterable());
+      if(sd.assist.hintConstrained) {
+        this.constrained = sd.assist.getRepresentativeConstrained(variables.asIntIterable());
+      } else {
+        this.constrained = sd.getFullDomain();
+      }
     }
     this.reset = false;
   }

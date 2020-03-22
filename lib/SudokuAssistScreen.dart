@@ -38,7 +38,41 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
 
   List<Widget> _makeOptionList(BuildContext ctx) {
     var listTiles = <Widget>[];
-    listTiles.add(
+    listTiles.addAll(<Widget>[
+      ListTile(
+        leading: Checkbox(
+          value: sd.assist.hintAvailable,
+          onChanged: (bool b) {
+            sd.assist.hintAvailable = b;
+            this.runSetState();
+          },
+        ),
+        title: Text(
+          'Show only available values',
+          textAlign: TextAlign.left,
+        ),
+        onTap: () {
+          sd.assist.hintAvailable = !sd.assist.hintAvailable;
+          this.runSetState();
+        },
+      ),
+      ListTile(
+        leading: Checkbox(
+          value: sd.assist.hintConstrained,
+          onChanged: (bool b) {
+            sd.assist.hintAvailable = b;
+            this.runSetState();
+          },
+        ),
+        title: Text(
+          'Allow constraints to eliminate values',
+          textAlign: TextAlign.left,
+        ),
+        onTap: () {
+          sd.assist.hintConstrained = !sd.assist.hintConstrained;
+          this.runSetState();
+        },
+      ),
       ListTile(
         leading: Checkbox(
           value: sd.assist.autoComplete,
@@ -56,7 +90,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           this.runSetState();
         },
       )
-    );
+    ]);
     if(sd.assist.autoComplete) {
       listTiles.add(
         Padding(

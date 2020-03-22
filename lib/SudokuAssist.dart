@@ -621,6 +621,9 @@ class Constrainer extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
+    if(sd.assist.hintConstrained) {
+      return;
+    }
     this.filterWithDefaultConstraints(sdom);
     this.constraints.where((constr) =>
       constr.isActive() && (
@@ -725,6 +728,8 @@ class SudokuAssist extends DomainFilterer {
   Constrainer constr;
   bool autoComplete = false;
   bool useDefaultConstraints = false;
+  bool hintAvailable = true;
+  bool hintConstrained = true;
   bool get shouldUseDefaultConstraints => autoComplete && useDefaultConstraints;
 
   SudokuAssist(Sudoku sd) {
