@@ -8,38 +8,35 @@ import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
 import 'SudokuAssist.dart';
 
-Future<String> load1465(AssetBundle a) async {
-  return await a.loadString("assets/top1465");
-}
 
 Future<List<int>> loadFrom1465(AssetBundle a) async {
   var rng = new Random();
-  int r = rng.nextInt(1465);
-  // print('random number == $r');
+  int r = rng.nextInt(1465 + 87);
+  print('loading dataset $r');
   int ne4 = 81;
-  String s = await load1465(a);
+  String s = "";
+  s += await a.loadString("assets/top1465");
+  s += await a.loadString("assets/topn87");
   return List<int>.generate(ne4, (i) {
       // if(i == 0) {
       //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
       // }
       int index = (ne4 + 1) * r + i;
       var c = s[index];
+      if(c == '\n')print('$i');
       assert(c != '\n');
       return (c == '.') ? 0 : int.parse(c);
     }
   );
 }
 
-Future<String> load44(AssetBundle a) async {
-  return await a.loadString("assets/top44");
-}
 
 Future<List<int>> loadFrom44(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(44);
   // print('random number == $r');
   int ne4 = 256;
-  String s = await load44(a);
+  String s = await a.loadString("assets/top44");
   return List<int>.generate(ne4, (i) {
       // if(i == 0) {
       //   print(s.substring((ne4 + 1) * r, (ne4 + 1) * (r + 1)));
@@ -62,6 +59,7 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
   );
 }
 
+
 class SudokuChange {
   int variable;
   int value;
@@ -78,6 +76,7 @@ class SudokuChange {
     return '[$variable]=$value:$assisted';
   }
 }
+
 
 class Sudoku {
   BitArray hints;
@@ -99,7 +98,7 @@ class Sudoku {
     this._mutex = false;
   }
 
-  void _renameSudokuBuffer() {
+  void _renameSudokuValues() {
     var renaming = List<int>.generate(ne2, (i) => i + 1);
     renaming.shuffle();
     renaming.insert(0, 0);
@@ -109,25 +108,84 @@ class Sudoku {
     }
   }
 
-  void _mangleCrossTranspose() {
+  void _transposeCrossGrid() {
     this.buf.setBuffer(this.buf.getBuffer().reversed.toList());
   }
 
-  void _mangleTranspose() {
+  void _transposeGrid() {
     this.buf.setBuffer(List<int>.generate(ne4, (index) {
       int i = index % ne2, j = index ~/ ne2;
       return this.buf[j * ne2 + i];
     }));
   }
 
-  void _mangleSudokuBuffer() {
-    this._renameSudokuBuffer();
-    var rng = new Random();
-    if(rng.nextInt(2) == 1) {
-      this._mangleTranspose();
+  List<Iterable<int>> getBand(int band) {
+    return List<int>.generate(n, (i) => i)
+      .map((i) => this.iterateRow(band * n + i))
+      .toList();
+  }
+
+  List<Iterable<int>> getStack(int stack) {
+    return List<int>.generate(n, (i) => i)
+      .map((i) => this.iterateCol(stack * n + i))
+      .toList();
+  }
+
+  List<Iterable<int>> Function(int) _getRandomSleeveFunc(dynamic rng) {
+    if(rng.nextInt(2) == 0) {
+      return this.getBand;
+    } else {
+      return this.getStack;
     }
-    if(rng.nextInt(2) == 1) {
-      this._mangleCrossTranspose();
+  }
+
+  void _swapLines(List<int> first, List<int> second) {
+    for(int i = 0; i < ne2; ++i) {
+      int tmp = this[first[i]];
+      this[first[i]] = this[second[i]];
+      this[second[i]] = tmp;
+    }
+  }
+
+  void _swapSleeves(List<Iterable<int>> first, List<Iterable<int>> second) {
+    for(int i = 0; i < n; ++i) {
+      this._swapLines(first[i].toList(), second[i].toList());
+    }
+  }
+
+  void _shuffleSleeve(dynamic rng, List<Iterable<int>> sleeve) {
+    for(int i = n - 1; i >= 1; --i) {
+      int j = rng.nextInt(i + 1);
+      this._swapLines(sleeve[i].toList(), sleeve[j].toList());
+    }
+  }
+
+  void _shuffleEachSleeve(dynamic rng, Function(int) sleeve_func) {
+    var iter = List<int>.generate(n * 2, (i) => i)..shuffle(rng);
+    for(int i = 0; i < n; ++i) {
+      this._shuffleSleeve(rng, sleeve_func(i));
+    }
+  }
+
+  void _shuffleSleeves(dynamic rng, Function(int) sleeve_func) {
+    for(int i = n - 1; i >= 1; --i) {
+      int j = rng.nextInt(i + 1);
+      this._swapSleeves(sleeve_func(i), sleeve_func(j));
+    }
+  }
+
+  void _mangleSudokuBuffer() {
+    this._renameSudokuValues();
+    var rng = new Random();
+    for(int i = 0; i < n; ++i) {
+      if(rng.nextInt(2) == 1) {
+        this._transposeGrid();
+      }
+      if(rng.nextInt(2) == 1) {
+        this._transposeCrossGrid();
+      }
+      this._shuffleEachSleeve(rng, this._getRandomSleeveFunc(rng));
+      this._shuffleSleeves(rng, this._getRandomSleeveFunc(rng));
     }
   }
 

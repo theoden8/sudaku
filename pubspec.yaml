@@ -47,6 +47,7 @@ flutter:
 
   assets:
    - assets/top1465
+   - assets/topn87
    - assets/top44
 
   # An image asset can refer to one or more resolution-specific "variants", see

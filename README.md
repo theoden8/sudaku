@@ -25,3 +25,10 @@ This is my first mobile application project, and I am being cautious about the l
 ## contributing
 
 Feel free to request a feature, post a bug, or make a pr. But keep in mind that this is an early stage of development.
+
+## references
+
+* http://magictour.free.fr/topn87 - hardest 87 9x9 puzzles
+* http://magictour.free.fr/top1465 - hardest 1465 9x9 puzzles
+* http://magictour.free.fr/top44 - hardest 44 16x16 puzzles
+* http://pi.math.cornell.edu/~mec/Summer2009/Mahmood/Symmetry.html
