@@ -82,7 +82,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           },
         ),
         title: Text(
-          'Fill in a value when only one left',
+          'Fill in a value when there is only one left',
           textAlign: TextAlign.left,
         ),
         onTap: () {
