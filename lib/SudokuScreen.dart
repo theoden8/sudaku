@@ -235,7 +235,11 @@ class SudokuScreenState extends State<SudokuScreen> {
       if(ret is int) {
         this._processCellValueSelection(variable_s, ret);
       } else if(ret is EliminatorInteractionReturnType) {
-        this._processCellElimination(variable_s, ret);
+        if(variable_s is int) {
+          this._processCellElimination(<int>[variable_s], ret);
+        } else {
+          this._processCellElimination(variable_s, ret);
+        }
       }
       this.runSetState();
     }
