@@ -13,12 +13,12 @@ if (flutterRoot == null) {
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
+    throw new GradleException("App version code not found.")
 }
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
+    throw new GradleException("App version not found.")
 }
 
 apply plugin: 'com.android.application'
@@ -81,13 +81,13 @@ android {
       }
     }
 
-    // android.applicationVariants.all { variant ->
-    //     if (variant.flavorName == "fdroid") {
-    //         variant.outputs.all {
-    //             output ->  output.outputFileName = "app-fdroid-release.apk"
-    //         }
-    //     }
-    // }
+    android.applicationVariants.all { variant ->
+        if (variant.flavorName == "fdroid") {
+            variant.outputs.all {
+                output ->  output.outputFileName = "app-fdroid-release.apk"
+            }
+        }
+    }
 
     buildTypes {
         release {
