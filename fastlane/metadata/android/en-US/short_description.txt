@@ -1,0 +1,1 @@
+A game where sudoku is meant to be solved using rules.

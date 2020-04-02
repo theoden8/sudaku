@@ -1,0 +1,3 @@
+Sudaku is a sudoku solving game, which gives you a direct control of auto-filling.
+
+While making guesses is the gist of why sudoku is a hard puzzle, it is a mostly mechanical work to walk through the elementary implications, and back if it turned out a guess was wrong. This is why you are given the ability to add relations between cells. This allows for delegation of the boring work to the game, while your job is to ensure the consistency of these rules. You are meant to play by staying ahead of your own thoughts!
