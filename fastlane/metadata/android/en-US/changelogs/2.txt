@@ -1,0 +1,7 @@
+## changes
+
+* basic constraints (except lookahead filtering)
+* redesigned menu
+* fixed undo button
+* assistant options
+* more flexible one-tap/multi-variable editing
