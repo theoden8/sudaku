@@ -189,6 +189,31 @@ class Sudoku {
     }
   }
 
+  BitArray getRandomBC(dynamic rng) {
+    int r = rng.nextInt(3);
+    var bc_ind = rng.nextInt(this.ne2);
+    var bc = BitArray(this.ne4);
+    if(r == 0) {
+      bc.setBits(this.iterateRow(bc_ind));
+    } else if(r == 1) {
+      bc.setBits(this.iterateCol(bc_ind));
+    } else if(r == 2) {
+      bc.setBits(this.iterateBox(bc_ind));
+    }
+    return bc;
+  }
+
+  BitArray getUnsolvedRandomBC() {
+    var rng = new Random();
+    var bc = null;
+    do {
+      bc = this.getRandomBC(rng);
+    } while(!this.checkIsComplete()
+        && bc.asIntIterable()
+             .every((ind) => (this[ind] != 0)));
+    return bc;
+  }
+
   void _setupSudoku(AssetBundle a, Function() callback_f) async {
     this.buf = SudokuBuffer(ne4);
     var r = new Random();

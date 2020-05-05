@@ -39,6 +39,9 @@ abstract class ConstraintInteraction {
     self.interact = null;
     self.endMultiSelect();
     self.runSetState();
+    if(self._showTutorial && self._tutorialStage == 2) {
+      self._tutorialStage = 3;
+    }
   }
 
   void onSelection();
@@ -240,6 +243,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         } else {
           this._processCellElimination(variable_s, ret);
         }
+      } else {
       }
       this.runSetState();
     }
@@ -375,6 +379,9 @@ class SudokuScreenState extends State<SudokuScreen> {
         return Colors.yellow[200];
       }
     }
+    if(this._tutorialCells != null && this._tutorialCells[index]) {
+      return Colors.orange[100];
+    }
     return Colors.white;
   }
 
@@ -468,6 +475,172 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
   }
 
+  bool _showTutorial = true;
+  int _tutorialStage = 0;
+
+  BitArray _tutorialCells = null;
+  void _selectTutorialCells() {
+    this._tutorialCells = BitArray(sd.ne4)
+      ..setBits(
+          sd.getUnsolvedRandomBC()
+        .asIntIterable()
+        .where((ind) => !sd.isHint(ind)));
+    if(this._tutorialCells == null) {
+      this._tutorialCells = BitArray(sd.ne4);
+    }
+    print('tutorialcells ${this._tutorialCells.asIntIterable()}');
+  }
+
+  Future<void> _showTutorialMessage(String title, String message, Function() nextFunc) async {
+    return showDialog<void>(
+      context: this.context,
+      barrierDismissible: false,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text('Ok'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                nextFunc();
+              }
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _makeTutorialButtonStage0(BuildContext ctx) {
+    return RaisedButton(
+      elevation: 4.0,
+      color: Colors.blue[100],
+      onPressed: () {
+        this._selectTutorialCells();
+        this._tutorialStage = 1;
+        this.runSetState();
+        this._showTutorialMessage(
+          'Multi-selection',
+          'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
+          (){}
+        );
+      },
+      onLongPress: () {
+        this._showTutorial = false;
+        this.runSetState();
+      },
+      child: Center(
+        child: Icon(
+          Icons.help,
+          size: 80,
+        ),
+      ),
+    );
+  }
+
+  Widget _makeTutorialButtonStage12(BuildContext ctx) {
+    var tutorialCellsUnset = BitArray(sd.ne4)
+      ..setBits(
+        this._tutorialCells
+          .asIntIterable()
+          .where((ind) => (sd[ind] == 0))
+      );
+    bool passCondition = (
+      this._multiSelect.cardinality == tutorialCellsUnset.cardinality
+      && this._multiSelect.asIntIterable().every(
+        (msel) => tutorialCellsUnset[msel]
+      )
+    );
+    this._tutorialStage = !passCondition ? 1 : 2;
+    return RaisedButton(
+      elevation: passCondition ? 4.0 : 0.0,
+      color: Colors.blue[100],
+      onPressed: !passCondition ? null : () {
+        Scaffold.of(ctx).openDrawer();
+        this.runSetState();
+        this._showTutorialMessage(
+            'One of',
+            'One of the cells contains a specific value.',
+            () {
+              this._showTutorialMessage(
+                'All different',
+                'Match the selected cells with the same number of values.',
+                () {
+                  this._showTutorialMessage(
+                    'Instructions',
+                    'Tap "All different".',
+                    () {
+                    }
+                  );
+                }
+              );
+            }
+        );
+      },
+      child: Center(
+        child: Icon(
+          passCondition ? Icons.select_all : Icons.touch_app,
+          size: 80,
+        ),
+      ),
+    );
+  }
+
+  Widget _makeTutorialButtonStage3(BuildContext ctx) {
+    return RaisedButton(
+      elevation: 4.0,
+      color: Colors.blue[100],
+      onPressed: () {
+        this._showTutorialMessage(
+            "New constraint",
+            'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
+            () {
+              this._showTutorialMessage(
+                'Assistant',
+                'Once you get used to using constraints, you should enable default rules through the settings.',
+                () {
+                }
+              );
+            }
+        );
+        this._showTutorial = false;
+        this._tutorialStage = 0;
+        this._tutorialCells = null;
+        this.runSetState();
+      },
+      child: Center(
+        child: Icon(
+          Icons.done,
+          size: 80,
+        ),
+      ),
+    );
+  }
+
+  Widget _makeTutorialButton(BuildContext ctx) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.all(32.0),
+        child: (stage){
+          switch(stage) {
+            case 0:
+              return this._makeTutorialButtonStage0(ctx);
+            break;
+            case 1:
+            case 2:
+              return this._makeTutorialButtonStage12(ctx);
+            break;
+            case 3:
+              return this._makeTutorialButtonStage3(ctx);
+            break;
+          }
+        }(this._tutorialStage),
+      ),
+    );
+  }
+
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
     var constraints = sd.assist.constraints.where((Constraint c) {
@@ -557,45 +730,57 @@ class SudokuScreenState extends State<SudokuScreen> {
             ],
           ),
         ),
-        ListTile(
-          leading: Icon(Icons.link_off),
-          title: Text('One of'),
-          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
-            this.interact = OneofInteraction(this);
-            await this.interact.onSelection();
-            Navigator.pop(ctx);
-            this.runSetState();
-          },
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.link_off),
+            title: Text('One of'),
+            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+              this.interact = OneofInteraction(this);
+              await this.interact.onSelection();
+              Navigator.pop(ctx);
+              this.runSetState();
+            },
+          ),
         ),
-        ListTile(
-          leading: Icon(Icons.link),
-          title: Text('Equivalence'),
-          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
-            this.interact = EqualInteraction(this);
-            await this.interact.onSelection();
-            Navigator.pop(ctx);
-            this.runSetState();
-          },
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.link),
+            title: Text('Equivalence'),
+            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+              this.interact = EqualInteraction(this);
+              await this.interact.onSelection();
+              Navigator.pop(ctx);
+              this.runSetState();
+            },
+          ),
         ),
-        ListTile(
-          leading: Icon(Icons.sort),
-          title: Text('All different'),
-          onTap: (this._multiSelect.cardinality < 2) ? null : () async {
-            this.interact = AlldiffInteraction(this);
-            await this.interact.onSelection();
-            Navigator.pop(ctx);
-            this.runSetState();
-          },
+        Card(
+          color: (
+            this._showTutorial
+            && this._tutorialStage == 2
+          ) ? Colors.blue[100] : Colors.white,
+          child: ListTile(
+            leading: Icon(Icons.sort),
+            title: Text('All different'),
+            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+              this.interact = AlldiffInteraction(this);
+              await this.interact.onSelection();
+              Navigator.pop(ctx);
+              this.runSetState();
+            },
+          ),
         ),
-        ListTile(
-          leading: Icon(Icons.report),
-          title: Text('Eliminate'),
-          onTap: (this._multiSelect.cardinality < 1) ? null : () async {
-            this.interact = EliminatorInteraction(this);
-            await this.interact.onSelection();
-            Navigator.pop(ctx);
-            this.runSetState();
-          },
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.report),
+            title: Text('Eliminate'),
+            onTap: (this._multiSelect.cardinality < 1) ? null : () async {
+              this.interact = EliminatorInteraction(this);
+              await this.interact.onSelection();
+              Navigator.pop(ctx);
+              this.runSetState();
+            },
+          ),
         ),
       ],
     ),
@@ -620,9 +805,13 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   List<Widget> _makeToolbar(BuildContext ctx) {
+    if(this._showTutorial && this._tutorialStage >= 1) {
+      return <Widget>[];
+    }
     const int
       TOOLBAR_ASSIST = 0,
-      TOOLBAR_RESET = 1;
+      TOOLBAR_TUTOR = 1,
+      TOOLBAR_RESET = 2;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo),
@@ -656,6 +845,10 @@ class SudokuScreenState extends State<SudokuScreen> {
             case TOOLBAR_RESET:
               this._showResetDialog();
             break;
+            case TOOLBAR_TUTOR:
+              this._showTutorial = true;
+              this.runSetState();
+            break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
             break;
@@ -665,6 +858,10 @@ class SudokuScreenState extends State<SudokuScreen> {
           PopupMenuItem(
             value: TOOLBAR_ASSIST,
             child: Text('Assistant'),
+          ),
+          PopupMenuItem(
+            value: TOOLBAR_TUTOR,
+            child: Text('Tutor')
           ),
           PopupMenuItem(
             value: TOOLBAR_RESET,
@@ -705,7 +902,9 @@ class SudokuScreenState extends State<SudokuScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   this._makeSudokuGrid(ctx),
-                  this._makeConstraintList(ctx),
+                  this._showTutorial ?
+                    this._makeTutorialButton(ctx)
+                    : this._makeConstraintList(ctx),
                 ],
               ),
             );
