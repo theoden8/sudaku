@@ -285,9 +285,18 @@ class NumpadScreenState extends State<NumpadScreen> {
     final double size = (isPortrait ? w : h) - 8.0;
     final double sz = size;
 
+    String proportionText = '';
+    if(widget.nitype == NumpadInteractionType.MULTISELECTION) {
+      int no_msel = 0;
+      if(this.multiselection != null) {
+        no_msel = this.multiselection.cardinality;
+      }
+      proportionText = ' (${no_msel}/${widget.count})';
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: new Text('Selecting'),
+        title: new Text('Selecting' + proportionText),
         elevation: 0.0,
         actions: this._makeToolbar(ctx),
       ),
