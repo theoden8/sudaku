@@ -26,7 +26,7 @@ class MenuScreenState extends State<MenuScreen> {
   Widget _makeSudokuSizeButton(ctx, setState, int n) {
     bool isSelected = this._selectedSize == n;
     return Container(
-      margin: const EdgeInsets.all(8.0),
+      margin: const EdgeInsets.all(16.0),
       child: RaisedButton(
         elevation: isSelected ? 0.0 : 4.0,
         color: isSelected ? Colors.green[100] : Colors.blue[100],
@@ -73,18 +73,18 @@ class MenuScreenState extends State<MenuScreen> {
               children: <Widget>[
                 Spacer(flex: 1),
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: this._makeSudokuSizeButton(ctx, setState, 2),
                 ),
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: this._makeSudokuSizeButton(ctx, setState, 3),
                 ),
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: this._makeSudokuSizeButton(ctx, setState, 4),
                 ),
-                Spacer(flex: 3),
+                Spacer(flex: 2),
               ],
             ),
             floatingActionButton: (this._selectedSize == -1) ? null : Container(
