@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:bit_array/bit_array.dart';
 
@@ -883,6 +884,10 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
       this._multiSelect = BitArray(sd.ne4);
     }
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
 
     return WillPopScope(
       onWillPop: () async => false,
