@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -279,10 +281,9 @@ class NumpadScreenState extends State<NumpadScreen> {
     final int n = sd.n;
     this._resetSelections(widget.nitype, widget.count);
 
-    bool isPortrait = MediaQuery.of(ctx).orientation == Orientation.portrait;
     final double w = (MediaQuery.of(ctx).size.width - 1.0) / n;
     final double h = (MediaQuery.of(ctx).size.height - 1.0) / n;
-    final double size = (isPortrait ? w : h) - 8.0;
+    final double size = min(w, h) - 8.0;
     final double sz = size;
 
     String proportionText = '';
@@ -302,6 +303,7 @@ class NumpadScreenState extends State<NumpadScreen> {
       ),
       body: CustomScrollView(
         primary: true,
+        scrollDirection: (w < h) ? Axis.vertical : Axis.horizontal,
         slivers: <Widget>[
           SliverGrid.count(
             // crossAxisSpacing: h,
@@ -345,9 +347,11 @@ class NumpadScreenState extends State<NumpadScreen> {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: (w < h) ? MainAxisAlignment.start : MainAxisAlignment.end,
                     children: <Widget>[
-                      (
-                        this.interact is! MultiselectionInteraction ?
+                      Container(
+                        margin: EdgeInsets.all((w < h) ? 0 : sz * 0.1),
+                        child: this.interact is! MultiselectionInteraction ?
                         RaisedButton(
                           padding: EdgeInsets.all(16.0),
                           elevation: 16.0,
@@ -370,7 +374,7 @@ class NumpadScreenState extends State<NumpadScreen> {
                             this.reset = true;
                             Navigator.pop(ctx, multiselection);
                           },
-                        )
+                        ),
                       ),
                     ],
                   ),
