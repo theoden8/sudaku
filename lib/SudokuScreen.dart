@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -118,6 +119,9 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   BitArray _multiSelect = null;
   int _selectedCell = -1;
+
+  double screenWidth = 0,
+         screenHeight = 0;
 
   void runSetState() {
     setState((){});
@@ -424,11 +428,9 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeSudokuGrid(BuildContext ctx) {
-    bool isPortrait = MediaQuery.of(ctx).orientation == Orientation.portrait;
-    double w = MediaQuery.of(ctx).size.width;
-    double h = MediaQuery.of(ctx).size.height;
-    // double size = (isPortrait ? w : h) - 8.0;
-    double size = w;
+    double w = this.screenWidth;
+    double h = this.screenHeight;
+    double size = min(w, h);
     double sz = (size - 1.0) / sd.ne2;
     return SizedBox(
       child: Container(
@@ -885,25 +887,40 @@ class SudokuScreenState extends State<SudokuScreen> {
       this._multiSelect = BitArray(sd.ne4);
     }
 
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    var appBar = AppBar(
+      title: new Text('Sudoku'),
+      elevation: 4.0,
+      actions: this._makeToolbar(ctx),
+    );
+
+    double w = MediaQuery.of(ctx).size.width;
+    double h = MediaQuery.of(ctx).size.height - MediaQuery.of(ctx).padding.top - MediaQuery.of(ctx).padding.bottom - appBar.preferredSize.height - 8.0;
+    double size = min(w, h);
+
+    this.screenWidth = w;
+    this.screenHeight = h;
 
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        appBar: AppBar(
-          title: new Text('Sudoku'),
-          elevation: 4.0,
-          actions: this._makeToolbar(ctx),
-        ),
+        appBar: appBar,
         drawer: this._makeDrawer(ctx),
         body: Builder(
           builder: (ctx) {
             this._scaffoldBodyContext = ctx;
             return Container(
               margin: const EdgeInsets.all(4.0),
-              child: Column(
+              child: (w < h) ?
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  this._makeSudokuGrid(ctx),
+                  this._showTutorial ?
+                    this._makeTutorialButton(ctx)
+                    : this._makeConstraintList(ctx),
+                ],
+              )
+              : Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   this._makeSudokuGrid(ctx),
