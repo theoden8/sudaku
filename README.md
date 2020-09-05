@@ -4,6 +4,10 @@
 
 ## about
 
+[<img src="https://f-droid.org/badge/get-it-on.png"
+      alt="Get it on F-Droid"
+      height="80">](https://f-droid.org/packages/com.gitea.theoden8.sudaku/)
+
 One of the most mechanical things about solving sudoku puzzles is manually choosing the values that are immediately implied as a consequence of risking/setting a cell. This app aims to alleviate this problem, by providing user with a language in which they can express a system of rules, from which autocompletions should be derived.
 
 The system consists of a variety of constraints, such as alldifferent, one-of, and plain value elimination, which can be specified individually.
