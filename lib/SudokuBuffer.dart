@@ -48,7 +48,7 @@ class SudokuBuffer {
     return val;
   }
 
-  bool operator==(SudokuBuffer other) {
+  bool operator==(covariant SudokuBuffer other) {
     return !Iterable<bool>.generate(this.length, (i) => (
       this[i] == other[i])
     ).contains(false);
