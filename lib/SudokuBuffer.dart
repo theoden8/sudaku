@@ -41,11 +41,10 @@ class SudokuBuffer {
     return val;
   }
 
-  int operator[]=(int index, int val) {
+  void operator[]=(int index, int val) {
     this.guard(() {
       this.buf[index] = val;
     });
-    return val;
   }
 
   bool operator==(covariant SudokuBuffer other) {

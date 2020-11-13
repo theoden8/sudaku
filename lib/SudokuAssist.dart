@@ -567,7 +567,7 @@ class EliminatorSubdomain {
     return res;
   }
 
-  bool operator[]=(int value, bool bit) {
+  void operator[]=(int value, bool bit) {
     if(this[value] != bit) {
       this.invertBit(value);
     }

@@ -70,9 +70,8 @@ class SudokuDomain extends DomainInterface {
     return SudokuSubdomain(sd, this, v);
   }
 
-  SudokuSubdomain operator[]=(int v, BitArray dom) {
-    var sub = this[v]..assign(dom);
-    return sub;
+  void operator[]=(int v, BitArray dom) {
+    this[v].assign(dom);
   }
 
   int index(int variable, int value) {
@@ -206,7 +205,7 @@ class SudokuSubdomain extends DomainInterface {
     return this.sdom.getBit(sdom.index(this.variable, value));
   }
 
-  bool operator[]=(int value, bool bit) {
+  void operator[]=(int value, bool bit) {
     if(bit) {
       this.setBit(value);
     } else {

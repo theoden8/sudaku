@@ -365,10 +365,9 @@ class Sudoku {
     return this.buf[ind];
   }
 
-  int operator[]=(int ind, int val) {
+  void operator[]=(int ind, int val) {
     this.buf[ind] = val;
     this.assist.updateCurrentCondition();
-    return val;
   }
 
   int index(int i, int j) {
