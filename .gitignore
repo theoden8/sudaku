@@ -11,7 +11,11 @@
 
 # IntelliJ related
 # android/
+go/
 ios/
+linux/
+macos/
+windows/
 .gradle
 *.iml
 *.ipr
