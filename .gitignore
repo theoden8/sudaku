@@ -9,11 +9,15 @@
 .history
 .svn/
 
+# appimage
+/AppDir
+/appimage-builder-cache
+*.AppImage
+
 # android/
-go/
+pubspec.lock
 ios/
 linux/
-macos/
 windows/
 .gradle
 *.iml
