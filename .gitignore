@@ -9,6 +9,11 @@
 .history
 .svn/
 
+# appimage
+/AppDir
+/appimage-builder-cache
+*.AppImage
+
 # android/
 go/
 ios/
