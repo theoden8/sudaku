@@ -1,5 +1,5 @@
 class SudokuBuffer {
-  List<int> buf;
+  late List<int> buf;
   int get length => this.buf.length;
   bool _mutex = false;
 
@@ -26,19 +26,19 @@ class SudokuBuffer {
   }
 
   List<int> getBuffer() {
-    List<int> buffer = null;
+    List<int>? buffer = null;
     this.guard((){
-      buffer = List<int>()..addAll(this._getBuffer());
+      buffer = <int>[]..addAll(this._getBuffer());
     });
-    return buffer;
+    return buffer!;
   }
 
   int operator[](int index) {
-    int val = null;
+    int? val = null;
     this.guard(() {
       val = this.buf[index];
     });
-    return val;
+    return val!;
   }
 
   void operator[]=(int index, int val) {

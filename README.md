@@ -36,3 +36,7 @@ Feel free to request a feature, post a bug, or make a pr. But keep in mind that 
 * http://magictour.free.fr/top1465 - hardest 1465 9x9 puzzles
 * http://magictour.free.fr/top44 - hardest 44 16x16 puzzles
 * http://pi.math.cornell.edu/~mec/Summer2009/Mahmood/Symmetry.html
+
+## supporting
+
+XMR [<img src="https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png" alt="xmr" height="20" width="20">](https://getmonero.org): 86tFFhT6hdUQAzcc2Za7i8ZggwQusf1ssgUNby2ApEvJDBodye8CQdJgXLaNMnun5YHm8im8MhnoK91XPWb99YdvDnfiYGZ

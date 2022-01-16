@@ -15,18 +15,18 @@ abstract class Constraint extends DomainFilterer {
     INSUFFICIENT = 0,
     VIOLATED = -1;
 
-  Sudoku sd;
-  SudokuBuffer condition;
-  BitArray variables;
+  late Sudoku sd;
+  late SudokuBuffer condition;
+  late BitArray variables;
   ConstraintType type = ConstraintType.GENERIC;
   bool active = true;
 
   int get lastStatus => (this._statuses.length < 2) ? Constraint.NOT_RUN : this._statuses[this._statuses.length - 1];
   int get status => (this._statuses.isEmpty) ? Constraint.NOT_RUN : this._statuses.last;
   int ageLastRun = -1;
-  List<int> _statuses;
-  List<int> _successStreaks;
-  List<SudokuBuffer> _successConditions;
+  late List<int> _statuses;
+  late List<int> _successStreaks;
+  late List<SudokuBuffer> _successConditions;
 
   Constraint(Sudoku sd, BitArray variables) {
     this.sd = sd;
@@ -145,7 +145,7 @@ abstract class Constraint extends DomainFilterer {
 }
 
 class ConstraintOneOf extends Constraint {
-  int value;
+  late int value;
 
   ConstraintOneOf(Sudoku sd, BitArray variables, int value) : super(sd, variables) {
     this.value = value;
@@ -269,12 +269,12 @@ class ConstraintEqual extends Constraint {
 }
 
 class ConstraintAllDiff extends Constraint {
-  BitArray domain;
-  int length;
-  List<int> indexMap;
+  late BitArray domain;
+  late int length;
+  late List<int> indexMap;
 
-  List<BitArray> domainCache;
-  List<int> assigned;
+  late List<BitArray?> domainCache;
+  late List<int> assigned;
 
   ConstraintAllDiff(Sudoku sd, BitArray variables, BitArray domain) : super(sd, variables) {
     assert(variables.cardinality == domain.cardinality);
@@ -293,7 +293,7 @@ class ConstraintAllDiff extends Constraint {
   }
 
   void clearDomainCache() {
-    this.domainCache = List<BitArray>.generate(this.length, (i) => null);
+    this.domainCache = List<BitArray?>.generate(this.length, (i) => null);
   }
 
   @override
@@ -335,7 +335,7 @@ class ConstraintAllDiff extends Constraint {
       assert(dom != null);
       this.domainCache[ind] = dom;
     }
-    return this.domainCache[ind];
+    return this.domainCache[ind]!;
   }
 
   // check if a given variable can be assigned a given value
@@ -369,7 +369,7 @@ class ConstraintAllDiff extends Constraint {
   }
 
   int getVariableAssignment(int variable) {
-    var values = List<int>();
+    var values = <int>[];
     for(int val in this.domain.asIntIterable()) {
       if(this.isValue(variable, val)) {
         values.add(val);
@@ -447,11 +447,11 @@ class ConstraintAllDiff extends Constraint {
 }
 
 class Eliminator extends DomainFilterer {
-  Sudoku sd;
+  late Sudoku sd;
+  late List<SudokuBuffer> conditions;
+  late List<SudokuDomain> forbiddenValues;
 
   int get length => this.conditions.length;
-  List<SudokuBuffer> conditions;
-  List<SudokuDomain> forbiddenValues;
 
   bool mutex = false;
   void guard(Function f) {
@@ -544,9 +544,9 @@ class Eliminator extends DomainFilterer {
 }
 
 class EliminatorSubdomain {
-  Sudoku sd;
-  Eliminator elim;
-  int variable;
+  late Sudoku sd;
+  late Eliminator elim;
+  late int variable;
 
   int get length => elim.length;
 
@@ -608,8 +608,8 @@ class EliminatorSubdomain {
 }
 
 class Constrainer extends DomainFilterer {
-  Sudoku sd;
-  List<Constraint> constraints;
+  late Sudoku sd;
+  late List<Constraint> constraints;
 
   Constrainer(Sudoku sd, List<Constraint> constraints) {
     this.sd = sd;
@@ -708,9 +708,9 @@ class Constrainer extends DomainFilterer {
 }
 
 class ConstrainerSubdomain {
-  Sudoku sd;
-  Constrainer constr;
-  int variable;
+  late Sudoku sd;
+  late Constrainer constr;
+  late int variable;
 
   ConstrainerSubdomain(Constrainer constr, int variable) {
     this.sd = sd;
@@ -720,12 +720,12 @@ class ConstrainerSubdomain {
 }
 
 class SudokuAssist extends DomainFilterer {
-  Sudoku sd;
-  SudokuBuffer currentCondition;
-  List<Constraint> constraints;
-  List<Constraint> newlySucceeded;
-  Eliminator elim;
-  Constrainer constr;
+  late Sudoku sd;
+  late SudokuBuffer currentCondition;
+  late List<Constraint> constraints;
+  late List<Constraint> newlySucceeded;
+  late Eliminator elim;
+  late Constrainer constr;
   bool autoComplete = false;
   bool useDefaultConstraints = false;
   bool hintAvailable = true;
@@ -734,8 +734,8 @@ class SudokuAssist extends DomainFilterer {
 
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
-    this.constraints = List<Constraint>();
-    this.newlySucceeded = List<Constraint>();
+    this.constraints = <Constraint>[];
+    this.newlySucceeded = <Constraint>[];
     this.elim = Eliminator(sd);
     this.constr = Constrainer(sd, this.constraints);
     this.currentCondition = SudokuBuffer(sd.ne4);
@@ -832,7 +832,7 @@ class SudokuAssist extends DomainFilterer {
   }
 
   void apply() {
-    newlySucceeded = List<Constraint>();
+    newlySucceeded = <Constraint>[];
     this.assistAutoComplete();
     bool restart = true;
     while(restart) {

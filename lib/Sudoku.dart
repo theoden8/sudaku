@@ -61,9 +61,9 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
 
 
 class SudokuChange {
-  int variable;
-  int value;
-  bool assisted;
+  late int variable;
+  late int value;
+  late bool assisted;
 
   SudokuChange(int variable, int value, bool assisted) {
     this.variable = variable;
@@ -79,13 +79,11 @@ class SudokuChange {
 
 
 class Sudoku {
-  BitArray hints;
-  SudokuBuffer buf;
-  List<SudokuChange> changes;
-  int n, ne2, ne4, ne6;
-
-  SudokuAssist assist;
-
+  late BitArray hints;
+  late SudokuBuffer buf;
+  late List<SudokuChange> changes;
+  late int n, ne2, ne4, ne6;
+  late SudokuAssist assist;
   bool _mutex = false;
 
   int get age => this.changes.where((c) => !c.assisted).length;
@@ -388,7 +386,7 @@ class Sudoku {
 
   // readonly
   bool check() {
-    var chk = List<int>(ne2 * 3);
+    var chk = <int>[ne2 * 3];
     for(int i = 0; i < ne2; ++i) {
       for(int j = 0; j < ne2 * 3; ++j) {
         chk[j] = 0;
@@ -433,11 +431,11 @@ class Sudoku {
   }
 
   SudokuChange getLastChange() {
-    SudokuChange lastChange = null;
+    SudokuChange? lastChange = null;
     this.guard(() {
       lastChange = this.changes.last;
     });
-    return lastChange;
+    return lastChange!;
   }
 
   void undoChange() {

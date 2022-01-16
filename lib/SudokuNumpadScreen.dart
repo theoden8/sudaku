@@ -10,12 +10,12 @@ import 'SudokuAssist.dart';
 
 
 class NumpadScreen extends StatefulWidget {
-  NumpadScreen({this.nitype, this.count, this.sd, this.variables});
-
   NumpadInteractionType nitype;
   int count;
   Sudoku sd;
   BitArray variables;
+
+  NumpadScreen({required this.nitype, required this.count, required this.sd, required this.variables});
 
   State createState() => NumpadScreenState();
 }
@@ -27,8 +27,8 @@ enum NumpadInteractionType {
 }
 
 abstract class NumpadInteraction {
-  NumpadScreenState numpad;
-  NumpadInteractionType type;
+  late NumpadScreenState numpad;
+  late NumpadInteractionType type;
 
   NumpadInteraction(NumpadScreenState numpad) {
     this.numpad = numpad;
@@ -36,19 +36,19 @@ abstract class NumpadInteraction {
 
   Color getColor(int val) {
     if(numpad.multiselection[val]) {
-      return Colors.yellow[100];
+      return Colors.yellow[100]!;
     } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
       if(numpad.antiselectionChanges[val]) {
-        return Colors.red[200];
+        return Colors.red[200]!;
       }
-      return Colors.red[100];
+      return Colors.red[100]!;
     } else if(!numpad.constrained[val]) {
-      return Colors.orange[100];
+      return Colors.orange[100]!;
     }
     if(numpad.antiselectionChanges[val]) {
-      return Colors.blue[200];
+      return Colors.blue[200]!;
     }
-    return Colors.blue[100];
+    return Colors.blue[100]!;
   }
 
   bool onPressEnabled(int val) {
@@ -100,7 +100,7 @@ class ValueInteraction extends NumpadInteraction {
   void handleOnLongPress(BuildContext ctx, int val) {
     if(this.onLongPressEnabled(val)) {
       numpad.interact = EliminatorInteraction(this.numpad, -1);
-      numpad.interact.handleOnPress(ctx, val);
+      numpad.interact!.handleOnPress(ctx, val);
       numpad.runSetState();
     }
   }
@@ -120,7 +120,7 @@ class ValueInteraction extends NumpadInteraction {
 }
 
 class MultiselectionInteraction extends NumpadInteraction {
-  int count = null;
+  late int count;
 
   MultiselectionInteraction(NumpadScreenState ns, int count):
     super(ns)
@@ -160,11 +160,11 @@ class MultiselectionInteraction extends NumpadInteraction {
 }
 
 class EliminatorInteractionReturnType {
-  EliminatorInteractionReturnType({this.forbidden, this.antiselectionChanges});
-
   BitArray
     antiselectionChanges,
     forbidden;
+
+  EliminatorInteractionReturnType({required this.forbidden, required this.antiselectionChanges});
 }
 
 class EliminatorInteraction extends NumpadInteraction {
@@ -199,18 +199,18 @@ class EliminatorInteraction extends NumpadInteraction {
 }
 
 class NumpadScreenState extends State<NumpadScreen> {
-  BitArray
+  late BitArray
     antiselectionChanges,
     antiselection,
     multiselection;
-  BitArray
+  late BitArray
     available,
     forbidden,
     constrained;
-  NumpadInteraction interact = null;
+  NumpadInteraction? interact = null;
 
-  Sudoku sd;
-  BitArray variables;
+  late Sudoku sd;
+  late BitArray variables;
   bool reset = true;
 
   void runSetState() {
@@ -218,11 +218,11 @@ class NumpadScreenState extends State<NumpadScreen> {
   }
 
   void _handleOnPress(BuildContext ctx, int val) {
-    this.interact.handleOnPress(ctx, val);
+    this.interact!.handleOnPress(ctx, val);
   }
 
   void _handleOnLongPress(BuildContext ctx, int val) {
-    return this.interact.handleOnLongPress(ctx, val);
+    return this.interact!.handleOnLongPress(ctx, val);
   }
 
   void _resetSelections(NumpadInteractionType nitype, int count) {
@@ -272,7 +272,7 @@ class NumpadScreenState extends State<NumpadScreen> {
   }
 
   List<Widget> _makeToolbar(BuildContext ctx) {
-     return <Widget>[]..addAll(this.interact.makeToolbar(ctx));
+     return <Widget>[]..addAll(this.interact!.makeToolbar(ctx));
   }
 
   Widget build(BuildContext ctx) {
@@ -317,12 +317,12 @@ class NumpadScreenState extends State<NumpadScreen> {
                   margin: EdgeInsets.all(sz * 0.1),
                   child: RaisedButton(
                     elevation: (this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) ? 0 : 4.0,
-                    color: this.interact.getColor(val + 1),
-                    onPressed: !this.interact.onPressEnabled(val + 1)
+                    color: this.interact!.getColor(val + 1),
+                    onPressed: !this.interact!.onPressEnabled(val + 1)
                     ? null : () {
                       this._handleOnPress(ctx, val + 1);
                     },
-                    onLongPress: !this.interact.onLongPressEnabled(val + 1)
+                    onLongPress: !this.interact!.onLongPressEnabled(val + 1)
                     ? null : () {
                       this._handleOnLongPress(ctx, val + 1);
                     },
