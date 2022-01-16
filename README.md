@@ -26,6 +26,31 @@ This program isn't designed to solve puzzles for you. It isn't designed to ask f
 
 This is my first mobile application project, and I am being cautious about the language and features.
 
+## building
+
+* **Android** (apk)
+
+```bash
+flutter build apk --release --split-per-api
+```
+
+* **MacOS** (app)
+
+```bash
+flutter create --platforms=windows,macos,linux .
+flutter build macos --release
+# find . -name "*.app"
+```
+
+* **Linux** (appimage)
+
+```bash
+# requires appimagetool, appimage-builder
+flutter create --platforms=windows,macos,linux .
+flutter build linux --release
+appimage-builder --skip-test
+```
+
 ## contributing
 
 Feel free to request a feature, post a bug, or make a pr. But keep in mind that this is an early stage of development.
@@ -37,6 +62,6 @@ Feel free to request a feature, post a bug, or make a pr. But keep in mind that 
 * http://magictour.free.fr/top44 - hardest 44 16x16 puzzles
 * http://pi.math.cornell.edu/~mec/Summer2009/Mahmood/Symmetry.html
 
-## supporting
+## tipping
 
-XMR [<img src="https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png" alt="xmr" height="20" width="20">](https://getmonero.org): 86tFFhT6hdUQAzcc2Za7i8ZggwQusf1ssgUNby2ApEvJDBodye8CQdJgXLaNMnun5YHm8im8MhnoK91XPWb99YdvDnfiYGZ
+[<img src="https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png" alt="xmr" height="20" width="20">](https://getmonero.org) XMR: 86tFFhT6hdUQAzcc2Za7i8ZggwQusf1ssgUNby2ApEvJDBodye8CQdJgXLaNMnun5YHm8im8MhnoK91XPWb99YdvDnfiYGZ
