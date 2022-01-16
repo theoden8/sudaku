@@ -24,8 +24,8 @@ abstract class DomainFilterer {
 }
 
 class SudokuDomain extends DomainInterface {
-  Sudoku sd;
-  BitArray dom;
+  late Sudoku sd;
+  late BitArray dom;
   bool _mutex = false;
 
   @override
@@ -79,11 +79,11 @@ class SudokuDomain extends DomainInterface {
   }
 
   bool getBit(int index) {
-    bool bit;
+    bool? bit = null;
     this.guard(() {
       bit = this.dom[index];
     });
-    return bit;
+    return bit!;
   }
 
   @override
@@ -139,27 +139,27 @@ class SudokuDomain extends DomainInterface {
   }
 
   SudokuDomain operator&(SudokuDomain other) {
-    SudokuDomain sdom = null;
+    SudokuDomain? sdom = null;
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom & other.dom);
     });});
-    return sdom;
+    return sdom!;
   }
 
   SudokuDomain operator|(SudokuDomain other) {
-    SudokuDomain sdom = null;
+    SudokuDomain? sdom = null;
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom | other.dom);
     });});
-    return sdom;
+    return sdom!;
   }
 
   SudokuDomain operator^(SudokuDomain other) {
-    SudokuDomain sdom = null;
+    SudokuDomain? sdom = null;
     this.guard((){other.guard((){
       sdom = SudokuDomain.fromBitArray(sd, this.dom ^ other.dom);
     });});
-    return sdom;
+    return sdom!;
   }
 
   SudokuDomain operator~() {
@@ -178,9 +178,9 @@ class SudokuDomain extends DomainInterface {
 }
 
 class SudokuSubdomain extends DomainInterface {
-  Sudoku sd;
-  SudokuDomain sdom;
-  int variable;
+  late Sudoku sd;
+  late SudokuDomain sdom;
+  late int variable;
 
   @override
   bool get isEmpty => (this.cardinality == 0);

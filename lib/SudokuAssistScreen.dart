@@ -19,13 +19,13 @@ class SudokuAssistScreen extends StatefulWidget {
 }
 
 class SudokuAssistScreenArguments {
-  SudokuAssistScreenArguments({this.sd});
-
   Sudoku sd;
+
+  SudokuAssistScreenArguments({required this.sd});
 }
 
 class SudokuAssistScreenState extends State<SudokuAssistScreen> {
-  Sudoku sd;
+  late Sudoku sd;
 
   void runSetState() {
     setState((){});
@@ -42,8 +42,8 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ListTile(
         leading: Checkbox(
           value: sd.assist.hintAvailable,
-          onChanged: (bool b) {
-            sd.assist.hintAvailable = b;
+          onChanged: (bool? b) {
+            sd.assist.hintAvailable = b!;
             this.runSetState();
           },
         ),
@@ -59,8 +59,8 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ListTile(
         leading: Checkbox(
           value: sd.assist.hintConstrained,
-          onChanged: (bool b) {
-            sd.assist.hintAvailable = b;
+          onChanged: (bool? b) {
+            sd.assist.hintAvailable = b!;
             this.runSetState();
           },
         ),
@@ -76,8 +76,8 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ListTile(
         leading: Checkbox(
           value: sd.assist.autoComplete,
-          onChanged: (bool b) {
-            sd.assist.autoComplete = b;
+          onChanged: (bool? b) {
+            sd.assist.autoComplete = b!;
             this.runSetState();
           },
         ),
@@ -98,8 +98,8 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           child: ListTile(
             leading: Checkbox(
               value: sd.assist.useDefaultConstraints,
-              onChanged: (bool b) {
-                sd.assist.useDefaultConstraints = b;
+              onChanged: (bool? b) {
+                sd.assist.useDefaultConstraints = b!;
                 this.runSetState();
               },
             ),
@@ -119,7 +119,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
   }
 
   Widget build(BuildContext ctx) {
-    SudokuAssistScreenArguments args = ModalRoute.of(ctx).settings.arguments;
+    var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuAssistScreenArguments;
     this.sd = args.sd;
 
     return Scaffold(

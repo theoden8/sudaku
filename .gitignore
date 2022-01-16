@@ -9,7 +9,6 @@
 .history
 .svn/
 
-# IntelliJ related
 # android/
 go/
 ios/
