@@ -23,18 +23,18 @@ class SudokuScreen extends StatefulWidget {
 }
 
 class SudokuScreenArguments {
-  SudokuScreenArguments({this.n});
-
   final int n;
+
+  SudokuScreenArguments({required this.n});
 }
 
 abstract class ConstraintInteraction {
-  SudokuScreenState self;
-  Sudoku sd;
+  late SudokuScreenState self;
+  late Sudoku sd;
 
   ConstraintInteraction(SudokuScreenState ss) {
     this.self = ss;
-    this.sd = ss.sd;
+    this.sd = ss.sd!;
   }
 
   void finishOnSelection() {
@@ -46,23 +46,23 @@ abstract class ConstraintInteraction {
     }
   }
 
-  void onSelection();
+  Future<void> onSelection();
 }
 
 class OneofInteraction extends ConstraintInteraction {
   OneofInteraction(SudokuScreenState ss) : super(ss) {}
 
   @override
-  void onSelection() async {
-    BitArray dom = self.sd.getEmptyDomain();
-    for(int v in self._multiSelect.asIntIterable()) {
-      dom = dom | self.sd.getDomain(v);
+  Future<void> onSelection() async {
+    BitArray dom = self.sd!.getEmptyDomain();
+    for(int v in self._multiSelect!.asIntIterable()) {
+      dom = dom | self.sd!.getDomain(v);
     }
     var val = await self._showSelectionNumpad(NumpadInteractionType.SELECT_VALUE, 1);
     if(val == null) {
       return;
     }
-    sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect, val));
+    sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect!, val));
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -72,8 +72,8 @@ class EqualInteraction extends ConstraintInteraction {
   EqualInteraction(SudokuScreenState ss) : super(ss) {}
 
   @override
-  void onSelection() async {
-    sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect));
+  Future<void> onSelection() async {
+    sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect!));
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -83,12 +83,12 @@ class AlldiffInteraction extends ConstraintInteraction {
   AlldiffInteraction(SudokuScreenState ss) : super(ss) {}
 
   @override
-  void onSelection() async {
-    var selection = await self._showSelectionNumpad(NumpadInteractionType.MULTISELECTION, self._multiSelect.cardinality);
-    if(selection == null || selection.cardinality != self._multiSelect.cardinality) {
+  Future<void> onSelection() async {
+    var selection = await self._showSelectionNumpad(NumpadInteractionType.MULTISELECTION, self._multiSelect!.cardinality);
+    if(selection == null || selection.cardinality != self._multiSelect!.cardinality) {
       return;
     }
-    sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect, selection));
+    sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect!, selection));
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -98,13 +98,13 @@ class EliminatorInteraction extends ConstraintInteraction {
   EliminatorInteraction(SudokuScreenState ss) : super(ss) {}
 
   @override
-  void onSelection() async {
+  Future<void> onSelection() async {
     var selection = await self._showSelectionNumpad(NumpadInteractionType.ANTISELECTION, -1);
     if(selection == null) {
       return;
     }
     EliminatorInteractionReturnType changes = selection;
-    for(int v in self._multiSelect.asIntIterable()) {
+    for(int v in self._multiSelect!.asIntIterable()) {
       var diff = (sd.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
       sd.assist.elim[v].invertBits(diff.asIntIterable());
     }
@@ -114,10 +114,10 @@ class EliminatorInteraction extends ConstraintInteraction {
 }
 
 class SudokuScreenState extends State<SudokuScreen> {
-  Sudoku sd = null;
-  ConstraintInteraction interact = null;
+  Sudoku? sd = null;
+  ConstraintInteraction? interact = null;
 
-  BitArray _multiSelect = null;
+  BitArray? _multiSelect = null;
   int _selectedCell = -1;
 
   double screenWidth = 0,
@@ -131,7 +131,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showVictoryDialog() async {
-    return showDialog<void>(
+    showDialog<void>(
       context: this.context,
       // barrierDismissable: false,
       builder: (BuildContext ctx) {
@@ -153,38 +153,38 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   void _checkVictoryConditions() async {
-    if(sd.checkIsComplete() && sd.check()) {
+    if(sd!.checkIsComplete() && sd!.check()) {
       this._showVictoryDialog();
     }
   }
 
-  Future<void> _handleOnPressCell(int index) {
-    if(this._multiSelect.isEmpty) {
+  Future<void> _handleOnPressCell(int index) async {
+    if(this._multiSelect!.isEmpty) {
       this._selectedCell = index;
       this._selectCellValue(index);
     } else {
-      this._multiSelect.invertBit(index);
+      this._multiSelect!.invertBit(index);
     }
     this.runSetState();
   }
 
   Future<void> _handleLongPressCell(int index) async {
-    if(this._multiSelect.isEmpty) {
+    if(this._multiSelect!.isEmpty) {
       this.startMultiSelect();
-      this._multiSelect.setBit(index);
+      this._multiSelect!.setBit(index);
       this.runSetState();
     }
   }
 
   BitArray getSelection() {
-    if(this._multiSelect.isEmpty) {
-      var res = BitArray(sd.ne4);
+    if(this._multiSelect!.isEmpty) {
+      var res = BitArray(sd!.ne4);
       if(this._selectedCell != -1) {
         res.setBit(this._selectedCell);
       }
       return res;
     }
-    return this._multiSelect.clone();
+    return this._multiSelect!.clone();
   }
 
   Future _showSelectionNumpad(NumpadInteractionType nitype, int count) async {
@@ -199,7 +199,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       transitionDuration: Duration(milliseconds: 400),
       pageBuilder: (_, __, ___) {
         return NumpadScreen(
-          sd: this.sd,
+          sd: this.sd!,
           nitype: nitype,
           count: count,
           variables: this.getSelection(),
@@ -220,7 +220,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   void _processCellValueSelection(int variable, int val) {
-    sd.setManualChange(variable, val);
+    sd!.setManualChange(variable, val);
     // for(int v in variables) {
     //   if(v == variables.first) {
     //     sd.setManualChange(v, val);
@@ -233,8 +233,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   void _processCellElimination(Iterable<int> variables, EliminatorInteractionReturnType changes) {
     for(int v in variables) {
-      var diff = (sd.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
-      sd.assist.elim[v].invertBits(diff.asIntIterable());
+      var diff = (sd!.assist.elim[v].asBitArray() ^ changes.forbidden) & changes.antiselectionChanges;
+      sd!.assist.elim[v].invertBits(diff.asIntIterable());
     }
   }
 
@@ -290,12 +290,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Border getBorder(int i, int j) {
-    bool left = (j % sd.n == 0);
-    bool right = (j % sd.n == sd.n - 1);
-    bool top = (i % sd.n == 0);
-    bool bottom = (i % sd.n == sd.n - 1);
-    bool leftEdge = (j == 0), rightEdge = (j == sd.ne2 - 1);
-    bool topEdge = (i == 0), bottomEdge = (i == sd.ne2 - 1);
+    bool left = (j % sd!.n == 0);
+    bool right = (j % sd!.n == sd!.n - 1);
+    bool top = (i % sd!.n == 0);
+    bool bottom = (i % sd!.n == sd!.n - 1);
+    bool leftEdge = (j == 0), rightEdge = (j == sd!.ne2 - 1);
+    bool topEdge = (i == 0), bottomEdge = (i == sd!.ne2 - 1);
 
     var side = BorderSide(width: 0.5);
     var edgeSide = BorderSide(width: 2.0);
@@ -340,7 +340,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeSudokuCellImmutable(int index, double sz) {
-    int sdval = sd[index];
+    int sdval = sd![index];
     return Card(
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
@@ -348,7 +348,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: Container(
         margin: EdgeInsets.all(0.0),
         child: Text(
-          sd.s_get(sdval),
+          sd!.s_get(sdval),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: sz * 0.9,
@@ -360,46 +360,46 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   void startMultiSelect() {
     this._selectedCell = -1;
-    this._multiSelect ??= BitArray(sd.ne4);
-    this._multiSelect.clearAll();
+    this._multiSelect ??= BitArray(sd!.ne4);
+    this._multiSelect!.clearAll();
   }
 
   void endMultiSelect() {
-    this._multiSelect.clearAll();
+    this._multiSelect!.clearAll();
   }
 
   Color getCellColor(int index) {
-    if(this._multiSelect.isEmpty) {
+    if(this._multiSelect!.isEmpty) {
       if(this._selectedCell == index) {
-        return Colors.blue[100];
+        return Colors.blue[100]!;
       } else if(this._selectedConstraint != null && this._selectedConstraint.variables[index]) {
         switch(this._selectedConstraint.type) {
-          case ConstraintType.ONE_OF: return Colors.green[100];
-          case ConstraintType.EQUAL: return Colors.purple[100];
-          case ConstraintType.ALLDIFF: return Colors.cyan[100];
+          case ConstraintType.ONE_OF: return Colors.green[100]!;
+          case ConstraintType.EQUAL: return Colors.purple[100]!;
+          case ConstraintType.ALLDIFF: return Colors.cyan[100]!;
         }
       }
     } else {
-      if(this._multiSelect[index]) {
-        return Colors.yellow[200];
+      if(this._multiSelect![index]) {
+        return Colors.yellow[200]!;
       }
     }
-    if(this._tutorialCells != null && this._tutorialCells[index]) {
-      return Colors.orange[100];
+    if(this._tutorialCells != null && this._tutorialCells![index]) {
+      return Colors.orange[100]!;
     }
     return Colors.white;
   }
 
   Color getCellTextColor(int index) {
-    if(sd.isVariableManual(index)) {
+    if(sd!.isVariableManual(index)) {
       return Colors.black;
     }
-    return Colors.grey[500];
+    return Colors.grey[500]!;
   }
 
   Widget _makeSudokuCellMutable(int index, double sz) {
-    int i = index ~/ sd.ne2, j = index % sd.ne2;
-    int sdval = sd[index];
+    int i = index ~/ sd!.ne2, j = index % sd!.ne2;
+    int sdval = sd![index];
     return FlatButton(
       padding: const EdgeInsets.all(0.0),
       color: this.getCellColor(index),
@@ -413,7 +413,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       },
       splashColor: Colors.blueAccent,
       child: Text(
-        sd.s_get(sdval),
+        sd!.s_get(sdval),
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: sz * 0.9),
       ),
@@ -421,7 +421,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeSudokuCell(int index, double sz) {
-    if(sd.isHint(index)) {
+    if(sd!.isHint(index)) {
       return this._makeSudokuCellImmutable(index, sz);
     }
     return this._makeSudokuCellMutable(index, sz);
@@ -431,7 +431,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     double w = this.screenWidth;
     double h = this.screenHeight;
     double size = min(w, h);
-    double sz = (size - 1.0) / sd.ne2;
+    double sz = (size - 1.0) / sd!.ne2;
     return SizedBox(
       child: Container(
         margin: const EdgeInsets.all(0.0),
@@ -441,9 +441,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           primary: true,
           slivers: <Widget>[
             SliverGrid.count(
-              crossAxisCount: sd.ne2,
-              children: List<Widget>.generate(sd.ne4, (index) {
-                int i = index ~/ sd.ne2, j = index % sd.ne2;
+              crossAxisCount: sd!.ne2,
+              children: List<Widget>.generate(sd!.ne4, (index) {
+                int i = index ~/ sd!.ne2, j = index % sd!.ne2;
                 return SizedBox(
                   child: Container(
                     margin: const EdgeInsets.all(0.0),
@@ -465,7 +465,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   var _scaffoldBodyContext = null;
   void _showAssistantResult() async {
-    for(Constraint constr in sd.assist.newlySucceeded) {
+    for(Constraint constr in sd!.assist.newlySucceeded) {
       Scaffold.of(this._scaffoldBodyContext).showSnackBar(
         SnackBar(
           elevation: 4.0,
@@ -481,17 +481,17 @@ class SudokuScreenState extends State<SudokuScreen> {
   bool _showTutorial = true;
   int _tutorialStage = 0;
 
-  BitArray _tutorialCells = null;
+  BitArray? _tutorialCells = null;
   void _selectTutorialCells() {
-    this._tutorialCells = BitArray(sd.ne4)
+    this._tutorialCells = BitArray(sd!.ne4)
       ..setBits(
-          sd.getUnsolvedRandomBC()
+          sd!.getUnsolvedRandomBC()
         .asIntIterable()
-        .where((ind) => !sd.isHint(ind)));
+        .where((ind) => !sd!.isHint(ind)));
     if(this._tutorialCells == null) {
-      this._tutorialCells = BitArray(sd.ne4);
+      this._tutorialCells = BitArray(sd!.ne4);
     }
-    print('tutorialcells ${this._tutorialCells.asIntIterable()}');
+    print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
   }
 
   Future<void> _showTutorialMessage(String title, String message, Function() nextFunc) async {
@@ -544,15 +544,15 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage12(BuildContext ctx) {
-    var tutorialCellsUnset = BitArray(sd.ne4)
+    var tutorialCellsUnset = BitArray(sd!.ne4)
       ..setBits(
-        this._tutorialCells
+        this._tutorialCells!
           .asIntIterable()
-          .where((ind) => (sd[ind] == 0))
+          .where((ind) => (sd![ind] == 0))
       );
     bool passCondition = (
-      this._multiSelect.cardinality == tutorialCellsUnset.cardinality
-      && this._multiSelect.asIntIterable().every(
+      this._multiSelect!.cardinality == tutorialCellsUnset.cardinality
+      && this._multiSelect!.asIntIterable().every(
         (msel) => tutorialCellsUnset[msel]
       )
     );
@@ -646,7 +646,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
-    var constraints = sd.assist.constraints.where((Constraint c) {
+    var constraints = sd!.assist.constraints.where((Constraint c) {
       return c.status != Constraint.SUCCESS;
     }).toList();
     var listTiles = List<Widget>.generate(constraints.length, (i) {
@@ -663,8 +663,8 @@ class SudokuScreenState extends State<SudokuScreen> {
         child: ListTile(
           leading: Checkbox(
             value: constraints[i].isActive(),
-            onChanged: (bool b) {
-              if(b) {
+            onChanged: (bool? b) {
+              if(b!) {
                 constraints[i].activate();
                 // if(!constraints[i].checkInitialCondition()) {
                 //   constraints[i].updateCondition();
@@ -684,7 +684,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               if(this._selectedConstraint == constraints[i]) {
                 this._selectedConstraint = null;
               }
-              sd.assist.constraints.remove(constraints[i]);
+              sd!.assist.constraints.remove(constraints[i]);
               this.runAssistant();
             },
           ),
@@ -692,7 +692,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             '${constraints[i].type} dom=${constraints[i].getValues()}',
           ),
           onTap: !constraints[i].isActive() ? null : () {
-            this._multiSelect.clearAll();
+            this._multiSelect!.clearAll();
             this._selectedConstraint = constraints[i];
             this.runSetState();
           }
@@ -737,9 +737,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ListTile(
             leading: Icon(Icons.link_off),
             title: Text('One of'),
-            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
               this.interact = OneofInteraction(this);
-              await this.interact.onSelection();
+              await this.interact!.onSelection();
               Navigator.pop(ctx);
               this.runSetState();
             },
@@ -749,9 +749,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ListTile(
             leading: Icon(Icons.link),
             title: Text('Equivalence'),
-            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
               this.interact = EqualInteraction(this);
-              await this.interact.onSelection();
+              await this.interact!.onSelection();
               Navigator.pop(ctx);
               this.runSetState();
             },
@@ -765,9 +765,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ListTile(
             leading: Icon(Icons.sort),
             title: Text('All different'),
-            onTap: (this._multiSelect.cardinality < 2) ? null : () async {
+            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
               this.interact = AlldiffInteraction(this);
-              await this.interact.onSelection();
+              await this.interact!.onSelection();
               Navigator.pop(ctx);
               this.runSetState();
             },
@@ -777,9 +777,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ListTile(
             leading: Icon(Icons.report),
             title: Text('Eliminate'),
-            onTap: (this._multiSelect.cardinality < 1) ? null : () async {
+            onTap: (this._multiSelect!.cardinality < 1) ? null : () async {
               this.interact = EliminatorInteraction(this);
-              await this.interact.onSelection();
+              await this.interact!.onSelection();
               Navigator.pop(ctx);
               this.runSetState();
             },
@@ -790,7 +790,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   );
 
   void runAssistant() {
-    sd.assist.apply();
+    sd!.assist.apply();
     this._showAssistantResult();
     this._checkVictoryConditions();
     this.runSetState();
@@ -801,7 +801,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       this.context,
       SudokuAssistScreen.routeName,
       arguments: SudokuAssistScreenArguments(
-        sd: this.sd,
+        sd: this.sd!,
       ),
     );
     this.runAssistant();
@@ -820,14 +820,14 @@ class SudokuScreenState extends State<SudokuScreen> {
         icon: Icon(Icons.undo),
         onPressed: () {
           setState(() {
-            if(this._multiSelect.cardinality > 0) {
+            if(this._multiSelect!.cardinality > 0) {
               this.endMultiSelect();
               return;
             }
-            if(!sd.changes.isEmpty) {
-              this._selectedCell = sd.getLastChange().assisted ? -1 : sd.getLastChange().variable;
+            if(!sd!.changes.isEmpty) {
+              this._selectedCell = sd!.getLastChange().assisted ? -1 : sd!.getLastChange().variable;
             }
-            sd.undoChange();
+            sd!.undoChange();
             this.runAssistant();
           });
         },
@@ -835,8 +835,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       IconButton(
         icon: Icon(Icons.create),
         onPressed: () {
-          if(this._multiSelect.cardinality > 0) {
-            this._selectCellValues(this._multiSelect.asIntIterable());
+          if(this._multiSelect!.cardinality > 0) {
+            this._selectCellValues(this._multiSelect!.asIntIterable());
           } else if(this._selectedCell != -1) {
             this._selectCellValue(this._selectedCell);
           }
@@ -876,15 +876,15 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget build(BuildContext ctx) {
-    final SudokuScreenArguments args = ModalRoute.of(ctx).settings.arguments;
+    var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuScreenArguments;
     final int n = args.n;
 
-    if(sd == null || sd.n != n) {
+    if(sd == null || sd!.n != n) {
       // print('making new sudoku');
       sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
         this.runSetState();
       });
-      this._multiSelect = BitArray(sd.ne4);
+      this._multiSelect = BitArray(sd!.ne4);
     }
 
     var appBar = AppBar(

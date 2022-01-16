@@ -55,7 +55,7 @@ class MenuScreenState extends State<MenuScreen> {
   int _selectedSize = -1;
   Future<void> _showPlayDialog(BuildContext ctx) async {
     this._selectedSize = -1;
-    return await showGeneralDialog(
+    await showGeneralDialog(
       context: ctx,
       barrierDismissible: true,
       barrierLabel: 'Select sudoku size',
