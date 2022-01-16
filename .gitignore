@@ -8,10 +8,14 @@
 .buildlog/
 .history
 .svn/
-pubspec.lock
+
+# appimage
+/AppDir
+/appimage-builder-cache
+*.AppImage
 
 # android/
-go/
+pubspec.lock
 ios/
 linux/
 windows/
