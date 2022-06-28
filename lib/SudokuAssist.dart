@@ -8,6 +8,9 @@ enum ConstraintType {
   ONE_OF, EQUAL, ALLDIFF, GENERIC
 }
 
+// generic constraint
+// some constraints are run occasionally
+// specifically, when they are unsuccessful and their conditions match
 abstract class Constraint extends DomainFilterer {
   static const int
     NOT_RUN = -2,
@@ -21,10 +24,13 @@ abstract class Constraint extends DomainFilterer {
   ConstraintType type = ConstraintType.GENERIC;
   bool active = true;
 
-  int get lastStatus => (this._statuses.length < 2) ? Constraint.NOT_RUN : this._statuses[this._statuses.length - 1];
   int get status => (this._statuses.isEmpty) ? Constraint.NOT_RUN : this._statuses.last;
-  int ageLastRun = -1;
+  int get lastStatus => (this._statuses.length < 2) ? Constraint.NOT_RUN : this._statuses[this._statuses.length - 1];
+  int get age => (this._agesRun.isEmpty) ? -1 : _agesRun.last;
+  // stacks that get appended to each time run
   late List<int> _statuses;
+  late List<int> _agesRun;
+  // stacks that get appended to on each success
   late List<int> _successStreaks;
   late List<SudokuBuffer> _successConditions;
 
@@ -33,6 +39,7 @@ abstract class Constraint extends DomainFilterer {
     this.updateCondition();
     this.variables = variables.clone();
     this._statuses = <int>[];
+    this._agesRun = <int>[];
     this._successStreaks = <int>[];
     this._successConditions = <SudokuBuffer>[];
   }
@@ -104,13 +111,14 @@ abstract class Constraint extends DomainFilterer {
   int _apply();
 
   bool checkSuccessCondition() {
+    assert(this.status != Constraint.SUCCESS || this._successConditions.last.match(sd.buf));
     return !this._successConditions.isEmpty
       && this.status == Constraint.SUCCESS
-      &&  this._successConditions.last.match(sd.buf);
+      && this._successConditions.last.match(sd.buf);
   }
 
   void retract() {
-    if(!this._statuses.isEmpty) {
+    if(!this._statuses.isEmpty && sd.age == this.age) {
       this._statuses.removeLast();
       if(!this._successStreaks.isEmpty && this._successConditions.length == this._successStreaks.last) {
         this._successStreaks.removeLast();
@@ -119,6 +127,8 @@ abstract class Constraint extends DomainFilterer {
     }
   }
 
+  // generic wrap for _apply
+  // updates stack variables
   void apply() {
     // print('apply constraint ${this.type}');
     if(this.checkSuccessCondition()) {
@@ -126,13 +136,8 @@ abstract class Constraint extends DomainFilterer {
       return;
     }
     var currentCondition = sd.assist.currentCondition;
-    int newStatus = this._apply();
-    if(sd.age == this.ageLastRun) {
-      this._statuses.last = newStatus;
-      return;
-    } else {
-      this._statuses.add(newStatus);
-    }
+    this._statuses.add(this._apply());
+    this._agesRun.add(sd.age);
     if(this.lastStatus != Constraint.SUCCESS && this.status == Constraint.SUCCESS) {
       this._successStreaks.add(this._successConditions.length);
       this._successConditions.add(currentCondition);
@@ -720,16 +725,19 @@ class ConstrainerSubdomain {
 }
 
 class SudokuAssist extends DomainFilterer {
+  // state variables
   late Sudoku sd;
   late SudokuBuffer currentCondition;
   late List<Constraint> constraints;
   late List<Constraint> newlySucceeded;
   late Eliminator elim;
   late Constrainer constr;
+  // configuration variables
   bool autoComplete = false;
   bool useDefaultConstraints = false;
   bool hintAvailable = true;
   bool hintConstrained = true;
+  // configuration readers
   bool get shouldUseDefaultConstraints => autoComplete && useDefaultConstraints;
 
   SudokuAssist(Sudoku sd) {
@@ -809,7 +817,8 @@ class SudokuAssist extends DomainFilterer {
   }
 
   void retract() {
-    for(var constr in this.constraints) {
+    // simply retract all constraints
+    for(Constraint constr in this.constraints) {
       constr.retract();
     }
   }
@@ -831,13 +840,29 @@ class SudokuAssist extends DomainFilterer {
     }
   }
 
+  void reapply() {
+    for(int i = 0; i < sd!.ne4; ++i) {
+      if(!sd.isVariableManual(i)) {
+        sd.setAssistantChange(i, 0);
+      }
+    }
+    var successfulConstraints = Set.of(
+      this.constraints
+        .where((constr) => constr.status == Constraint.SUCCESS));
+    this.apply();
+    this.newlySucceeded = this.newlySucceeded
+        .where((constr) => successfulConstraints.contains(constr))
+        .toList();
+  }
+
   void apply() {
-    newlySucceeded = <Constraint>[];
+    // these will need to be removed from the interface
+    this.newlySucceeded = <Constraint>[];
     this.assistAutoComplete();
     bool restart = true;
     while(restart) {
       restart = false;
-      for(var constr in this.constraints) {
+      for(Constraint constr in this.constraints) {
         if(!constr.isActive()) {
           continue;
         }

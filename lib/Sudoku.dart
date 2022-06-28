@@ -9,6 +9,7 @@ import 'SudokuDomain.dart';
 import 'SudokuAssist.dart';
 
 
+// load a dataset of hard n=3 sudokus
 Future<List<int>> loadFrom1465(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(1465 + 87);
@@ -31,6 +32,7 @@ Future<List<int>> loadFrom1465(AssetBundle a) async {
 }
 
 
+// load a dataset of hard n=4 sudokus
 Future<List<int>> loadFrom44(AssetBundle a) async {
   var rng = new Random();
   int r = rng.nextInt(44);
@@ -63,17 +65,19 @@ Future<List<int>> loadFrom44(AssetBundle a) async {
 class SudokuChange {
   late int variable;
   late int value;
+  late int prevValue;
   late bool assisted;
 
-  SudokuChange(int variable, int value, bool assisted) {
+  SudokuChange({required int variable, required int value, required int prevValue, required bool assisted}) {
     this.variable = variable;
     this.value = value;
+    this.prevValue = prevValue;
     this.assisted = assisted;
   }
 
   @override
   String toString() {
-    return '[$variable]=$value:$assisted';
+    return '[$variable]=($prevValue->$value):$assisted';
   }
 }
 
@@ -117,13 +121,13 @@ class Sudoku {
     }));
   }
 
-  List<Iterable<int>> getBand(int band) {
+  List<Iterable<int>> _getBand(int band) {
     return List<int>.generate(n, (i) => i)
       .map((i) => this.iterateRow(band * n + i))
       .toList();
   }
 
-  List<Iterable<int>> getStack(int stack) {
+  List<Iterable<int>> _getStack(int stack) {
     return List<int>.generate(n, (i) => i)
       .map((i) => this.iterateCol(stack * n + i))
       .toList();
@@ -131,9 +135,9 @@ class Sudoku {
 
   List<Iterable<int>> Function(int) _getRandomSleeveFunc(dynamic rng) {
     if(rng.nextInt(2) == 0) {
-      return this.getBand;
+      return this._getBand;
     } else {
-      return this.getStack;
+      return this._getStack;
     }
   }
 
@@ -172,7 +176,7 @@ class Sudoku {
     }
   }
 
-  void _mangleSudokuBuffer() {
+  void shuffleSudokuBuffer() {
     this._renameSudokuValues();
     var rng = new Random();
     for(int i = 0; i < n; ++i) {
@@ -246,7 +250,7 @@ class Sudoku {
       this.buf.setBuffer(List<int>.generate(this.ne4, (i) => r.nextInt(ne2 + 1)));
     }
     // print(this.toString());
-    this._mangleSudokuBuffer();
+    this.shuffleSudokuBuffer();
     // print(this.toString());
     this.guard(() {
       this.hints = BitArray(ne4);
@@ -268,6 +272,8 @@ class Sudoku {
     this.ne6 = ne4 * ne2;
     this.changes = <SudokuChange>[];
     this.assist = SudokuAssist(this);
+    // to prevent some pesky late initialization errors
+    this.hints = BitArray(ne4);
     this._setupSudoku(a, callback_f);
   }
 
@@ -410,24 +416,32 @@ class Sudoku {
   }
 
   void setManualChange(int index, int val) {
-    this.changes.add(SudokuChange(index, val, false));
+    this.changes.add(SudokuChange(
+      variable: index,
+      value: val,
+      prevValue: this[index],
+      assisted: false
+    ));
     this[index] = val;
   }
 
   void setAssistantChange(int index, int val) {
-    this.changes.add(SudokuChange(index, val, true));
+    this.changes.add(SudokuChange(
+      variable: index,
+      value: val,
+      prevValue: this[index],
+      assisted: true
+    ));
     this[index] = val;
   }
 
   bool isVariableManual(int index) {
-    if(this[index] == 0) {
-      return false;
+    var varChanges = this.changes
+        .where((c) => (c.variable == index));
+    if(varChanges.isEmpty) {
+      return true;
     }
-    return !this.changes
-      .reversed
-      .where((c) => (c.variable == index))
-      .first
-      .assisted;
+    return !varChanges.last.assisted;
   }
 
   SudokuChange getLastChange() {
@@ -441,30 +455,35 @@ class Sudoku {
   void undoChange() {
     // print('undo change from $changes');
     while(true) {
+      // diff stack is empty
       if(this.changes.isEmpty) {
         return;
       }
+      // last change is manual
       if(!this.getLastChange().assisted) {
         break;
       }
+      // undo assisted change
       this.undoLastChange();
     }
     this.undoLastChange();
   }
 
   void undoLastChange() {
+    // diff stack is empty
     if(this.changes.isEmpty) {
       return;
     }
     var lastChange = this.getLastChange();
     int lastVariable = lastChange.variable;
-    int precedingValue = this.findPrecedingValue(lastVariable);
+    int precedingValue = lastChange.prevValue;
+    assert(precedingValue == this._findPrecedingValue(lastVariable));
     // print('preceding value for $lastVariable is $precedingValue');
     this[lastVariable] = precedingValue;
     this.changes.removeLast();
   }
 
-  int findPrecedingValue(int variable) {
+  int _findPrecedingValue(int variable) {
     int val = 0;
     this.guard(() {
       var hist = this.changes

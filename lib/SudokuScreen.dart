@@ -228,7 +228,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     //     sd.setAssistantChange(v, val);
     //   }
     // }
-    this.runAssistant();
+    this.runAssistant(reapply: (val == 0));
   }
 
   void _processCellElimination(Iterable<int> variables, EliminatorInteractionReturnType changes) {
@@ -856,8 +856,16 @@ class SudokuScreenState extends State<SudokuScreen> {
     ),
   );
 
-  void runAssistant() {
-    sd!.assist.apply();
+  void backtrackAssistant() {
+    this.sd!.assist.retract();
+  }
+
+  void runAssistant({bool reapply=false}) {
+    if(reapply) {
+      this.sd!.assist.reapply();
+    } else {
+      this.sd!.assist.apply();
+    }
     this._showAssistantResult();
     this._checkVictoryConditions();
     this.runSetState();
@@ -891,10 +899,11 @@ class SudokuScreenState extends State<SudokuScreen> {
               this.endMultiSelect();
               return;
             }
-            if(!sd!.changes.isEmpty) {
+            if(!this.sd!.changes.isEmpty) {
               this._selectedCell = sd!.getLastChange().assisted ? -1 : sd!.getLastChange().variable;
             }
-            sd!.undoChange();
+            this.backtrackAssistant();
+            this.sd!.undoChange();
             this.runAssistant();
           });
         },
