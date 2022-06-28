@@ -297,7 +297,12 @@ class NumpadScreenState extends State<NumpadScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: new Text('Selecting' + proportionText),
+        title: new Text(
+          'Selecting' + proportionText,
+          style: TextStyle(
+            color: Colors.black,
+          ),
+        ),
         elevation: 0.0,
         actions: this._makeToolbar(ctx),
       ),
@@ -315,9 +320,28 @@ class NumpadScreenState extends State<NumpadScreen> {
                 height: sz,
                 child: Container(
                   margin: EdgeInsets.all(sz * 0.1),
-                  child: RaisedButton(
-                    elevation: (this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) ? 0 : 4.0,
-                    color: this.interact!.getColor(val + 1),
+                  child: ElevatedButton(
+                    style: ButtonStyle(
+                      padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
+                        (Set<MaterialState> states) => EdgeInsets.all(0.0)
+                      ),
+                      elevation: MaterialStateProperty.resolveWith<double>(
+                        (Set<MaterialState> states) {
+                          if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
+                            return 0;
+                          }
+                          return 4.0;
+                        }
+                      ),
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if(states.contains(MaterialState.disabled)) {
+                            return Colors.grey;
+                          }
+                          return this.interact!.getColor(val + 1);
+                        }
+                      ),
+                    ),
                     onPressed: !this.interact!.onPressEnabled(val + 1)
                     ? null : () {
                       this._handleOnPress(ctx, val + 1);
@@ -326,12 +350,11 @@ class NumpadScreenState extends State<NumpadScreen> {
                     ? null : () {
                       this._handleOnLongPress(ctx, val + 1);
                     },
-                    disabledColor: Colors.grey,
-                    padding: EdgeInsets.all(0.0),
                     child: Text(
                       sd.s_get(val + 1),
                       style: TextStyle(
                         fontSize: sz * 0.4,
+                        color: Colors.black,
                       ),
                     ),
                   ),
@@ -352,22 +375,36 @@ class NumpadScreenState extends State<NumpadScreen> {
                       Container(
                         margin: EdgeInsets.all((w < h) ? 0 : sz * 0.1),
                         child: this.interact is! MultiselectionInteraction ?
-                        RaisedButton(
-                          padding: EdgeInsets.all(16.0),
-                          elevation: 16.0,
-                          child: Text('Clear'),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.all(16.0),
+                            elevation: 16.0,
+                          ),
+                          child: Text(
+                            'Clear',
+                             style: TextStyle(
+                               color: Colors.black,
+                             ),
+                          ),
                           onPressed: () {
                             this._handleOnPress(ctx, 0);
                           },
                         )
-                        : RaisedButton(
-                          padding: EdgeInsets.all(16.0),
-                          elevation: 16.0,
+                        : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.all(16.0),
+                            elevation: 16.0,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               Icon(Icons.cancel),
-                              Text('Cancel'),
+                              Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                ),
+                              ),
                             ],
                           ),
                           onPressed: () {

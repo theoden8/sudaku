@@ -139,7 +139,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           title: Text('Victory'),
           content: Text('Congratulations'),
           actions: <Widget>[
-            FlatButton(
+            TextButton(
               child: Text('Ok'),
               onPressed: () {
                 this._handleVictory();
@@ -261,17 +261,37 @@ class SudokuScreenState extends State<SudokuScreen> {
       // barrierDismissable: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          title: Text('Reset'),
-          content: Text('This action is irreversible'),
+          title: Text(
+            'Reset',
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
+          content: Text(
+            'This action is irreversible',
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
           actions: <Widget>[
-            FlatButton(
-              child: Text('Hold on'),
+            TextButton(
+              child: Text(
+                'Hold on',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
               onPressed: () {
                 Navigator.of(ctx).pop();
               }
             ),
-            FlatButton(
-              child: Text('Reset'),
+            TextButton(
+              child: Text(
+                'Reset',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
               onPressed: () {
                 this._handleResetPress();
                 Navigator.of(ctx).pop();
@@ -352,6 +372,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: sz * 0.9,
+            color: Colors.black,
           ),
         ),
       ),
@@ -400,22 +421,33 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget _makeSudokuCellMutable(int index, double sz) {
     int i = index ~/ sd!.ne2, j = index % sd!.ne2;
     int sdval = sd![index];
-    return FlatButton(
-      padding: const EdgeInsets.all(0.0),
-      color: this.getCellColor(index),
-      textColor: this.getCellTextColor(index),
+    return TextButton(
+      style: ButtonStyle(
+        padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
+          (Set<MaterialState> states) => EdgeInsets.all(0.0)
+        ),
+        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+          (Set<MaterialState> states) {
+            if(states.contains(MaterialState.pressed)) {
+              return Colors.blueAccent;
+            }
+            return this.getCellColor(index);
+          }
+        ),
+      ),
       onPressed: () {
         this._handleOnPressCell(index);
       },
       onLongPress: () {
-        // this._handleLongPressCell(index, sz*(j+0.5), sz*(i+0.5));
         this._handleLongPressCell(index);
       },
-      splashColor: Colors.blueAccent,
       child: Text(
         sd!.s_get(sdval),
         textAlign: TextAlign.center,
-        style: TextStyle(fontSize: sz * 0.9),
+        style: TextStyle(
+          fontSize: sz * 0.9,
+          color: this.getCellTextColor(index),
+        ),
       ),
     );
   }
@@ -466,12 +498,15 @@ class SudokuScreenState extends State<SudokuScreen> {
   var _scaffoldBodyContext = null;
   void _showAssistantResult() async {
     for(Constraint constr in sd!.assist.newlySucceeded) {
-      Scaffold.of(this._scaffoldBodyContext).showSnackBar(
+      ScaffoldMessenger.of(this._scaffoldBodyContext).showSnackBar(
         SnackBar(
           elevation: 4.0,
           content: Text(
             constr.toString(),
             textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.black,
+            ),
           ),
         ),
       );
@@ -494,17 +529,32 @@ class SudokuScreenState extends State<SudokuScreen> {
     print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
   }
 
-  Future<void> _showTutorialMessage(String title, String message, Function() nextFunc) async {
+  Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(message),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
           actions: <Widget>[
-            FlatButton(
-              child: Text('Ok'),
+            TextButton(
+              child: Text(
+                'Ok',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
               onPressed: () {
                 Navigator.of(ctx).pop();
                 nextFunc();
@@ -517,17 +567,19 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage0(BuildContext ctx) {
-    return RaisedButton(
-      elevation: 4.0,
-      color: Colors.blue[100],
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        elevation: 4.0,
+        primary: Colors.blue[100],
+      ),
       onPressed: () {
         this._selectTutorialCells();
         this._tutorialStage = 1;
         this.runSetState();
         this._showTutorialMessage(
-          'Multi-selection',
-          'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
-          (){}
+          title: 'Multi-selection',
+          message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
+          nextFunc: (){}
         );
       },
       onLongPress: () {
@@ -537,6 +589,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: Center(
         child: Icon(
           Icons.help,
+          color: Colors.black,
           size: 80,
         ),
       ),
@@ -557,24 +610,26 @@ class SudokuScreenState extends State<SudokuScreen> {
       )
     );
     this._tutorialStage = !passCondition ? 1 : 2;
-    return RaisedButton(
-      elevation: passCondition ? 4.0 : 0.0,
-      color: Colors.blue[100],
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        elevation: passCondition ? 4.0 : 0.0,
+        primary: Colors.blue[100],
+      ),
       onPressed: !passCondition ? null : () {
         Scaffold.of(ctx).openDrawer();
         this.runSetState();
         this._showTutorialMessage(
-            'One of',
-            'One of the cells contains a specific value.',
-            () {
+            title: 'One of',
+            message: 'One of the cells contains a specific value.',
+            nextFunc: () {
               this._showTutorialMessage(
-                'All different',
-                'Match the selected cells with the same number of values.',
-                () {
+                title: 'All different',
+                message: 'Match the selected cells with the same number of values.',
+                nextFunc: () {
                   this._showTutorialMessage(
-                    'Instructions',
-                    'Tap "All different".',
-                    () {
+                    title: 'Instructions',
+                    message: 'Tap "All different".',
+                    nextFunc: () {
                     }
                   );
                 }
@@ -585,6 +640,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: Center(
         child: Icon(
           passCondition ? Icons.select_all : Icons.touch_app,
+          color: Colors.black,
           size: 80,
         ),
       ),
@@ -592,18 +648,20 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage3(BuildContext ctx) {
-    return RaisedButton(
-      elevation: 4.0,
-      color: Colors.blue[100],
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        elevation: 4.0,
+        primary: Colors.blue[100],
+      ),
       onPressed: () {
         this._showTutorialMessage(
-            "New constraint",
-            'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
-            () {
+            title: "New constraint",
+            message: 'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
+            nextFunc: () {
               this._showTutorialMessage(
-                'Assistant',
-                'Once you get used to using constraints, you should enable default rules through the settings.',
-                () {
+                title: 'Assistant',
+                message: 'Once you get used to using constraints, you should enable default rules through the settings.',
+                nextFunc: () {
                 }
               );
             }
@@ -616,6 +674,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: Center(
         child: Icon(
           Icons.done,
+          color: Colors.black,
           size: 80,
         ),
       ),
@@ -626,8 +685,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.all(32.0),
-        child: (stage){
-          switch(stage) {
+        child: (){
+          switch(this._tutorialStage) {
             case 0:
               return this._makeTutorialButtonStage0(ctx);
             break;
@@ -639,7 +698,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               return this._makeTutorialButtonStage3(ctx);
             break;
           }
-        }(this._tutorialStage),
+        }(),
       ),
     );
   }
@@ -690,6 +749,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           ),
           title: Text(
             '${constraints[i].type} dom=${constraints[i].getValues()}',
+            style: TextStyle(
+              color: Colors.black,
+            ),
           ),
           onTap: !constraints[i].isActive() ? null : () {
             this._multiSelect!.clearAll();
@@ -700,8 +762,13 @@ class SudokuScreenState extends State<SudokuScreen> {
       );
     });
     if(this._selectedConstraint != null) {
-      listTiles.add(OutlineButton(
-        child: Text('Deselect'),
+      listTiles.add(OutlinedButton(
+        child: Text(
+          'Deselect',
+          style: TextStyle(
+            color: Colors.black,
+          ),
+        ),
         onPressed: () {
           this._selectedConstraint = null;
           this.runSetState();

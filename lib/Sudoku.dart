@@ -386,7 +386,7 @@ class Sudoku {
 
   // readonly
   bool check() {
-    var chk = <int>[ne2 * 3];
+    var chk = List<int>.generate(ne2 * 3, (int i) => 0);
     for(int i = 0; i < ne2; ++i) {
       for(int j = 0; j < ne2 * 3; ++j) {
         chk[j] = 0;

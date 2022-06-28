@@ -27,9 +27,12 @@ class MenuScreenState extends State<MenuScreen> {
     bool isSelected = this._selectedSize == n;
     return Container(
       margin: const EdgeInsets.all(16.0),
-      child: RaisedButton(
-        elevation: isSelected ? 0.0 : 4.0,
-        color: isSelected ? Colors.green[100] : Colors.blue[100],
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          elevation: isSelected ? 0.0 : 4.0,
+          primary: isSelected ? Colors.green[100] : Colors.blue[100],
+          padding: EdgeInsets.all(0.0),
+        ),
         onPressed: () {
           if(this._selectedSize == n) {
             this._selectedSize = -1;
@@ -38,13 +41,13 @@ class MenuScreenState extends State<MenuScreen> {
           }
           setState((){});
         },
-        padding: EdgeInsets.all(0.0),
         child: Center(
           child: Text(
             "$n",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 56.0,
+              color: Colors.black,
             ),
           ),
         ),
@@ -64,7 +67,9 @@ class MenuScreenState extends State<MenuScreen> {
         return StatefulBuilder(
           builder: (ctx, setState) => Scaffold(
             appBar: AppBar(
-              title: Text('Selecting size'),
+              title: Text(
+                'Selecting size',
+              ),
               elevation: 4.0,
             ),
             body: Column(
@@ -111,7 +116,9 @@ class MenuScreenState extends State<MenuScreen> {
   Widget build(BuildContext ctx) {
     return Scaffold(
       appBar: AppBar(
-        title: new Text('Sudaku'),
+        title: new Text(
+          'Sudaku',
+        ),
         elevation: 0.0,
       ),
       body: Column(
@@ -160,6 +167,7 @@ class MenuScreenState extends State<MenuScreen> {
                               Spacer(),
                               Icon(
                                 Icons.play_circle_filled,
+                                color: Colors.black,
                                 size: 80,
                               ),
                               Text(
@@ -167,6 +175,7 @@ class MenuScreenState extends State<MenuScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 80,
+                                  color: Colors.black,
                                 ),
                               ),
                               Spacer(),
