@@ -841,7 +841,7 @@ class SudokuAssist extends DomainFilterer {
   }
 
   void reapply() {
-    for(int i = 0; i < sd!.ne4; ++i) {
+    for(int i = 0; i < sd.ne4; ++i) {
       if(!sd.isVariableManual(i)) {
         sd.setAssistantChange(i, 0);
       }

@@ -8,7 +8,7 @@
 PRODUCT_NAME = sudaku
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = org.codeberg.theoden8.sudaku
+PRODUCT_BUNDLE_IDENTIFIER = com.gitea.theoden8.sudaku
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2020 org.codeberg.theoden8. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2020 com.gitea.theoden8. All rights reserved.

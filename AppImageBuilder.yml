@@ -7,7 +7,7 @@ script:
 AppDir:
   path: ./AppDir
   app_info:
-    id: org.codeberg.theoden8.sudaku
+    id: com.gitea.theoden8.sudaku
     name: sudaku
     icon: icon
     version: latest

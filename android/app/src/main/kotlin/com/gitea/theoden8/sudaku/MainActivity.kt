@@ -1,4 +1,4 @@
-package org.codeberg.theoden8.sudaku
+package com.gitea.theoden8.sudaku
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity
