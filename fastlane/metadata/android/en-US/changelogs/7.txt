@@ -1,0 +1,4 @@
+## changes
+
+* fixed takeback issue for constraints
+* reactivate some constraints for "clear cell" action
