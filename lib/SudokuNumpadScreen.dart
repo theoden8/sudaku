@@ -14,8 +14,15 @@ class NumpadScreen extends StatefulWidget {
   int count;
   Sudoku sd;
   BitArray variables;
+  Function(BuildContext) sudokuThemeFunc;
 
-  NumpadScreen({required this.nitype, required this.count, required this.sd, required this.variables});
+  NumpadScreen({
+    required this.nitype,
+    required this.count,
+    required this.sd,
+    required this.variables,
+    required this.sudokuThemeFunc
+  });
 
   State createState() => NumpadScreenState();
 }
@@ -34,21 +41,21 @@ abstract class NumpadInteraction {
     this.numpad = numpad;
   }
 
-  Color getColor(int val) {
+  Color? getColor(int val, var theme) {
     if(numpad.multiselection[val]) {
-      return Colors.yellow[100]!;
+      return theme.yellow;
     } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
       if(numpad.antiselectionChanges[val]) {
-        return Colors.red[200]!;
+        return theme.veryRed;
       }
-      return Colors.red[100]!;
+      return theme.red;
     } else if(!numpad.constrained[val]) {
-      return Colors.orange[100]!;
+      return theme.orange;
     }
     if(numpad.antiselectionChanges[val]) {
-      return Colors.blue[200]!;
+      return theme.veryBlue;
     }
-    return Colors.blue[100]!;
+    return theme.blue;
   }
 
   bool onPressEnabled(int val) {
@@ -63,7 +70,7 @@ abstract class NumpadInteraction {
   void handleOnLongPress(BuildContext ctx, int val) {
   }
 
-  List<Widget> makeToolbar(BuildContext ctx) {
+  List<Widget> makeToolBar(BuildContext ctx) {
     if(numpad.variables.cardinality > 1) {
       return <Widget>[];
     }
@@ -80,9 +87,7 @@ abstract class NumpadInteraction {
 }
 
 class ValueInteraction extends NumpadInteraction {
-  ValueInteraction(NumpadScreenState ns) :
-    super(ns)
-  {
+  ValueInteraction(NumpadScreenState numpad): super(numpad) {
     this.type = NumpadInteractionType.SELECT_VALUE;
   }
 
@@ -106,7 +111,7 @@ class ValueInteraction extends NumpadInteraction {
   }
 
   @override
-  List<Widget> makeToolbar(BuildContext ctx) {
+  List<Widget> makeToolBar(BuildContext ctx) {
     return <Widget>[
       IconButton(
         icon: Icon(Icons.report),
@@ -146,7 +151,7 @@ class MultiselectionInteraction extends NumpadInteraction {
   }
 
   @override
-  List<Widget> makeToolbar(BuildContext ctx) {
+  List<Widget> makeToolBar(BuildContext ctx) {
     return [
       IconButton(
         icon: Icon(Icons.save),
@@ -182,7 +187,7 @@ class EliminatorInteraction extends NumpadInteraction {
   }
 
   @override
-  List<Widget> makeToolbar(BuildContext ctx) {
+  List<Widget> makeToolBar(BuildContext ctx) {
     return <Widget>[
       IconButton(
         icon: Icon(Icons.save),
@@ -271,8 +276,8 @@ class NumpadScreenState extends State<NumpadScreen> {
     this.reset = false;
   }
 
-  List<Widget> _makeToolbar(BuildContext ctx) {
-     return <Widget>[]..addAll(this.interact!.makeToolbar(ctx));
+  List<Widget> _makeToolBar(BuildContext ctx) {
+     return <Widget>[]..addAll(this.interact!.makeToolBar(ctx));
   }
 
   Widget build(BuildContext ctx) {
@@ -295,16 +300,15 @@ class NumpadScreenState extends State<NumpadScreen> {
       proportionText = ' (${no_msel}/${widget.count})';
     }
 
+    final theme = this.widget.sudokuThemeFunc(ctx);
+
     return Scaffold(
       appBar: AppBar(
         title: new Text(
           'Selecting' + proportionText,
-          style: TextStyle(
-            color: Colors.black,
-          ),
         ),
         elevation: 0.0,
-        actions: this._makeToolbar(ctx),
+        actions: this._makeToolBar(ctx),
       ),
       body: CustomScrollView(
         primary: true,
@@ -333,12 +337,12 @@ class NumpadScreenState extends State<NumpadScreen> {
                           return 4.0;
                         }
                       ),
-                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color?>(
                         (Set<MaterialState> states) {
                           if(states.contains(MaterialState.disabled)) {
                             return Colors.grey;
                           }
-                          return this.interact!.getColor(val + 1);
+                          return this.interact!.getColor(val + 1, theme);
                         }
                       ),
                     ),
@@ -354,7 +358,7 @@ class NumpadScreenState extends State<NumpadScreen> {
                       sd.s_get(val + 1),
                       style: TextStyle(
                         fontSize: sz * 0.4,
-                        color: Colors.black,
+                        color: theme.buttonForeground,
                       ),
                     ),
                   ),
@@ -380,11 +384,16 @@ class NumpadScreenState extends State<NumpadScreen> {
                             padding: EdgeInsets.all(16.0),
                             elevation: 16.0,
                           ),
-                          child: Text(
-                            'Clear',
-                             style: TextStyle(
-                               color: Colors.black,
-                             ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(
+                                Icons.clear,
+                              ),
+                              Text(
+                                'Clear',
+                              ),
+                            ],
                           ),
                           onPressed: () {
                             this._handleOnPress(ctx, 0);
@@ -398,12 +407,11 @@ class NumpadScreenState extends State<NumpadScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              Icon(Icons.cancel),
+                              Icon(
+                                Icons.cancel,
+                              ),
                               Text(
                                 'Cancel',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                ),
                               ),
                             ],
                           ),

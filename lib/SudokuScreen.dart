@@ -17,7 +17,9 @@ import 'SudokuAssistScreen.dart';
 class SudokuScreen extends StatefulWidget {
   static const String routeName = '/sudoku_arguments';
 
-  SudokuScreen();
+  Function(BuildContext) sudokuThemeFunc;
+
+  SudokuScreen({required this.sudokuThemeFunc});
 
   State createState() => SudokuScreenState();
 }
@@ -203,6 +205,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           nitype: nitype,
           count: count,
           variables: this.getSelection(),
+          sudokuThemeFunc: this.widget.sudokuThemeFunc,
         );
       },
     );
@@ -255,7 +258,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     this.endMultiSelect();
   }
 
-  Future<void> _showResetDialog() async {
+  Future<void> _showResetDialog(BuildContext ctx) async {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     return showDialog<void>(
       context: this.context,
       // barrierDismissable: false,
@@ -263,22 +267,16 @@ class SudokuScreenState extends State<SudokuScreen> {
         return AlertDialog(
           title: Text(
             'Reset',
-            style: TextStyle(
-              color: Colors.black,
-            ),
           ),
           content: Text(
             'This action is irreversible',
-            style: TextStyle(
-              color: Colors.black,
-            ),
           ),
           actions: <Widget>[
             TextButton(
               child: Text(
                 'Hold on',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: theme.foreground,
                 ),
               ),
               onPressed: () {
@@ -289,7 +287,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: Text(
                 'Reset',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: theme.foreground,
                 ),
               ),
               onPressed: () {
@@ -309,7 +307,9 @@ class SudokuScreenState extends State<SudokuScreen> {
     });
   }
 
-  Border getBorder(int i, int j) {
+  Border getBorder(int i, int j, BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
+
     bool left = (j % sd!.n == 0);
     bool right = (j % sd!.n == sd!.n - 1);
     bool top = (i % sd!.n == 0);
@@ -317,8 +317,14 @@ class SudokuScreenState extends State<SudokuScreen> {
     bool leftEdge = (j == 0), rightEdge = (j == sd!.ne2 - 1);
     bool topEdge = (i == 0), bottomEdge = (i == sd!.ne2 - 1);
 
-    var side = BorderSide(width: 0.5);
-    var edgeSide = BorderSide(width: 2.0);
+    var side = BorderSide(
+      width: 0.5,
+      color: theme.foreground,
+    );
+    var edgeSide = BorderSide(
+      width: 2.0,
+      color: theme.foreground,
+    );
     var leftSide = leftEdge ? edgeSide : side;
     var rightSide = rightEdge ? edgeSide : side;
     var topSide = topEdge ? edgeSide : side;
@@ -359,12 +365,13 @@ class SudokuScreenState extends State<SudokuScreen> {
     return Border();
   }
 
-  Widget _makeSudokuCellImmutable(int index, double sz) {
+  Widget _makeSudokuCellImmutable(int index, double sz, BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     int sdval = sd![index];
     return Card(
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
-      color: Colors.grey[300],
+      color: theme.cellHintColor,
       child: Container(
         margin: EdgeInsets.all(0.0),
         child: Text(
@@ -389,36 +396,39 @@ class SudokuScreenState extends State<SudokuScreen> {
     this._multiSelect!.clearAll();
   }
 
-  Color getCellColor(int index) {
+  Color? getCellColor(int index, BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     if(this._multiSelect!.isEmpty) {
       if(this._selectedCell == index) {
-        return Colors.blue[100]!;
+        return theme.cellBackground;
       } else if(this._selectedConstraint != null && this._selectedConstraint.variables[index]) {
         switch(this._selectedConstraint.type) {
-          case ConstraintType.ONE_OF: return Colors.green[100]!;
-          case ConstraintType.EQUAL: return Colors.purple[100]!;
-          case ConstraintType.ALLDIFF: return Colors.cyan[100]!;
+          case ConstraintType.ONE_OF: return theme.constraintOneOf;
+          case ConstraintType.EQUAL: return theme.constraintEqual;
+          case ConstraintType.ALLDIFF: return theme.constraintAllDiff!;
         }
       }
     } else {
       if(this._multiSelect![index]) {
-        return Colors.yellow[200]!;
+        return theme.veryYellow;
       }
     }
     if(this._tutorialCells != null && this._tutorialCells![index]) {
-      return Colors.orange[100]!;
+      return theme.orange;
     }
-    return Colors.white;
+    return null;
   }
 
-  Color getCellTextColor(int index) {
+  Color? getCellTextColor(int index, BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     if(sd!.isVariableManual(index)) {
-      return Colors.black;
+      return theme.cellForeground;
     }
-    return Colors.grey[500]!;
+    return theme.cellInferColor;
   }
 
-  Widget _makeSudokuCellMutable(int index, double sz) {
+  Widget _makeSudokuCellMutable(int index, double sz, BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     int i = index ~/ sd!.ne2, j = index % sd!.ne2;
     int sdval = sd![index];
     return TextButton(
@@ -426,12 +436,12 @@ class SudokuScreenState extends State<SudokuScreen> {
         padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
           (Set<MaterialState> states) => EdgeInsets.all(0.0)
         ),
-        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+        backgroundColor: MaterialStateProperty.resolveWith<Color?>(
           (Set<MaterialState> states) {
             if(states.contains(MaterialState.pressed)) {
               return Colors.blueAccent;
             }
-            return this.getCellColor(index);
+            return this.getCellColor(index, ctx);
           }
         ),
       ),
@@ -442,24 +452,25 @@ class SudokuScreenState extends State<SudokuScreen> {
         this._handleLongPressCell(index);
       },
       child: Text(
-        sd!.s_get(sdval),
+        sd!.s_get_display(sdval),
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: sz * 0.9,
-          color: this.getCellTextColor(index),
+          color: this.getCellTextColor(index, ctx),
         ),
       ),
     );
   }
 
-  Widget _makeSudokuCell(int index, double sz) {
+  Widget _makeSudokuCell(int index, double sz, BuildContext ctx) {
     if(sd!.isHint(index)) {
-      return this._makeSudokuCellImmutable(index, sz);
+      return this._makeSudokuCellImmutable(index, sz, ctx);
     }
-    return this._makeSudokuCellMutable(index, sz);
+    return this._makeSudokuCellMutable(index, sz, ctx);
   }
 
   Widget _makeSudokuGrid(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     double w = this.screenWidth;
     double h = this.screenHeight;
     double size = min(w, h);
@@ -480,11 +491,11 @@ class SudokuScreenState extends State<SudokuScreen> {
                   child: Container(
                     margin: const EdgeInsets.all(0.0),
                     decoration: BoxDecoration(
-                      border: getBorder(i, j),
+                      border: getBorder(i, j, ctx),
                     ),
                     width: sz,
                     height: sz,
-                    child: this._makeSudokuCell(index, sz),
+                    child: this._makeSudokuCell(index, sz, ctx),
                   ),
                 );
               }),
@@ -537,23 +548,14 @@ class SudokuScreenState extends State<SudokuScreen> {
         return AlertDialog(
           title: Text(
             title,
-            style: TextStyle(
-              color: Colors.black,
-            ),
           ),
           content: Text(
             message,
-            style: TextStyle(
-              color: Colors.black,
-            ),
           ),
           actions: <Widget>[
             TextButton(
               child: Text(
                 'Ok',
-                style: TextStyle(
-                  color: Colors.black,
-                ),
               ),
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -567,10 +569,11 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage0(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: 4.0,
-        primary: Colors.blue[100],
+        primary: theme.buttonBackground,
       ),
       onPressed: () {
         this._selectTutorialCells();
@@ -597,6 +600,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage12(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     var tutorialCellsUnset = BitArray(sd!.ne4)
       ..setBits(
         this._tutorialCells!
@@ -613,7 +617,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: passCondition ? 4.0 : 0.0,
-        primary: Colors.blue[100],
+        primary: theme.buttonBackground,
       ),
       onPressed: !passCondition ? null : () {
         Scaffold.of(ctx).openDrawer();
@@ -648,10 +652,11 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButtonStage3(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: 4.0,
-        primary: Colors.blue[100],
+        primary: theme.buttonBackground,
       ),
       onPressed: () {
         this._showTutorialMessage(
@@ -705,6 +710,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     var constraints = sd!.assist.constraints.where((Constraint c) {
       return c.status != Constraint.SUCCESS;
     }).toList();
@@ -717,7 +723,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           } else if(c.status == Constraint.VIOLATED) {
             return Colors.red[100];
           }
-          return Colors.white;
+          return null;
         }(constraints[i]),
         child: ListTile(
           leading: Checkbox(
@@ -748,10 +754,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             },
           ),
           title: Text(
-            '${constraints[i].type} dom=${constraints[i].getValues()}',
-            style: TextStyle(
-              color: Colors.black,
-            ),
+            'type=${constraints[i].s_display()} dom=${constraints[i].getValues()}',
           ),
           onTap: !constraints[i].isActive() ? null : () {
             this._multiSelect!.clearAll();
@@ -766,7 +769,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         child: Text(
           'Deselect',
           style: TextStyle(
-            color: Colors.black,
+            color: theme.foreground,
           ),
         ),
         onPressed: () {
@@ -783,78 +786,95 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Drawer _makeDrawer(BuildContext ctx) => Drawer(
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: <Widget>[
-        DrawerHeader(
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.select_all),
-              Text(
-                'Constraints',
+  Drawer _makeDrawer(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          DrawerHeader(
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.select_all),
+                Text(
+                  'Constraints',
+                  style: TextStyle(
+                    fontSize: 20.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.link_off),
+              title: Text('One of'),
+              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
+                this.interact = OneofInteraction(this);
+                await this.interact!.onSelection();
+                Navigator.pop(ctx);
+                this.runSetState();
+              },
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.link),
+              title: Text('Equivalence'),
+              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
+                this.interact = EqualInteraction(this);
+                await this.interact!.onSelection();
+                Navigator.pop(ctx);
+                this.runSetState();
+              },
+            ),
+          ),
+          Card(
+            color: (
+              this._showTutorial
+              && this._tutorialStage == 2
+            ) ? theme.buttonBackground : null,
+            child: ListTile(
+              leading: Icon(
+                Icons.sort,
+                color: (
+                  this._showTutorial
+                  && this._tutorialStage == 2
+                ) ? theme.buttonForeground : null,
+              ),
+              title: Text(
+                'All different',
                 style: TextStyle(
-                  fontSize: 20.0,
+                  color: (
+                    this._showTutorial
+                    && this._tutorialStage == 2
+                  ) ? theme.buttonForeground : null,
                 ),
               ),
-            ],
+              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
+                this.interact = AlldiffInteraction(this);
+                await this.interact!.onSelection();
+                Navigator.pop(ctx);
+                this.runSetState();
+              },
+            ),
           ),
-        ),
-        Card(
-          child: ListTile(
-            leading: Icon(Icons.link_off),
-            title: Text('One of'),
-            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-              this.interact = OneofInteraction(this);
-              await this.interact!.onSelection();
-              Navigator.pop(ctx);
-              this.runSetState();
-            },
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.report),
+              title: Text('Eliminate'),
+              onTap: (this._multiSelect!.cardinality < 1) ? null : () async {
+                this.interact = EliminatorInteraction(this);
+                await this.interact!.onSelection();
+                Navigator.pop(ctx);
+                this.runSetState();
+              },
+            ),
           ),
-        ),
-        Card(
-          child: ListTile(
-            leading: Icon(Icons.link),
-            title: Text('Equivalence'),
-            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-              this.interact = EqualInteraction(this);
-              await this.interact!.onSelection();
-              Navigator.pop(ctx);
-              this.runSetState();
-            },
-          ),
-        ),
-        Card(
-          color: (
-            this._showTutorial
-            && this._tutorialStage == 2
-          ) ? Colors.blue[100] : Colors.white,
-          child: ListTile(
-            leading: Icon(Icons.sort),
-            title: Text('All different'),
-            onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-              this.interact = AlldiffInteraction(this);
-              await this.interact!.onSelection();
-              Navigator.pop(ctx);
-              this.runSetState();
-            },
-          ),
-        ),
-        Card(
-          child: ListTile(
-            leading: Icon(Icons.report),
-            title: Text('Eliminate'),
-            onTap: (this._multiSelect!.cardinality < 1) ? null : () async {
-              this.interact = EliminatorInteraction(this);
-              await this.interact!.onSelection();
-              Navigator.pop(ctx);
-              this.runSetState();
-            },
-          ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   void backtrackAssistant() {
     this.sd!.assist.retract();
@@ -882,7 +902,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     this.runAssistant();
   }
 
-  List<Widget> _makeToolbar(BuildContext ctx) {
+  List<Widget> _makeToolBar(BuildContext ctx) {
     if(this._showTutorial && this._tutorialStage >= 1) {
       return <Widget>[];
     }
@@ -918,11 +938,24 @@ class SudokuScreenState extends State<SudokuScreen> {
           }
         },
       ),
+      IconButton(
+        icon: Icon(Theme.of(context).brightness == Brightness.light ? Icons.wb_sunny : Icons.nights_stay),
+        onPressed: () async {
+          final theme = this.widget.sudokuThemeFunc(ctx);
+          setState(() {
+            if (Theme.of(context).brightness == Brightness.light) {
+              theme.onChange(ThemeMode.dark);
+            } else {
+              theme.onChange(ThemeMode.light);
+            }
+          });
+        },
+      ),
       PopupMenuButton<int>(
         onSelected: (int opt) {
           switch(opt) {
             case TOOLBAR_RESET:
-              this._showResetDialog();
+              this._showResetDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
               this._showTutorial = true;
@@ -966,7 +999,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     var appBar = AppBar(
       title: new Text('Sudoku'),
       elevation: 4.0,
-      actions: this._makeToolbar(ctx),
+      actions: this._makeToolBar(ctx),
     );
 
     double w = MediaQuery.of(ctx).size.width;

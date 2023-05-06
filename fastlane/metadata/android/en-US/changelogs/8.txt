@@ -1,0 +1,4 @@
+## changes
+
+* added dark theme
+* minor interface changes

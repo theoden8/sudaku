@@ -522,4 +522,11 @@ class Sudoku {
     }
     return val.toString();
   }
+
+  String s_get_display(int val) {
+    if(val == 0) {
+      return '·';
+    }
+    return s_get(val);
+  }
 }

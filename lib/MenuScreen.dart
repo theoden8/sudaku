@@ -9,28 +9,23 @@ import 'SudokuScreen.dart';
 
 
 class MenuScreen extends StatefulWidget {
+  Function(BuildContext) sudokuThemeFunc;
+
+  MenuScreen({required this.sudokuThemeFunc});
+
   State createState() => MenuScreenState();
 }
 
 class MenuScreenState extends State<MenuScreen> {
-  void _handleOnPress(int n) {
-    Navigator.pushNamed(
-      this.context,
-      SudokuScreen.routeName,
-      arguments: SudokuScreenArguments(
-        n: n,
-      ),
-    );
-  }
-
   Widget _makeSudokuSizeButton(ctx, setState, int n) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     bool isSelected = this._selectedSize == n;
     return Container(
       margin: const EdgeInsets.all(16.0),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           elevation: isSelected ? 0.0 : 4.0,
-          primary: isSelected ? Colors.green[100] : Colors.blue[100],
+          primary: isSelected ? theme.buttonSelectedBackground : theme.buttonBackground,
           padding: EdgeInsets.all(0.0),
         ),
         onPressed: () {
@@ -47,7 +42,7 @@ class MenuScreenState extends State<MenuScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 56.0,
-              color: Colors.black,
+              color: theme.buttonForeground,
             ),
           ),
         ),
@@ -71,6 +66,21 @@ class MenuScreenState extends State<MenuScreen> {
                 'Selecting size',
               ),
               elevation: 4.0,
+              actions: [
+                IconButton(
+                  icon: Icon(Theme.of(context).brightness == Brightness.light ? Icons.wb_sunny : Icons.nights_stay),
+                  onPressed: () async {
+                    final theme = this.widget.sudokuThemeFunc(ctx);
+                    setState(() {
+                      if (Theme.of(context).brightness == Brightness.light) {
+                        theme.onChange(ThemeMode.dark);
+                      } else {
+                        theme.onChange(ThemeMode.light);
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,7 +107,13 @@ class MenuScreenState extends State<MenuScreen> {
               height: 100,
               child: FloatingActionButton(
                 onPressed: () {
-                  this._handleOnPress(this._selectedSize);
+                  Navigator.pushNamed(
+                    this.context,
+                    SudokuScreen.routeName,
+                    arguments: SudokuScreenArguments(
+                      n: this._selectedSize,
+                    ),
+                  );
                 },
                 child: Icon(
                   Icons.play_arrow,
@@ -114,12 +130,28 @@ class MenuScreenState extends State<MenuScreen> {
   }
 
   Widget build(BuildContext ctx) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
     return Scaffold(
       appBar: AppBar(
         title: new Text(
           'Sudaku',
         ),
         elevation: 0.0,
+        actions: [
+            IconButton(
+            icon: Icon(Theme.of(context).brightness == Brightness.light ? Icons.wb_sunny : Icons.nights_stay),
+            onPressed: () async {
+              final theme = this.widget.sudokuThemeFunc(ctx);
+              setState(() {
+                if (Theme.of(context).brightness == Brightness.light) {
+                  theme.onChange(ThemeMode.dark);
+                } else {
+                  theme.onChange(ThemeMode.light);
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -154,7 +186,7 @@ class MenuScreenState extends State<MenuScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Card(
                 elevation: 4.0,
-                color: Colors.blue[100],
+                color: theme.buttonBackground,
                 child: ListTile(
                   title: Center(
                     child: Column(
@@ -167,7 +199,7 @@ class MenuScreenState extends State<MenuScreen> {
                               Spacer(),
                               Icon(
                                 Icons.play_circle_filled,
-                                color: Colors.black,
+                                color: theme.buttonForeground,
                                 size: 80,
                               ),
                               Text(
@@ -175,7 +207,7 @@ class MenuScreenState extends State<MenuScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 80,
-                                  color: Colors.black,
+                                  color: theme.buttonForeground,
                                 ),
                               ),
                               Spacer(),

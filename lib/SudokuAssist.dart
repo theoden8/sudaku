@@ -147,6 +147,8 @@ abstract class Constraint extends DomainFilterer {
   String toString() {
     return '${this.type}';
   }
+
+  String s_display();
 }
 
 class ConstraintOneOf extends Constraint {
@@ -225,6 +227,11 @@ class ConstraintOneOf extends Constraint {
   String toString() {
     return 'One-of: ${this.value}';
   }
+
+  @override
+  String s_display() {
+    return "oneOf";
+  }
 }
 
 class ConstraintEqual extends Constraint {
@@ -270,6 +277,11 @@ class ConstraintEqual extends Constraint {
       }
     }
     return Constraint.SUCCESS;
+  }
+
+  @override
+  String s_display() {
+    return "equal";
   }
 }
 
@@ -448,6 +460,11 @@ class ConstraintAllDiff extends Constraint {
   @override
   String toString() {
     return 'All different: ${this.domain.asIntIterable()}';
+  }
+
+  @override
+  String s_display() {
+    return "allDiff";
   }
 }
 
