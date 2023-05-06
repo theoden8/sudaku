@@ -13,6 +13,7 @@
 /AppDir
 /appimage-builder-cache
 *.AppImage
+*.zsync
 
 # android/
 pubspec.lock

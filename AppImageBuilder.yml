@@ -10,19 +10,20 @@ AppDir:
     id: com.gitea.theoden8.sudaku
     name: sudaku
     icon: icon
-    version: latest
+    version: v0.0.5+8
     exec: sudaku
     exec_args: $@
   apt:
     arch: amd64
     allow_unauthenticated: true
     sources:
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse
-    - sourceline: deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted universe multiverse
-    - sourceline: deb http://security.ubuntu.com/ubuntu bionic-security main restricted universe multiverse
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+    - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+    - sourceline: deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
     include:
     - libgtk-3-0
+    - libgtk-3-common
     - librsvg2-common
     exclude:
     - humanity-icon-theme
@@ -57,7 +58,7 @@ AppDir:
       command: ./AppRun
       use_host_x: true
     ubuntu:
-      image: appimagecrafters/tests-env:ubuntu-xenial
+      image: appimagecrafters/tests-env:ubuntu-focal
       command: ./AppRun
       use_host_x: true
 AppImage:
