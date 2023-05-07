@@ -287,9 +287,8 @@ class NumpadScreenState extends State<NumpadScreen> {
     this._resetSelections(widget.nitype, widget.count);
 
     final double w = (MediaQuery.of(ctx).size.width - 1.0) / n;
-    final double h = (MediaQuery.of(ctx).size.height - 1.0) / n;
-    final double size = min(w, h) - 8.0;
-    final double sz = size;
+    final double h = (MediaQuery.of(ctx).size.height - 1.0) / (n + 1);
+    final double sz = min(w, h) - 8.0;
 
     String proportionText = '';
     if(widget.nitype == NumpadInteractionType.MULTISELECTION) {
@@ -310,122 +309,126 @@ class NumpadScreenState extends State<NumpadScreen> {
         elevation: 0.0,
         actions: this._makeToolBar(ctx),
       ),
-      body: CustomScrollView(
-        primary: true,
-        scrollDirection: (w < h) ? Axis.vertical : Axis.horizontal,
-        slivers: <Widget>[
-          SliverGrid.count(
-            // crossAxisSpacing: h,
-            crossAxisCount: n,
-            // mainAxisCount: n,
-            children: List<Widget>.generate(n * n, (val) =>
-              SizedBox(
-                width: sz,
-                height: sz,
-                child: Container(
-                  margin: EdgeInsets.all(sz * 0.1),
-                  child: ElevatedButton(
-                    style: ButtonStyle(
-                      padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
-                        (Set<MaterialState> states) => EdgeInsets.all(0.0)
-                      ),
-                      elevation: MaterialStateProperty.resolveWith<double>(
-                        (Set<MaterialState> states) {
-                          if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
-                            return 0;
-                          }
-                          return 4.0;
-                        }
-                      ),
-                      backgroundColor: MaterialStateProperty.resolveWith<Color?>(
-                        (Set<MaterialState> states) {
-                          if(states.contains(MaterialState.disabled)) {
-                            return Colors.grey;
-                          }
-                          return this.interact!.getColor(val + 1, theme);
-                        }
-                      ),
-                    ),
-                    onPressed: !this.interact!.onPressEnabled(val + 1)
-                    ? null : () {
-                      this._handleOnPress(ctx, val + 1);
-                    },
-                    onLongPress: !this.interact!.onLongPressEnabled(val + 1)
-                    ? null : () {
-                      this._handleOnLongPress(ctx, val + 1);
-                    },
-                    child: Text(
-                      sd.s_get(val + 1),
-                      style: TextStyle(
-                        fontSize: sz * 0.4,
-                        color: theme.buttonForeground,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            ).toList(),
-          ),
-          SliverGrid.count(
-            crossAxisCount: 1,
-            children: <Widget>[
-              Flex(
-                direction: Axis.vertical,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisAlignment: (w < h) ? MainAxisAlignment.start : MainAxisAlignment.end,
-                    children: <Widget>[
-                      Container(
-                        margin: EdgeInsets.all((w < h) ? 0 : sz * 0.1),
-                        child: this.interact is! MultiselectionInteraction ?
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.all(16.0),
-                            elevation: 16.0,
+      body:
+      Column(
+        children: <Widget>[
+          Container(
+            width: (sz * 1.1) * n,
+            height: (sz * 1.1) * n,
+            child: CustomScrollView(
+              primary: true,
+              scrollDirection: Axis.vertical,
+              slivers: <Widget>[
+                SliverGrid.count(
+                  // crossAxisSpacing: h,
+                  crossAxisCount: n,
+                  // mainAxisCount: n,
+                  children: List<Widget>.generate(n * n, (val) =>
+                    SizedBox(
+                      width: sz,
+                      height: sz,
+                      child: Container(
+                        margin: EdgeInsets.all(sz * 0.1),
+                        child: ElevatedButton(
+                          style: ButtonStyle(
+                            padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
+                              (Set<MaterialState> states) => EdgeInsets.all(0.0)
+                            ),
+                            elevation: MaterialStateProperty.resolveWith<double>(
+                              (Set<MaterialState> states) {
+                                if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
+                                  return 0;
+                                }
+                                return 4.0;
+                              }
+                            ),
+                            backgroundColor: MaterialStateProperty.resolveWith<Color?>(
+                              (Set<MaterialState> states) {
+                                if(states.contains(MaterialState.disabled)) {
+                                  return Colors.grey;
+                                }
+                                return this.interact!.getColor(val + 1, theme);
+                              }
+                            ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(
-                                Icons.clear,
-                              ),
-                              Text(
-                                'Clear',
-                              ),
-                            ],
-                          ),
-                          onPressed: () {
-                            this._handleOnPress(ctx, 0);
+                          onPressed: !this.interact!.onPressEnabled(val + 1)
+                          ? null : () {
+                            this._handleOnPress(ctx, val + 1);
                           },
-                        )
-                        : ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.all(16.0),
-                            elevation: 16.0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(
-                                Icons.cancel,
-                              ),
-                              Text(
-                                'Cancel',
-                              ),
-                            ],
-                          ),
-                          onPressed: () {
-                            this.reset = true;
-                            Navigator.pop(ctx, multiselection);
+                          onLongPress: !this.interact!.onLongPressEnabled(val + 1)
+                          ? null : () {
+                            this._handleOnLongPress(ctx, val + 1);
                           },
+                          child: Text(
+                            sd.s_get(val + 1),
+                            style: TextStyle(
+                              fontSize: sz * 0.4,
+                              color: theme.buttonForeground,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                  ).toList(),
+                ),
+              ],
+            ),
+          ),
+          Flex(
+            direction: Axis.vertical,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: (w < h) ? MainAxisAlignment.start : MainAxisAlignment.end,
+                children: <Widget>[
+                  Container(
+                    margin: EdgeInsets.all((w < h) ? 0 : sz * 0.1),
+                    child: this.interact is! MultiselectionInteraction ?
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(16.0),
+                        elevation: 16.0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.clear,
+                          ),
+                          Text(
+                            'Clear',
+                          ),
+                        ],
+                      ),
+                      onPressed: () {
+                        this._handleOnPress(ctx, 0);
+                      },
+                    )
+                    : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(16.0),
+                        elevation: 16.0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.cancel,
+                          ),
+                          Text(
+                            'Cancel',
+                          ),
+                        ],
+                      ),
+                      onPressed: () {
+                        this.reset = true;
+                        Navigator.pop(ctx, multiselection);
+                      },
+                    ),
                   ),
-                ]
+                ],
               ),
-            ],
+            ]
           ),
         ],
       ),
