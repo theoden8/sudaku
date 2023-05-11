@@ -25,13 +25,43 @@ AppDir:
     - libgtk-3-0
     - libgtk-3-common
     - librsvg2-common
+    - libgdk-pixbuf-2.0-dev
+    # Full bundle requirements
+    #    - libpulse0
+    #    - libx11-6
+    #    - libgl1
+    #    - libglapi-mesa
+    #    - libdrm2
+    #    - libegl1
+    #    - libxcb-shape0
+    #    - libxcb1
+    #    - libx11-xcb1
+    #    - fontconfig-config
+    #    - libfontconfig1
+    #    - libfreetype6
+    #    - libglx0
+    #    - libxcb-xfixes0
+    #    - libxcb-render0
+    #    - libxcb-glx0
+    #    - libxcb-shm0
+    #    - libglvnd0
+    #    - libxcb-dri3-0
+    #    - libxcb-dri2-0
+    #    - libxcb-present0
+    #    - libcairo2-dev
     exclude:
     - humanity-icon-theme
     - hicolor-icon-theme
     - adwaita-icon-theme
     - ubuntu-mono
+      #    - phonon4qt5
+      #    - libkf5service-bin
+      #    - perl
+      #    - perl-base
+      #    - libpam-runtime
   files:
     exclude:
+      #- usr/lib/x86_64-linux-gnu/gconv
     - usr/share/man
     - usr/share/doc/*/README.*
     - usr/share/doc/*/changelog.*
@@ -40,6 +70,7 @@ AppDir:
   runtime:
     env:
       GIO_MODULE_DIR: $APPDIR/usr/lib/x86_64-linux-gnu/gio/modules/
+        #APPDIR_LIBRARY_PATH: $APPDIR/lib/x86_64-linux-gnu:$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib/x86_64-linux-gnu/pulseaudio
   test:
     fedora:
       image: appimagecrafters/tests-env:fedora-30

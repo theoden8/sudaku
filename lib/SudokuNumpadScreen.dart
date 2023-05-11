@@ -406,7 +406,7 @@ class NumpadScreenState extends State<NumpadScreen> {
                     )
                     : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(sz * 0.1),
                         elevation: 16.0,
                       ),
                       child: Row(
