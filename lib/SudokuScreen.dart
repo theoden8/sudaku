@@ -398,7 +398,9 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Color? getCellColor(int index, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    if(this._multiSelect!.isEmpty) {
+    if(sd!.assist.hintContradictions && sd!.assist.getDomain(index).isEmpty) {
+      return theme.red;
+    } else if(this._multiSelect!.isEmpty) {
       if(this._selectedCell == index) {
         return theme.cellBackground;
       } else if(this._selectedConstraint != null && this._selectedConstraint.variables[index]) {

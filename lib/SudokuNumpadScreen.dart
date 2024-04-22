@@ -392,12 +392,8 @@ class NumpadScreenState extends State<NumpadScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Icon(
-                            Icons.clear,
-                          ),
-                          Text(
-                            'Clear',
-                          ),
+                          Icon(Icons.clear),
+                          Text('Clear'),
                         ],
                       ),
                       onPressed: () {
@@ -406,18 +402,14 @@ class NumpadScreenState extends State<NumpadScreen> {
                     )
                     : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.all(sz * 0.1),
+                        padding: EdgeInsets.all(16.0),
                         elevation: 16.0,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          Icon(
-                            Icons.cancel,
-                          ),
-                          Text(
-                            'Cancel',
-                          ),
+                          Icon(Icons.cancel),
+                          Text('Cancel'),
                         ],
                       ),
                       onPressed: () {

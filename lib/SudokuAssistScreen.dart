@@ -89,6 +89,23 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           sd.assist.autoComplete = !sd.assist.autoComplete;
           this.runSetState();
         },
+      ),
+      ListTile(
+        leading: Checkbox(
+          value: sd.assist.hintContradictions,
+          onChanged: (bool? b) {
+            sd.assist.hintContradictions = b!;
+            this.runSetState();
+          },
+        ),
+        title: Text(
+          'Show contradicting cells',
+          textAlign: TextAlign.left,
+        ),
+        onTap: () {
+          sd.assist.autoComplete = !sd.assist.autoComplete;
+          this.runSetState();
+        },
       )
     ]);
     if(sd.assist.autoComplete) {
