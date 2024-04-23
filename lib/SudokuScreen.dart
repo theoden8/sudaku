@@ -573,7 +573,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: 4.0,
-        primary: theme.buttonBackground,
+        backgroundColor: theme.buttonBackground,
       ),
       onPressed: () {
         this._selectTutorialCells();
@@ -617,7 +617,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: passCondition ? 4.0 : 0.0,
-        primary: theme.buttonBackground,
+        backgroundColor: theme.buttonBackground,
       ),
       onPressed: !passCondition ? null : () {
         Scaffold.of(ctx).openDrawer();
@@ -656,7 +656,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         elevation: 4.0,
-        primary: theme.buttonBackground,
+        backgroundColor: theme.buttonBackground,
       ),
       onPressed: () {
         this._showTutorialMessage(
