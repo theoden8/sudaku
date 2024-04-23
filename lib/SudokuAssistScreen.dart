@@ -75,14 +75,14 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ),
       ListTile(
         leading: Checkbox(
-          value: sd.assist.autoComplete,
+          value: sd.assist.hintContradictions,
           onChanged: (bool? b) {
-            sd.assist.autoComplete = b!;
+            sd.assist.hintContradictions = b!;
             this.runSetState();
           },
         ),
         title: Text(
-          'Fill in a value when there is only one left',
+          'Show contradicting cells',
           textAlign: TextAlign.left,
         ),
         onTap: () {
@@ -92,14 +92,14 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ),
       ListTile(
         leading: Checkbox(
-          value: sd.assist.hintContradictions,
+          value: sd.assist.autoComplete,
           onChanged: (bool? b) {
-            sd.assist.hintContradictions = b!;
+            sd.assist.autoComplete = b!;
             this.runSetState();
           },
         ),
         title: Text(
-          'Show contradicting cells',
+          'Fill in a value when there is only one left',
           textAlign: TextAlign.left,
         ),
         onTap: () {
