@@ -754,6 +754,7 @@ class SudokuAssist extends DomainFilterer {
   bool useDefaultConstraints = false;
   bool hintAvailable = true;
   bool hintConstrained = true;
+  bool hintContradictions = true;
   // configuration readers
   bool get shouldUseDefaultConstraints => autoComplete && useDefaultConstraints;
 
