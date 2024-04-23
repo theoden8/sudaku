@@ -25,7 +25,7 @@ class MenuScreenState extends State<MenuScreen> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           elevation: isSelected ? 0.0 : 4.0,
-          primary: isSelected ? theme.buttonSelectedBackground : theme.buttonBackground,
+          backgroundColor: isSelected ? theme.buttonSelectedBackground : theme.buttonBackground,
           padding: EdgeInsets.all(0.0),
         ),
         onPressed: () {
