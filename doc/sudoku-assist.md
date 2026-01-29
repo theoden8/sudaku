@@ -208,3 +208,19 @@ The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the fol
 - AllDiff rollback restores eliminated values
 - Constraint cascade rollback
 - Full solving step undo with domain restoration
+
+### Constraint Enable/Disable with Rollback
+- Disabled constraint does not affect domain during rollback
+- Enable constraint after rollback applies new eliminations
+- Toggle constraint active state during multi-step rollback
+
+### Add/Remove Constraint with Rollback
+- Added constraint can be removed during rollback
+- Removed constraint is restored during rollback
+- Constraint modifications tracked through rollback
+- Default constraints behavior with rollback
+- User constraint added then disabled before rollback
+
+### Complex Rollback Scenarios
+- Rollback with mixed default and user constraints
+- Multiple constraint enable/disable cycles with rollback

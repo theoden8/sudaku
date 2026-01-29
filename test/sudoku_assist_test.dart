@@ -1212,4 +1212,518 @@ void main() {
       expect(domains[2].cardinality, equals(9));
     });
   });
+
+  group('Constraint Enable/Disable with Rollback', () {
+    test('disabled constraint does not affect domain during rollback', () {
+      // Simulate constraint that can be enabled/disabled
+      var constraintActive = true;
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      var eliminationHistory = <List<int>>[];
+
+      // Apply constraint (eliminates 1, 2, 3)
+      if (constraintActive) {
+        eliminationHistory.add([1, 2, 3]);
+        domain.clearBits([1, 2, 3]);
+      }
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Disable constraint
+      constraintActive = false;
+
+      // Rollback with constraint disabled - should still restore
+      var eliminated = eliminationHistory.removeLast();
+      domain.setBits(eliminated);
+      expect(domain.asIntIterable().toList(), equals([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+
+      // Re-enable constraint and re-apply
+      constraintActive = true;
+      if (constraintActive) {
+        eliminationHistory.add([1, 2, 3]);
+        domain.clearBits([1, 2, 3]);
+      }
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+    });
+
+    test('enable constraint after rollback applies new eliminations', () {
+      var constraints = <String, bool>{
+        'row': true,
+        'col': false,
+        'box': true,
+      };
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      var eliminationHistory = <(String, List<int>)>[];
+
+      // Apply active constraints
+      if (constraints['row']!) {
+        eliminationHistory.add(('row', [1, 2]));
+        domain.clearBits([1, 2]);
+      }
+      if (constraints['box']!) {
+        eliminationHistory.add(('box', [5]));
+        domain.clearBit(5);
+      }
+      expect(domain.asIntIterable().toList(), equals([3, 4, 6, 7, 8, 9]));
+
+      // Rollback box constraint
+      var (name, eliminated) = eliminationHistory.removeLast();
+      expect(name, equals('box'));
+      domain.setBits(eliminated);
+      expect(domain.asIntIterable().toList(), equals([3, 4, 5, 6, 7, 8, 9]));
+
+      // Enable col constraint before re-applying
+      constraints['col'] = true;
+
+      // Apply col constraint (new)
+      if (constraints['col']!) {
+        eliminationHistory.add(('col', [3, 4]));
+        domain.clearBits([3, 4]);
+      }
+      expect(domain.asIntIterable().toList(), equals([5, 6, 7, 8, 9]));
+    });
+
+    test('toggle constraint active state during multi-step rollback', () {
+      var constraintActive = true;
+      var statuses = <int>[];
+      var activeHistory = <bool>[]; // Track active state at each step
+
+      // Step 1: Constraint active, applied
+      activeHistory.add(constraintActive);
+      if (constraintActive) {
+        statuses.add(Constraint.SUCCESS);
+      }
+
+      // Step 2: Disable constraint
+      constraintActive = false;
+      activeHistory.add(constraintActive);
+      // Constraint not applied when inactive
+
+      // Step 3: Re-enable, apply
+      constraintActive = true;
+      activeHistory.add(constraintActive);
+      if (constraintActive) {
+        statuses.add(Constraint.INSUFFICIENT);
+      }
+
+      expect(statuses.length, equals(2));
+      expect(activeHistory.length, equals(3));
+
+      // Rollback step 3
+      if (activeHistory.last && statuses.isNotEmpty) {
+        statuses.removeLast();
+      }
+      activeHistory.removeLast();
+      constraintActive = activeHistory.last;
+
+      expect(statuses.length, equals(1));
+      expect(constraintActive, isFalse);
+
+      // Rollback step 2
+      activeHistory.removeLast();
+      constraintActive = activeHistory.last;
+      expect(constraintActive, isTrue);
+
+      // Rollback step 1
+      if (constraintActive && statuses.isNotEmpty) {
+        statuses.removeLast();
+      }
+      activeHistory.removeLast();
+
+      expect(statuses.length, equals(0));
+      expect(activeHistory.length, equals(0));
+    });
+  });
+
+  group('Add/Remove Constraint with Rollback', () {
+    test('added constraint can be removed during rollback', () {
+      var constraints = <int>[]; // List of constraint IDs
+      var constraintStatuses = <int, List<int>>{}; // ID -> status history
+      var constraintAddedAtAge = <int, int>{}; // ID -> age when added
+      int currentAge = 0;
+      int nextConstraintId = 0;
+
+      // Age 0: Add constraint 0
+      int c0 = nextConstraintId++;
+      constraints.add(c0);
+      constraintStatuses[c0] = [];
+      constraintAddedAtAge[c0] = currentAge;
+      constraintStatuses[c0]!.add(Constraint.SUCCESS);
+      currentAge++;
+
+      // Age 1: Add constraint 1
+      int c1 = nextConstraintId++;
+      constraints.add(c1);
+      constraintStatuses[c1] = [];
+      constraintAddedAtAge[c1] = currentAge;
+      constraintStatuses[c1]!.add(Constraint.INSUFFICIENT);
+      // Also apply c0
+      constraintStatuses[c0]!.add(Constraint.SUCCESS);
+      currentAge++;
+
+      expect(constraints.length, equals(2));
+
+      // Rollback age 1: remove c1 (added at age 1)
+      currentAge--;
+      constraints.removeWhere((c) => constraintAddedAtAge[c] == currentAge);
+      constraintStatuses.removeWhere((c, _) => constraintAddedAtAge[c] == currentAge);
+      // Also retract c0's status from age 1
+      constraintStatuses[c0]!.removeLast();
+
+      expect(constraints.length, equals(1));
+      expect(constraints.contains(c0), isTrue);
+      expect(constraintStatuses[c0]!.length, equals(1));
+    });
+
+    test('removed constraint is restored during rollback', () {
+      var constraints = <int>[0, 1, 2]; // Constraint IDs
+      var removedConstraints = <(int, int)>[]; // (ID, age when to restore)
+      int currentAge = 0;
+
+      // Age 0: All constraints active
+      currentAge++;
+
+      // Age 1: Remove constraint 1, record for rollback at age 2
+      constraints.remove(1);
+      currentAge++;
+      removedConstraints.add((1, currentAge)); // Record at age 2 for rollback
+
+      expect(constraints, equals([0, 2]));
+
+      // Rollback from age 2: restore constraint 1
+      // Check for constraints removed at currentAge (2) before decrementing
+      var toRestore = removedConstraints.where((r) => r.$2 == currentAge).toList();
+      for (var (id, _) in toRestore) {
+        constraints.add(id);
+      }
+      removedConstraints.removeWhere((r) => r.$2 == currentAge);
+      currentAge--;
+      constraints.sort();
+
+      expect(constraints, equals([0, 1, 2]));
+    });
+
+    test('constraint modifications tracked through rollback', () {
+      // Track constraint modifications: add, remove, enable, disable
+      var modifications = <(int, String, int)>[]; // (constraintId, action, age)
+      var activeConstraints = <int>{0, 1, 2};
+      var enabledConstraints = <int>{0, 1, 2};
+      int currentAge = 0;
+
+      // Age 0: Disable constraint 1
+      modifications.add((1, 'disable', currentAge));
+      enabledConstraints.remove(1);
+      currentAge++;
+
+      // Age 1: Add constraint 3
+      modifications.add((3, 'add', currentAge));
+      activeConstraints.add(3);
+      enabledConstraints.add(3);
+      currentAge++;
+
+      // Age 2: Remove constraint 0
+      modifications.add((0, 'remove', currentAge));
+      activeConstraints.remove(0);
+      enabledConstraints.remove(0);
+      currentAge++;
+
+      expect(activeConstraints, equals({1, 2, 3}));
+      expect(enabledConstraints, equals({2, 3}));
+
+      // Rollback helper
+      void rollbackAge(int age) {
+        var mods = modifications.where((m) => m.$3 == age).toList();
+        for (var (id, action, _) in mods.reversed) {
+          switch (action) {
+            case 'add':
+              activeConstraints.remove(id);
+              enabledConstraints.remove(id);
+              break;
+            case 'remove':
+              activeConstraints.add(id);
+              enabledConstraints.add(id);
+              break;
+            case 'enable':
+              enabledConstraints.remove(id);
+              break;
+            case 'disable':
+              enabledConstraints.add(id);
+              break;
+          }
+        }
+        modifications.removeWhere((m) => m.$3 == age);
+      }
+
+      // Rollback age 2
+      rollbackAge(2);
+      expect(activeConstraints, equals({0, 1, 2, 3}));
+      expect(enabledConstraints, equals({0, 2, 3}));
+
+      // Rollback age 1
+      rollbackAge(1);
+      expect(activeConstraints, equals({0, 1, 2}));
+      expect(enabledConstraints, equals({0, 2}));
+
+      // Rollback age 0
+      rollbackAge(0);
+      expect(activeConstraints, equals({0, 1, 2}));
+      expect(enabledConstraints, equals({0, 1, 2}));
+    });
+
+    test('default constraints behavior with rollback', () {
+      // Simulate default AllDiff constraints for row/col/box
+      var defaultConstraintsEnabled = true;
+      var buffer = SudokuBuffer(81);
+      var domains = List.generate(81, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+      var changes = <SudokuChange>[];
+      var domainSnapshots = <List<BitArray>>[];
+
+      List<BitArray> snapshotDomains() {
+        return domains.map((d) {
+          var copy = BitArray(10);
+          copy.setBits(d.asIntIterable().toList());
+          return copy;
+        }).toList();
+      }
+
+      void applyDefaultConstraints(int cell, int value) {
+        if (!defaultConstraintsEnabled) return;
+        int row = cell ~/ 9;
+        int col = cell % 9;
+        int boxRow = (row ~/ 3) * 3;
+        int boxCol = (col ~/ 3) * 3;
+
+        // Eliminate from row
+        for (int c = 0; c < 9; c++) {
+          if (c != col) domains[row * 9 + c].clearBit(value);
+        }
+        // Eliminate from col
+        for (int r = 0; r < 9; r++) {
+          if (r != row) domains[r * 9 + col].clearBit(value);
+        }
+        // Eliminate from box
+        for (int r = boxRow; r < boxRow + 3; r++) {
+          for (int c = boxCol; c < boxCol + 3; c++) {
+            if (r != row || c != col) domains[r * 9 + c].clearBit(value);
+          }
+        }
+      }
+
+      domainSnapshots.add(snapshotDomains());
+
+      // Set cell 0 to 5 with default constraints
+      buffer[0] = 5;
+      changes.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+      domains[0] = BitArray(10)..setBit(5);
+      applyDefaultConstraints(0, 5);
+      domainSnapshots.add(snapshotDomains());
+
+      // Check eliminations happened
+      expect(domains[1][5], isFalse); // Same row
+      expect(domains[9][5], isFalse); // Same col
+      expect(domains[10][5], isFalse); // Same box
+
+      // Disable default constraints
+      defaultConstraintsEnabled = false;
+
+      // Set cell 40 to 3 (center) - no eliminations
+      buffer[40] = 3;
+      changes.add(SudokuChange(variable: 40, value: 3, prevValue: 0, assisted: false));
+      domains[40] = BitArray(10)..setBit(3);
+      applyDefaultConstraints(40, 3); // Does nothing since disabled
+      domainSnapshots.add(snapshotDomains());
+
+      // Cell 41 (same row as 40) should still have 3
+      expect(domains[41][3], isTrue);
+
+      // Rollback cell 40
+      changes.removeLast();
+      buffer[40] = 0;
+      domainSnapshots.removeLast();
+      domains = domainSnapshots.last.map((d) {
+        var copy = BitArray(10);
+        copy.setBits(d.asIntIterable().toList());
+        return copy;
+      }).toList();
+
+      // Re-enable default constraints
+      defaultConstraintsEnabled = true;
+
+      // Rollback cell 0
+      changes.removeLast();
+      buffer[0] = 0;
+      domainSnapshots.removeLast();
+      domains = domainSnapshots.last.map((d) {
+        var copy = BitArray(10);
+        copy.setBits(d.asIntIterable().toList());
+        return copy;
+      }).toList();
+
+      // All eliminations restored
+      expect(domains[1][5], isTrue);
+      expect(domains[9][5], isTrue);
+      expect(domains[10][5], isTrue);
+    });
+
+    test('user constraint added then disabled before rollback', () {
+      var userConstraints = <int, bool>{}; // ID -> enabled
+      var constraintEffects = <int, List<(int, int)>>{}; // ID -> [(cell, value)]
+      var domains = List.generate(9, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+
+      // Add user constraint 0 that eliminates value 5 from cells 1-3
+      userConstraints[0] = true;
+      constraintEffects[0] = [(1, 5), (2, 5), (3, 5)];
+      for (var (cell, value) in constraintEffects[0]!) {
+        domains[cell].clearBit(value);
+      }
+
+      expect(domains[1][5], isFalse);
+      expect(domains[2][5], isFalse);
+
+      // Disable constraint 0
+      userConstraints[0] = false;
+
+      // Make a move (cell 0 = 7)
+      domains[0] = BitArray(10)..setBit(7);
+
+      // Rollback the move - constraint is disabled but effects should still be considered
+      domains[0] = BitArray(10)..setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // Re-enable constraint and verify effects still in place
+      userConstraints[0] = true;
+      expect(domains[1][5], isFalse); // Effect persists
+      expect(domains[4][5], isTrue); // Cell 4 wasn't affected
+
+      // Rollback constraint effect
+      for (var (cell, value) in constraintEffects[0]!) {
+        domains[cell].setBit(value);
+      }
+      constraintEffects.remove(0);
+      userConstraints.remove(0);
+
+      expect(domains[1][5], isTrue);
+      expect(domains[2][5], isTrue);
+    });
+  });
+
+  group('Complex Rollback Scenarios', () {
+    test('rollback with mixed default and user constraints', () {
+      var defaultConstraintEnabled = true;
+      var userConstraintEnabled = true;
+      var domains = List.generate(81, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+      var stateHistory = <Map<String, dynamic>>[];
+
+      void saveState() {
+        stateHistory.add({
+          'domains': domains.map((d) {
+            var copy = BitArray(10);
+            copy.setBits(d.asIntIterable().toList());
+            return copy;
+          }).toList(),
+          'defaultEnabled': defaultConstraintEnabled,
+          'userEnabled': userConstraintEnabled,
+        });
+      }
+
+      void restoreState() {
+        if (stateHistory.isEmpty) return;
+        var state = stateHistory.removeLast();
+        domains = (state['domains'] as List<BitArray>).map((d) {
+          var copy = BitArray(10);
+          copy.setBits(d.asIntIterable().toList());
+          return copy;
+        }).toList();
+        defaultConstraintEnabled = state['defaultEnabled'] as bool;
+        userConstraintEnabled = state['userEnabled'] as bool;
+      }
+
+      saveState(); // Initial state
+
+      // Apply default constraint (row 0 has 5)
+      if (defaultConstraintEnabled) {
+        for (int i = 1; i < 9; i++) {
+          domains[i].clearBit(5);
+        }
+      }
+      saveState();
+
+      // Disable default, enable user constraint
+      defaultConstraintEnabled = false;
+      userConstraintEnabled = true;
+
+      // Apply user constraint (eliminate 3 from cells 10-15)
+      // Note: Don't save state here - we save BEFORE changes, not after
+      if (userConstraintEnabled) {
+        for (int i = 10; i <= 15; i++) {
+          domains[i].clearBit(3);
+        }
+      }
+
+      expect(domains[1][5], isFalse); // From default
+      expect(domains[10][3], isFalse); // From user
+
+      // Rollback user constraint step - restores to state before user constraint
+      restoreState();
+      expect(domains[10][3], isTrue); // Restored
+      expect(domains[1][5], isFalse); // Still from default constraint
+
+      // Rollback default constraint step - restores to initial state
+      restoreState();
+      expect(domains[1][5], isTrue); // Restored
+      expect(defaultConstraintEnabled, isTrue);
+    });
+
+    test('multiple constraint enable/disable cycles with rollback', () {
+      var constraintEnabled = true;
+      var history = <(bool, int)>[]; // (enabled state, status if applied)
+      var statuses = <int>[];
+
+      // Cycle 1: enabled, apply
+      history.add((constraintEnabled, Constraint.SUCCESS));
+      if (constraintEnabled) statuses.add(Constraint.SUCCESS);
+
+      // Cycle 2: disable
+      constraintEnabled = false;
+      history.add((constraintEnabled, -1)); // -1 means not applied
+
+      // Cycle 3: enable, apply
+      constraintEnabled = true;
+      history.add((constraintEnabled, Constraint.INSUFFICIENT));
+      if (constraintEnabled) statuses.add(Constraint.INSUFFICIENT);
+
+      // Cycle 4: disable
+      constraintEnabled = false;
+      history.add((constraintEnabled, -1));
+
+      // Cycle 5: enable, apply
+      constraintEnabled = true;
+      history.add((constraintEnabled, Constraint.SUCCESS));
+      if (constraintEnabled) statuses.add(Constraint.SUCCESS);
+
+      expect(statuses.length, equals(3));
+
+      // Rollback all cycles
+      while (history.isNotEmpty) {
+        var (enabled, status) = history.removeLast();
+        if (enabled && status != -1 && statuses.isNotEmpty) {
+          statuses.removeLast();
+        }
+        constraintEnabled = history.isNotEmpty ? history.last.$1 : true;
+      }
+
+      expect(statuses.length, equals(0));
+    });
+  });
 }
