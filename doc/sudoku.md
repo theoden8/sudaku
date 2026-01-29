@@ -42,3 +42,57 @@ Internally, each cell has a "domain" - the set of possible values it can take:
 - As constraints are applied, domains shrink
 - When a domain has only one value, the cell can be filled
 - If a domain becomes empty, a contradiction has occurred
+
+## Test Coverage
+
+The Sudoku layer is tested in `test/sudoku_test.dart` with the following scenarios:
+
+### Grid Structure
+- SudokuBuffer initializes with correct size for 9×9 (81 cells)
+- SudokuBuffer initializes with correct size for 16×16 (256 cells)
+- All cells initialize to 0 (empty)
+
+### Coordinate Conversion
+- Index to row conversion (e.g., index 17 → row 1)
+- Index to column conversion (e.g., index 17 → column 8)
+- Index to box conversion (e.g., index 40 → box 4)
+- Row and column to index conversion (e.g., row 1, col 0 → index 9)
+
+### Row Iteration
+- Iterate row generates correct consecutive indices
+- Row 0: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+- Row 8: [72, 73, 74, 75, 76, 77, 78, 79, 80]
+- All rows together cover all 81 cells exactly once
+
+### Column Iteration
+- Iterate column generates correct indices with stride 9
+- Column 0: [0, 9, 18, 27, 36, 45, 54, 63, 72]
+- Column 8: [8, 17, 26, 35, 44, 53, 62, 71, 80]
+- All columns together cover all 81 cells exactly once
+
+### Box Iteration
+- Iterate box generates correct 3×3 grid indices
+- Box 0: [0, 1, 2, 9, 10, 11, 18, 19, 20]
+- Box 4: [30, 31, 32, 39, 40, 41, 48, 49, 50]
+- Box 8: [60, 61, 62, 69, 70, 71, 78, 79, 80]
+- All boxes together cover all 81 cells exactly once
+
+### Domain Operations (BitArray)
+- Empty domain has no bits set
+- Full domain has values 1-9 (bit 0 excluded)
+- Domain intersection: {1,2,3,4,5} ∩ {3,4,5,6,7} = {3,4,5}
+- Domain union: {1,2,3} ∪ {3,4,5} = {1,2,3,4,5}
+
+### SudokuBuffer Operations
+- Buffer initializes with correct size
+- Values can be set and retrieved via indexing
+- Buffer can be set from a list
+- Pattern matching with wildcards (0 = wildcard)
+
+### Change Tracking
+- SudokuChange records variable index, value, and previous value
+- Manual and assisted changes are distinguished by flag
+
+### Puzzle Validation
+- Duplicate detection in rows (values 1-9 valid, duplicate 5 invalid)
+- Empty cells (0) do not violate constraints

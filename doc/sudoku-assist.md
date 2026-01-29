@@ -85,3 +85,101 @@ A typical solving session:
 5. Review and accept/reject inferred values
 6. Make another manual move
 7. Repeat until solved
+
+## Test Coverage
+
+The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the following scenarios:
+
+### ConstraintType Enum
+- All four types exist: ONE_OF, EQUAL, ALLDIFF, GENERIC
+
+### Constraint Status Constants
+- NOT_RUN = -2
+- SUCCESS = 1
+- INSUFFICIENT = 0
+- VIOLATED = -1
+- All status values are distinct
+
+### Common Row Detection
+- Cells in same row return that row index
+  - Cells [0, 1, 2] → row 0
+  - Cells [72, 73, 74] → row 8
+- Cells in different rows return -1
+- Single cell returns its row
+- Empty list returns -1
+
+### Common Column Detection
+- Cells in same column return that column index
+  - Cells [0, 9, 18] → column 0
+  - Cells [8, 17, 26] → column 8
+- Cells in different columns return -1
+- Single cell returns its column
+
+### Common Box Detection
+- Cells in same box return that box index
+  - Cells [0, 1, 10] → box 0
+  - Cells [30, 31, 39, 40] → box 4
+  - Cells [60, 70, 80] → box 8
+- Cells in different boxes return -1
+- Single cell returns its box
+
+### Domain BitArray Operations
+- Create empty domain (cardinality 0)
+- Create full domain with values 1-9 (cardinality 9, bit 0 false)
+- Remove value from domain via clearBit
+- Single value domain (cardinality 1)
+- Domain intersection removes non-common values
+- Domain union combines values from both
+
+### AllDiff Constraint Logic
+- Assigned values reduce other cells' domains
+  - If cell has value 5, other cells exclude 5
+- Valid assignment: all values different
+- Invalid assignment: duplicate values detected
+
+### OneOf Constraint Logic
+- Identifies unique cell for a value
+  - Domains: cell 0 = {1,2}, cell 1 = {2,3}, cell 2 = {3}
+  - Value 1 can only go in cell 0
+  - Value 2 has multiple options → returns -1
+- No valid cell returns -1
+
+### Equal Constraint Logic
+- Common domain is intersection of all domains
+  - {1,2,3,4,5} ∩ {3,4,5,6,7} ∩ {4,5,6,7,8} = {4,5}
+- No common values indicates violation (empty result)
+- Single common value succeeds
+
+### Domain Filtering
+- Filtering removes eliminated values
+  - Full domain {1-9} minus {1,2,3} = {4,5,6,7,8,9}
+- Cascading constraints narrow domain
+  - Row removes {1,2,3}, column removes {4,5}, box removes {6}
+  - Final domain: {7,8,9}
+
+### Condition Matching
+- Buffer matches pattern with wildcards (0 = wildcard)
+  - Pattern [1,0,0,0,5,0,0,0,9] matches [1,2,3,4,5,6,7,8,9]
+  - Pattern [1,...] does not match [2,...]
+- Exact state matches itself
+
+### Constraint Activation
+- Constraint active by default
+- Deactivated constraint is not active
+- Reactivated constraint is active
+
+### Domain Cardinality Tracking
+- Empty domain: cardinality 0
+- Full domain (1-9): cardinality 9
+- Single value: cardinality 1
+- Partial domain: correct count after removals
+
+### Value Assignment Inference
+- Single value domain can be assigned (cardinality == 1)
+- Multiple values cannot be auto-assigned
+- Empty domain indicates constraint violation
+
+### Row/Column/Box Iteration Indices
+- Row indices are consecutive (stride 1)
+- Column indices have stride ne2 (9 for 9×9)
+- Box indices form correct 3×3 patterns

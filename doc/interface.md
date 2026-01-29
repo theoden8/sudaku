@@ -130,3 +130,21 @@ Eye-friendly dark interface with:
 - Smooth constraint propagation without lag
 - Responsive touch interactions
 - Minimal battery usage
+
+## Test Coverage
+
+The interface layer requires Flutter widget tests which are not yet implemented. Future test coverage should include:
+
+### Widget Tests (planned)
+- Menu screen navigation
+- Sudoku grid rendering and cell selection
+- Numpad input handling
+- Constraint creation workflow
+- Theme switching
+- Undo/redo functionality
+
+### Integration Tests (planned)
+- Full puzzle solving workflow
+- Constraint propagation visual feedback
+- Multi-cell selection
+- State persistence
