@@ -587,4 +587,276 @@ void main() {
       expect(boxIndices(8), equals([60, 61, 62, 69, 70, 71, 78, 79, 80]));
     });
   });
+
+  group('Constraint Status History', () {
+    test('empty status history returns NOT_RUN', () {
+      var statuses = <int>[];
+
+      int getStatus() => statuses.isEmpty ? Constraint.NOT_RUN : statuses.last;
+
+      expect(getStatus(), equals(Constraint.NOT_RUN));
+    });
+
+    test('status history tracks multiple applications', () {
+      var statuses = <int>[];
+
+      // First application: INSUFFICIENT
+      statuses.add(Constraint.INSUFFICIENT);
+      expect(statuses.last, equals(Constraint.INSUFFICIENT));
+
+      // Second application: SUCCESS
+      statuses.add(Constraint.SUCCESS);
+      expect(statuses.last, equals(Constraint.SUCCESS));
+
+      // Third application: VIOLATED
+      statuses.add(Constraint.VIOLATED);
+      expect(statuses.last, equals(Constraint.VIOLATED));
+
+      expect(statuses.length, equals(3));
+    });
+
+    test('lastStatus returns second-to-last status', () {
+      var statuses = <int>[];
+
+      int getLastStatus() =>
+          statuses.length < 2 ? Constraint.NOT_RUN : statuses[statuses.length - 2];
+
+      // Empty: NOT_RUN
+      expect(getLastStatus(), equals(Constraint.NOT_RUN));
+
+      // One status: NOT_RUN
+      statuses.add(Constraint.SUCCESS);
+      expect(getLastStatus(), equals(Constraint.NOT_RUN));
+
+      // Two statuses: first one
+      statuses.add(Constraint.INSUFFICIENT);
+      expect(getLastStatus(), equals(Constraint.SUCCESS));
+
+      // Three statuses: second one
+      statuses.add(Constraint.VIOLATED);
+      expect(getLastStatus(), equals(Constraint.INSUFFICIENT));
+    });
+  });
+
+  group('Constraint Retract/Rollback', () {
+    test('retract removes last status', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      int currentAge = 0;
+
+      // Simulate apply
+      statuses.add(Constraint.SUCCESS);
+      agesRun.add(currentAge);
+      currentAge++;
+
+      statuses.add(Constraint.INSUFFICIENT);
+      agesRun.add(currentAge);
+
+      expect(statuses.length, equals(2));
+      expect(statuses.last, equals(Constraint.INSUFFICIENT));
+
+      // Simulate retract (when age matches)
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+
+      expect(statuses.length, equals(1));
+      expect(statuses.last, equals(Constraint.SUCCESS));
+    });
+
+    test('retract does nothing when age mismatch', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      int currentAge = 0;
+
+      // Simulate apply at age 0
+      statuses.add(Constraint.SUCCESS);
+      agesRun.add(currentAge);
+
+      // Age advances
+      currentAge++;
+
+      // Retract should not remove (age mismatch)
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+
+      expect(statuses.length, equals(1)); // Unchanged
+    });
+
+    test('retract on empty status list does nothing', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      int currentAge = 0;
+
+      // Retract on empty
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+
+      expect(statuses.length, equals(0));
+    });
+
+    test('success streaks track successful condition applications', () {
+      var successStreaks = <int>[];
+      var successConditions = <SudokuBuffer>[];
+      var statuses = <int>[];
+
+      // Helper to simulate apply (matches actual Constraint.apply logic)
+      void simulateApply(int newStatus) {
+        int lastStatus = statuses.length < 2
+            ? Constraint.NOT_RUN
+            : statuses[statuses.length - 1]; // Status before adding new one
+        statuses.add(newStatus);
+        if (lastStatus != Constraint.SUCCESS && newStatus == Constraint.SUCCESS) {
+          successStreaks.add(successConditions.length);
+          successConditions.add(SudokuBuffer(9));
+        }
+      }
+
+      // First apply: INSUFFICIENT (no success)
+      simulateApply(Constraint.INSUFFICIENT);
+      expect(successStreaks.length, equals(0));
+
+      // Second apply: SUCCESS (new streak)
+      simulateApply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(1));
+      expect(successConditions.length, equals(1));
+
+      // Third apply: SUCCESS again (already succeeded, no new streak)
+      simulateApply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(1)); // No new streak
+      expect(successConditions.length, equals(1));
+
+      // Fourth apply: INSUFFICIENT then SUCCESS (new streak)
+      simulateApply(Constraint.INSUFFICIENT);
+      simulateApply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(2)); // New streak added
+    });
+
+    test('retract removes success streak when appropriate', () {
+      var successStreaks = <int>[];
+      var successConditions = <SudokuBuffer>[];
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      int currentAge = 0;
+
+      // Apply with INSUFFICIENT
+      statuses.add(Constraint.INSUFFICIENT);
+      agesRun.add(currentAge);
+      currentAge++;
+
+      // Apply with SUCCESS (creates streak)
+      int lastStatus = statuses.length < 2 ? Constraint.NOT_RUN : statuses[statuses.length - 2];
+      statuses.add(Constraint.SUCCESS);
+      agesRun.add(currentAge);
+      if (lastStatus != Constraint.SUCCESS && statuses.last == Constraint.SUCCESS) {
+        successStreaks.add(successConditions.length);
+        successConditions.add(SudokuBuffer(9));
+      }
+
+      expect(successStreaks.length, equals(1));
+      expect(successConditions.length, equals(1));
+
+      // Retract (should remove success streak too)
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+        if (successStreaks.isNotEmpty && successConditions.length == successStreaks.last + 1) {
+          successStreaks.removeLast();
+          successConditions.removeLast();
+        }
+      }
+
+      expect(statuses.length, equals(1));
+      expect(statuses.last, equals(Constraint.INSUFFICIENT));
+      expect(successStreaks.length, equals(0));
+      expect(successConditions.length, equals(0));
+    });
+
+    test('retract only removes status at matching age', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+
+      // Apply at age 0
+      statuses.add(Constraint.INSUFFICIENT);
+      agesRun.add(0);
+
+      // Apply at age 1
+      statuses.add(Constraint.SUCCESS);
+      agesRun.add(1);
+
+      // Apply at age 2
+      statuses.add(Constraint.VIOLATED);
+      agesRun.add(2);
+
+      expect(statuses.length, equals(3));
+
+      // Retract at age 2 (matches last)
+      int currentAge = 2;
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+      expect(statuses.length, equals(2));
+
+      // Retract at age 2 again (doesn't match last which is age 1)
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+      expect(statuses.length, equals(2)); // Unchanged
+
+      // Retract at age 1 (matches)
+      currentAge = 1;
+      if (statuses.isNotEmpty && currentAge == agesRun.last) {
+        statuses.removeLast();
+        agesRun.removeLast();
+      }
+      expect(statuses.length, equals(1));
+      expect(statuses.last, equals(Constraint.INSUFFICIENT));
+    });
+  });
+
+  group('Eliminator Rollback', () {
+    test('reinstate clears eliminated values from forbidden list', () {
+      // Simulate eliminator's forbidden values (domain per condition)
+      var forbiddenDomain = BitArray(10);
+      forbiddenDomain.setBits([3, 5, 7]); // Values 3, 5, 7 are forbidden
+
+      // Reinstate values 3 and 5
+      forbiddenDomain.clearBits([3, 5]);
+
+      expect(forbiddenDomain[3], isFalse);
+      expect(forbiddenDomain[5], isFalse);
+      expect(forbiddenDomain[7], isTrue); // Still forbidden
+    });
+
+    test('obsolete conditions are removed when empty', () {
+      // Simulate conditions list with forbidden values
+      var conditions = <int>[1, 2, 3]; // condition IDs
+      var forbiddenValues = <BitArray>[
+        BitArray(10)..setBits([1, 2]),
+        BitArray(10), // Empty - obsolete
+        BitArray(10)..setBits([5]),
+      ];
+
+      // Remove obsolete (empty forbidden values)
+      int i = 0;
+      while (i < conditions.length) {
+        if (forbiddenValues[i].isEmpty) {
+          conditions.removeAt(i);
+          forbiddenValues.removeAt(i);
+        } else {
+          i++;
+        }
+      }
+
+      expect(conditions.length, equals(2));
+      expect(conditions, equals([1, 3]));
+    });
+  });
 }

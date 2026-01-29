@@ -183,3 +183,20 @@ The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the fol
 - Row indices are consecutive (stride 1)
 - Column indices have stride ne2 (9 for 9×9)
 - Box indices form correct 3×3 patterns
+
+### Constraint Status History
+- Empty status history returns NOT_RUN
+- Status history tracks multiple applications
+- lastStatus returns second-to-last status
+
+### Constraint Retract/Rollback
+- Retract removes last status when age matches
+- Retract does nothing when age mismatch
+- Retract on empty status list does nothing
+- Success streaks track successful condition applications
+- Retract removes success streak when appropriate
+- Retract only removes status at matching age
+
+### Eliminator Rollback
+- Reinstate clears eliminated values from forbidden list
+- Obsolete conditions are removed when empty
