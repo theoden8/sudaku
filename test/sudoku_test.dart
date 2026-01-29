@@ -851,4 +851,266 @@ void main() {
       expect(changes.length, equals(0));
     });
   });
+
+  group('Multi-Step Redo', () {
+    test('redo all undone changes in sequence', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+      var redoStack = <SudokuChange>[];
+
+      // Make 5 changes
+      for (int i = 0; i < 5; i++) {
+        changes.add(SudokuChange(
+          variable: i,
+          value: i + 1,
+          prevValue: 0,
+          assisted: false,
+        ));
+        buffer[i] = i + 1;
+      }
+
+      expect(changes.length, equals(5));
+
+      // Undo all 5 changes
+      while (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+
+      // Verify all undone
+      for (int i = 0; i < 5; i++) {
+        expect(buffer[i], equals(0));
+      }
+      expect(redoStack.length, equals(5));
+
+      // Redo all 5 changes
+      while (redoStack.isNotEmpty) {
+        var change = redoStack.removeLast();
+        buffer[change.variable] = change.value;
+        changes.add(change);
+      }
+
+      // Verify all restored
+      for (int i = 0; i < 5; i++) {
+        expect(buffer[i], equals(i + 1));
+      }
+      expect(changes.length, equals(5));
+      expect(redoStack.length, equals(0));
+    });
+
+    test('partial redo followed by new change clears redo stack', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+      var redoStack = <SudokuChange>[];
+
+      // Make 3 changes
+      buffer[0] = 1;
+      changes.add(SudokuChange(variable: 0, value: 1, prevValue: 0, assisted: false));
+      buffer[1] = 2;
+      changes.add(SudokuChange(variable: 1, value: 2, prevValue: 0, assisted: false));
+      buffer[2] = 3;
+      changes.add(SudokuChange(variable: 2, value: 3, prevValue: 0, assisted: false));
+
+      // Undo all 3
+      while (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+
+      expect(redoStack.length, equals(3));
+
+      // Redo only 1
+      var redoChange = redoStack.removeLast();
+      buffer[redoChange.variable] = redoChange.value;
+      changes.add(redoChange);
+
+      expect(buffer[0], equals(1));
+      expect(buffer[1], equals(0));
+      expect(redoStack.length, equals(2));
+
+      // Make a new change - should clear redo stack (standard undo/redo behavior)
+      buffer[5] = 9;
+      changes.add(SudokuChange(variable: 5, value: 9, prevValue: 0, assisted: false));
+      redoStack.clear(); // New change invalidates redo history
+
+      expect(changes.length, equals(2));
+      expect(redoStack.length, equals(0));
+    });
+
+    test('redo with assisted changes restores full move', () {
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+      var redoStack = <List<SudokuChange>>[]; // Stack of moves (each move = list of changes)
+
+      // Move 1: manual + 2 assisted
+      var move1 = <SudokuChange>[];
+      buffer[0] = 5;
+      move1.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+      buffer[1] = 3;
+      move1.add(SudokuChange(variable: 1, value: 3, prevValue: 0, assisted: true));
+      buffer[2] = 7;
+      move1.add(SudokuChange(variable: 2, value: 7, prevValue: 0, assisted: true));
+      changes.addAll(move1);
+
+      // Move 2: manual + 1 assisted
+      var move2 = <SudokuChange>[];
+      buffer[10] = 9;
+      move2.add(SudokuChange(variable: 10, value: 9, prevValue: 0, assisted: false));
+      buffer[11] = 4;
+      move2.add(SudokuChange(variable: 11, value: 4, prevValue: 0, assisted: true));
+      changes.addAll(move2);
+
+      // Undo move 2 (save to redo)
+      var undoneMove2 = <SudokuChange>[];
+      while (changes.isNotEmpty && changes.last.assisted) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        undoneMove2.insert(0, change);
+      }
+      if (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        undoneMove2.insert(0, change);
+      }
+      redoStack.add(undoneMove2);
+
+      expect(buffer[10], equals(0));
+      expect(buffer[11], equals(0));
+      expect(buffer[0], equals(5)); // Move 1 intact
+      expect(redoStack.length, equals(1));
+
+      // Undo move 1 (save to redo)
+      var undoneMove1 = <SudokuChange>[];
+      while (changes.isNotEmpty && changes.last.assisted) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        undoneMove1.insert(0, change);
+      }
+      if (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        undoneMove1.insert(0, change);
+      }
+      redoStack.add(undoneMove1);
+
+      expect(buffer[0], equals(0));
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+      expect(redoStack.length, equals(2));
+
+      // Redo move 1
+      var redoMove1 = redoStack.removeLast();
+      for (var change in redoMove1) {
+        buffer[change.variable] = change.value;
+        changes.add(change);
+      }
+
+      expect(buffer[0], equals(5));
+      expect(buffer[1], equals(3));
+      expect(buffer[2], equals(7));
+
+      // Redo move 2
+      var redoMove2 = redoStack.removeLast();
+      for (var change in redoMove2) {
+        buffer[change.variable] = change.value;
+        changes.add(change);
+      }
+
+      expect(buffer[10], equals(9));
+      expect(buffer[11], equals(4));
+      expect(changes.length, equals(5));
+      expect(redoStack.length, equals(0));
+    });
+
+    test('interleaved undo and redo operations', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+      var redoStack = <SudokuChange>[];
+
+      // Make 4 changes: cells 0-3 with values 1-4
+      for (int i = 0; i < 4; i++) {
+        buffer[i] = i + 1;
+        changes.add(SudokuChange(variable: i, value: i + 1, prevValue: 0, assisted: false));
+      }
+
+      // Undo 2
+      for (int i = 0; i < 2; i++) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+      expect(buffer[2], equals(0));
+      expect(buffer[3], equals(0));
+
+      // Redo 1
+      var redo1 = redoStack.removeLast();
+      buffer[redo1.variable] = redo1.value;
+      changes.add(redo1);
+      expect(buffer[2], equals(3));
+
+      // Undo 2 (including the one just redone)
+      for (int i = 0; i < 2; i++) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+
+      // Redo all 3 from redo stack
+      while (redoStack.isNotEmpty) {
+        var change = redoStack.removeLast();
+        buffer[change.variable] = change.value;
+        changes.add(change);
+      }
+
+      expect(buffer[1], equals(2));
+      expect(buffer[2], equals(3));
+      expect(buffer[3], equals(4));
+      expect(changes.length, equals(4));
+    });
+
+    test('redo stack cleared on new manual change after partial redo', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+      var redoStack = <SudokuChange>[];
+
+      // Setup: 3 changes, undo all, redo 1
+      for (int i = 0; i < 3; i++) {
+        buffer[i] = i + 1;
+        changes.add(SudokuChange(variable: i, value: i + 1, prevValue: 0, assisted: false));
+      }
+
+      // Undo all
+      while (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+
+      // Redo 1
+      var redo = redoStack.removeLast();
+      buffer[redo.variable] = redo.value;
+      changes.add(redo);
+
+      expect(buffer[0], equals(1));
+      expect(redoStack.length, equals(2)); // 2 still in redo
+
+      // Make new change - this should clear redo
+      buffer[8] = 9;
+      changes.add(SudokuChange(variable: 8, value: 9, prevValue: 0, assisted: false));
+      redoStack.clear();
+
+      expect(redoStack.length, equals(0));
+      expect(changes.length, equals(2));
+
+      // Now only can undo, not redo the cleared items
+      var undoLast = changes.removeLast();
+      buffer[undoLast.variable] = undoLast.prevValue;
+      expect(buffer[8], equals(0));
+      expect(buffer[0], equals(1)); // First change still there
+    });
+  });
 }

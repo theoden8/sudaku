@@ -224,3 +224,11 @@ The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the fol
 ### Complex Rollback Scenarios
 - Rollback with mixed default and user constraints
 - Multiple constraint enable/disable cycles with rollback
+
+### Multi-Step Redo
+- Redo domain eliminations in sequence
+- Redo constraint status history
+- Redo constraint enable/disable with domain state
+- Redo with interleaved undo operations
+- Redo clears when new constraint applied
+- Redo success streaks correctly

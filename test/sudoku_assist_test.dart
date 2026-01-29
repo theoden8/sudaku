@@ -1726,4 +1726,426 @@ void main() {
       expect(statuses.length, equals(0));
     });
   });
+
+  group('Multi-Step Redo', () {
+    test('redo domain eliminations in sequence', () {
+      var domains = List.generate(9, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+      var eliminationHistory = <List<(int, int)>>[]; // Each step: [(cell, value)]
+      var redoStack = <List<(int, int)>>[];
+
+      // Step 1: Eliminate 5 from cells 0-2
+      var step1 = <(int, int)>[];
+      for (int i = 0; i < 3; i++) {
+        step1.add((i, 5));
+        domains[i].clearBit(5);
+      }
+      eliminationHistory.add(step1);
+
+      // Step 2: Eliminate 3 from cells 3-5
+      var step2 = <(int, int)>[];
+      for (int i = 3; i < 6; i++) {
+        step2.add((i, 3));
+        domains[i].clearBit(3);
+      }
+      eliminationHistory.add(step2);
+
+      // Step 3: Eliminate 7 from cells 6-8
+      var step3 = <(int, int)>[];
+      for (int i = 6; i < 9; i++) {
+        step3.add((i, 7));
+        domains[i].clearBit(7);
+      }
+      eliminationHistory.add(step3);
+
+      // Undo all 3 steps (save to redo)
+      for (int s = 0; s < 3; s++) {
+        var step = eliminationHistory.removeLast();
+        for (var (cell, value) in step) {
+          domains[cell].setBit(value);
+        }
+        redoStack.add(step);
+      }
+
+      // Verify all restored
+      for (int i = 0; i < 9; i++) {
+        expect(domains[i].cardinality, equals(9));
+      }
+      expect(redoStack.length, equals(3));
+
+      // Redo all 3 steps
+      while (redoStack.isNotEmpty) {
+        var step = redoStack.removeLast();
+        for (var (cell, value) in step) {
+          domains[cell].clearBit(value);
+        }
+        eliminationHistory.add(step);
+      }
+
+      // Verify eliminations reapplied
+      expect(domains[0][5], isFalse);
+      expect(domains[3][3], isFalse);
+      expect(domains[6][7], isFalse);
+      expect(eliminationHistory.length, equals(3));
+    });
+
+    test('redo constraint status history', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      var redoStatuses = <(int, int)>[]; // (status, age)
+      int currentAge = 0;
+
+      // Apply 3 statuses
+      statuses.add(Constraint.SUCCESS);
+      agesRun.add(currentAge++);
+      statuses.add(Constraint.INSUFFICIENT);
+      agesRun.add(currentAge++);
+      statuses.add(Constraint.VIOLATED);
+      agesRun.add(currentAge++);
+
+      // Undo all (save to redo)
+      while (statuses.isNotEmpty) {
+        currentAge--;
+        redoStatuses.add((statuses.removeLast(), agesRun.removeLast()));
+      }
+
+      expect(statuses.length, equals(0));
+      expect(redoStatuses.length, equals(3));
+
+      // Redo all
+      while (redoStatuses.isNotEmpty) {
+        var (status, age) = redoStatuses.removeLast();
+        statuses.add(status);
+        agesRun.add(age);
+        currentAge++;
+      }
+
+      expect(statuses.length, equals(3));
+      expect(statuses, equals([Constraint.SUCCESS, Constraint.INSUFFICIENT, Constraint.VIOLATED]));
+    });
+
+    test('redo constraint enable/disable with domain state', () {
+      var constraintEnabled = true;
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      var stateHistory = <Map<String, dynamic>>[];
+      var redoStack = <Map<String, dynamic>>[];
+
+      void saveState() {
+        var domainCopy = BitArray(10);
+        domainCopy.setBits(domain.asIntIterable().toList());
+        stateHistory.add({
+          'enabled': constraintEnabled,
+          'domain': domainCopy,
+        });
+      }
+
+      void undo() {
+        if (stateHistory.isEmpty) return;
+        // Save current state to redo
+        var domainCopy = BitArray(10);
+        domainCopy.setBits(domain.asIntIterable().toList());
+        redoStack.add({
+          'enabled': constraintEnabled,
+          'domain': domainCopy,
+        });
+        // Restore previous state
+        var state = stateHistory.removeLast();
+        constraintEnabled = state['enabled'] as bool;
+        domain = state['domain'] as BitArray;
+      }
+
+      void redo() {
+        if (redoStack.isEmpty) return;
+        // Save current state to history
+        var domainCopy = BitArray(10);
+        domainCopy.setBits(domain.asIntIterable().toList());
+        stateHistory.add({
+          'enabled': constraintEnabled,
+          'domain': domainCopy,
+        });
+        // Restore redo state
+        var state = redoStack.removeLast();
+        constraintEnabled = state['enabled'] as bool;
+        domain = state['domain'] as BitArray;
+      }
+
+      saveState(); // Initial state
+
+      // Step 1: Apply constraint (eliminate 1, 2, 3)
+      if (constraintEnabled) {
+        domain.clearBits([1, 2, 3]);
+      }
+      saveState();
+
+      // Step 2: Disable constraint
+      constraintEnabled = false;
+      saveState();
+
+      // Step 3: Re-enable and apply more eliminations
+      constraintEnabled = true;
+      if (constraintEnabled) {
+        domain.clearBits([4, 5]);
+      }
+
+      expect(domain.asIntIterable().toList(), equals([6, 7, 8, 9]));
+
+      // Undo step 3
+      undo();
+      expect(constraintEnabled, isFalse);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Undo step 2
+      undo();
+      expect(constraintEnabled, isTrue);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Redo step 2
+      redo();
+      expect(constraintEnabled, isFalse);
+
+      // Redo step 3
+      redo();
+      expect(constraintEnabled, isTrue);
+      expect(domain.asIntIterable().toList(), equals([6, 7, 8, 9]));
+    });
+
+    test('redo with interleaved undo operations', () {
+      var buffer = SudokuBuffer(81);
+      var domains = List.generate(81, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+
+      var stateStack = <Map<String, dynamic>>[];
+      var redoStack = <Map<String, dynamic>>[];
+
+      void saveState() {
+        stateStack.add({
+          'buffer': List<int>.from(buffer.getBuffer()),
+          'domains': domains.map((d) {
+            var copy = BitArray(10);
+            copy.setBits(d.asIntIterable().toList());
+            return copy;
+          }).toList(),
+        });
+      }
+
+      void restoreState(Map<String, dynamic> state) {
+        buffer.setBuffer(state['buffer'] as List<int>);
+        domains = (state['domains'] as List<BitArray>).map((d) {
+          var copy = BitArray(10);
+          copy.setBits(d.asIntIterable().toList());
+          return copy;
+        }).toList();
+      }
+
+      void undo() {
+        if (stateStack.length < 2) return;
+        var currentState = stateStack.removeLast();
+        redoStack.add(currentState);
+        restoreState(stateStack.last);
+      }
+
+      void redo() {
+        if (redoStack.isEmpty) return;
+        var redoState = redoStack.removeLast();
+        stateStack.add(redoState);
+        restoreState(redoState);
+      }
+
+      saveState(); // Initial
+
+      // Move 1: Set cell 0 = 5, eliminate from row
+      buffer[0] = 5;
+      for (int i = 1; i < 9; i++) {
+        domains[i].clearBit(5);
+      }
+      saveState();
+
+      // Move 2: Set cell 10 = 3
+      buffer[10] = 3;
+      for (int i = 11; i < 18; i++) {
+        domains[i].clearBit(3);
+      }
+      saveState();
+
+      // Move 3: Set cell 20 = 7
+      buffer[20] = 7;
+      for (int i = 21; i < 27; i++) {
+        domains[i].clearBit(7);
+      }
+      saveState();
+
+      expect(buffer[0], equals(5));
+      expect(buffer[10], equals(3));
+      expect(buffer[20], equals(7));
+
+      // Undo move 3
+      undo();
+      expect(buffer[20], equals(0));
+      expect(domains[21][7], isTrue);
+
+      // Undo move 2
+      undo();
+      expect(buffer[10], equals(0));
+      expect(domains[11][3], isTrue);
+
+      // Redo move 2
+      redo();
+      expect(buffer[10], equals(3));
+      expect(domains[11][3], isFalse);
+
+      // Undo move 2 again
+      undo();
+      expect(buffer[10], equals(0));
+
+      // Redo move 2 and move 3
+      redo();
+      redo();
+      expect(buffer[10], equals(3));
+      expect(buffer[20], equals(7));
+      expect(redoStack.length, equals(0));
+    });
+
+    test('redo clears when new constraint applied', () {
+      var constraints = <int>[0, 1];
+      var constraintHistory = <List<int>>[];
+      var redoStack = <List<int>>[];
+
+      void saveConstraints() {
+        constraintHistory.add(List<int>.from(constraints));
+      }
+
+      void undo() {
+        if (constraintHistory.length < 2) return;
+        redoStack.add(constraintHistory.removeLast());
+        constraints = List<int>.from(constraintHistory.last);
+      }
+
+      void redo() {
+        if (redoStack.isEmpty) return;
+        var state = redoStack.removeLast();
+        constraintHistory.add(state);
+        constraints = List<int>.from(state);
+      }
+
+      saveConstraints(); // [0, 1]
+
+      // Add constraint 2
+      constraints.add(2);
+      saveConstraints(); // [0, 1, 2]
+
+      // Add constraint 3
+      constraints.add(3);
+      saveConstraints(); // [0, 1, 2, 3]
+
+      // Undo twice
+      undo();
+      undo();
+      expect(constraints, equals([0, 1]));
+      expect(redoStack.length, equals(2));
+
+      // Redo once
+      redo();
+      expect(constraints, equals([0, 1, 2]));
+      expect(redoStack.length, equals(1));
+
+      // Add new constraint 4 - should clear redo
+      constraints.add(4);
+      saveConstraints();
+      redoStack.clear();
+
+      expect(constraints, equals([0, 1, 2, 4]));
+      expect(redoStack.length, equals(0));
+
+      // Cannot redo the cleared state
+      redo(); // Does nothing
+      expect(constraints, equals([0, 1, 2, 4]));
+    });
+
+    test('redo success streaks correctly', () {
+      var statuses = <int>[];
+      var successStreaks = <int>[];
+      var successConditions = <SudokuBuffer>[];
+
+      var statusHistory = <List<int>>[];
+      var streakHistory = <List<int>>[];
+      var conditionHistory = <List<SudokuBuffer>>[];
+      var redoStack = <Map<String, dynamic>>[];
+
+      void saveState() {
+        statusHistory.add(List<int>.from(statuses));
+        streakHistory.add(List<int>.from(successStreaks));
+        conditionHistory.add(List<SudokuBuffer>.from(successConditions));
+      }
+
+      void undo() {
+        if (statusHistory.length < 2) return;
+        redoStack.add({
+          'statuses': statusHistory.removeLast(),
+          'streaks': streakHistory.removeLast(),
+          'conditions': conditionHistory.removeLast(),
+        });
+        statuses = List<int>.from(statusHistory.last);
+        successStreaks = List<int>.from(streakHistory.last);
+        successConditions = List<SudokuBuffer>.from(conditionHistory.last);
+      }
+
+      void redo() {
+        if (redoStack.isEmpty) return;
+        var state = redoStack.removeLast();
+        statuses = state['statuses'] as List<int>;
+        successStreaks = state['streaks'] as List<int>;
+        successConditions = state['conditions'] as List<SudokuBuffer>;
+        statusHistory.add(List<int>.from(statuses));
+        streakHistory.add(List<int>.from(successStreaks));
+        conditionHistory.add(List<SudokuBuffer>.from(successConditions));
+      }
+
+      void apply(int status) {
+        int lastStatus = statuses.isEmpty ? Constraint.NOT_RUN : statuses.last;
+        statuses.add(status);
+        if (lastStatus != Constraint.SUCCESS && status == Constraint.SUCCESS) {
+          successStreaks.add(successConditions.length);
+          successConditions.add(SudokuBuffer(9));
+        }
+      }
+
+      saveState(); // Initial (empty)
+
+      // Apply INSUFFICIENT
+      apply(Constraint.INSUFFICIENT);
+      saveState();
+
+      // Apply SUCCESS (creates streak)
+      apply(Constraint.SUCCESS);
+      saveState();
+      expect(successStreaks.length, equals(1));
+
+      // Apply SUCCESS (no new streak)
+      apply(Constraint.SUCCESS);
+      saveState();
+
+      // Undo twice
+      undo();
+      undo();
+      expect(statuses.length, equals(1));
+      expect(successStreaks.length, equals(0));
+
+      // Redo both
+      redo();
+      expect(statuses.length, equals(2));
+      expect(successStreaks.length, equals(1));
+
+      redo();
+      expect(statuses.length, equals(3));
+      expect(successStreaks.length, equals(1)); // Still 1, no new streak
+    });
+  });
 }

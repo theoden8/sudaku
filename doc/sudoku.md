@@ -112,3 +112,10 @@ The Sudoku layer is tested in `test/sudoku_test.dart` with the following scenari
 - Overwrite same cell multiple times then undo
 - Partial undo leaves valid intermediate state
 - Undo with assisted inference chain
+
+### Multi-Step Redo
+- Redo all undone changes in sequence
+- Partial redo followed by new change clears redo stack
+- Redo with assisted changes restores full move
+- Interleaved undo and redo operations
+- Redo stack cleared on new manual change after partial redo
