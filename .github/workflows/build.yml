@@ -109,6 +109,53 @@ jobs:
           name: macos-release
           path: build/macos/Build/Products/Release/
 
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Cache FVM
+        uses: actions/cache@v4
+        with:
+          path: ~/fvm
+          key: fvm-${{ runner.os }}-${{ hashFiles('.fvmrc') }}
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Install FVM
+        run: |
+          dart pub global activate fvm ${{ env.FVM_VERSION }}
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Install Flutter via FVM
+        run: |
+          fvm install
+          fvm flutter --version
+
+      - name: Get dependencies
+        run: fvm flutter pub get --enforce-lockfile
+
+      - name: Run tests
+        run: fvm flutter test
+
+      - name: Build iOS
+        run: fvm flutter build ios --release --no-codesign
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: build/ios/iphoneos/Runner.app
+
   build-android:
     runs-on: ubuntu-latest
     steps:

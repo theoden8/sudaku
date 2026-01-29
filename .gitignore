@@ -16,7 +16,6 @@
 *.zsync
 
 # android/
-ios/
 windows/
 .gradle
 *.iml
