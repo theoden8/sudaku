@@ -194,10 +194,10 @@ jobs:
         run: fvm flutter pub get
 
       - name: Build APK
-        run: fvm flutter build apk --release
+        run: fvm flutter build apk --release --flavor fdroid
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-fdroid-release.apk
