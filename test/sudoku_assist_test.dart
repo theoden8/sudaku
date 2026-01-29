@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bit_array/bit_array.dart';
+import 'package:sudaku/Sudoku.dart';
 import 'package:sudaku/SudokuAssist.dart';
 import 'package:sudaku/SudokuBuffer.dart';
 
@@ -857,6 +858,358 @@ void main() {
 
       expect(conditions.length, equals(2));
       expect(conditions, equals([1, 3]));
+    });
+  });
+
+  group('Multi-Step Constraint Rollback', () {
+    test('multiple constraints retract in sequence', () {
+      // Simulate 3 constraints, each with status history
+      var constraint1Statuses = <int>[];
+      var constraint1Ages = <int>[];
+      var constraint2Statuses = <int>[];
+      var constraint2Ages = <int>[];
+      var constraint3Statuses = <int>[];
+      var constraint3Ages = <int>[];
+
+      int currentAge = 0;
+
+      // Age 0: All constraints applied
+      constraint1Statuses.add(Constraint.SUCCESS);
+      constraint1Ages.add(currentAge);
+      constraint2Statuses.add(Constraint.INSUFFICIENT);
+      constraint2Ages.add(currentAge);
+      constraint3Statuses.add(Constraint.SUCCESS);
+      constraint3Ages.add(currentAge);
+      currentAge++;
+
+      // Age 1: All constraints applied again
+      constraint1Statuses.add(Constraint.SUCCESS);
+      constraint1Ages.add(currentAge);
+      constraint2Statuses.add(Constraint.SUCCESS);
+      constraint2Ages.add(currentAge);
+      constraint3Statuses.add(Constraint.VIOLATED);
+      constraint3Ages.add(currentAge);
+      currentAge++;
+
+      // Age 2: All constraints applied
+      constraint1Statuses.add(Constraint.INSUFFICIENT);
+      constraint1Ages.add(currentAge);
+      constraint2Statuses.add(Constraint.SUCCESS);
+      constraint2Ages.add(currentAge);
+      constraint3Statuses.add(Constraint.SUCCESS);
+      constraint3Ages.add(currentAge);
+
+      // Retract all at age 2
+      void retractAll(int age) {
+        if (constraint1Statuses.isNotEmpty && age == constraint1Ages.last) {
+          constraint1Statuses.removeLast();
+          constraint1Ages.removeLast();
+        }
+        if (constraint2Statuses.isNotEmpty && age == constraint2Ages.last) {
+          constraint2Statuses.removeLast();
+          constraint2Ages.removeLast();
+        }
+        if (constraint3Statuses.isNotEmpty && age == constraint3Ages.last) {
+          constraint3Statuses.removeLast();
+          constraint3Ages.removeLast();
+        }
+      }
+
+      // Retract age 2
+      retractAll(currentAge);
+      expect(constraint1Statuses.length, equals(2));
+      expect(constraint2Statuses.length, equals(2));
+      expect(constraint3Statuses.length, equals(2));
+      expect(constraint1Statuses.last, equals(Constraint.SUCCESS));
+      expect(constraint3Statuses.last, equals(Constraint.VIOLATED));
+
+      // Retract age 1
+      currentAge--;
+      retractAll(currentAge);
+      expect(constraint1Statuses.length, equals(1));
+      expect(constraint1Statuses.last, equals(Constraint.SUCCESS));
+      expect(constraint2Statuses.last, equals(Constraint.INSUFFICIENT));
+
+      // Retract age 0
+      currentAge--;
+      retractAll(currentAge);
+      expect(constraint1Statuses.length, equals(0));
+      expect(constraint2Statuses.length, equals(0));
+      expect(constraint3Statuses.length, equals(0));
+    });
+
+    test('domain filtering rollback restores original domain', () {
+      // Initial full domain
+      var originalDomain = BitArray(10);
+      originalDomain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // Track eliminated values at each step
+      var eliminationHistory = <List<int>>[];
+
+      // Working domain (copy of original)
+      var domain = BitArray(10);
+      domain.setBits(originalDomain.asIntIterable().toList());
+
+      // Step 1: Row constraint eliminates {1, 2, 3}
+      eliminationHistory.add([1, 2, 3]);
+      domain.clearBits([1, 2, 3]);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Step 2: Column constraint eliminates {4, 5}
+      eliminationHistory.add([4, 5]);
+      domain.clearBits([4, 5]);
+      expect(domain.asIntIterable().toList(), equals([6, 7, 8, 9]));
+
+      // Step 3: Box constraint eliminates {6}
+      eliminationHistory.add([6]);
+      domain.clearBit(6);
+      expect(domain.asIntIterable().toList(), equals([7, 8, 9]));
+
+      // Rollback step 3
+      var step3Eliminated = eliminationHistory.removeLast();
+      domain.setBits(step3Eliminated);
+      expect(domain.asIntIterable().toList(), equals([6, 7, 8, 9]));
+
+      // Rollback step 2
+      var step2Eliminated = eliminationHistory.removeLast();
+      domain.setBits(step2Eliminated);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Rollback step 1
+      var step1Eliminated = eliminationHistory.removeLast();
+      domain.setBits(step1Eliminated);
+      expect(domain.asIntIterable().toList(), equals([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+    });
+
+    test('success streak history tracks and retracts correctly', () {
+      var statuses = <int>[];
+      var agesRun = <int>[];
+      var successStreaks = <int>[];
+      var successConditions = <SudokuBuffer>[];
+      int currentAge = 0;
+
+      void apply(int status) {
+        int lastStatus = statuses.isEmpty ? Constraint.NOT_RUN : statuses.last;
+        statuses.add(status);
+        agesRun.add(currentAge);
+        if (lastStatus != Constraint.SUCCESS && status == Constraint.SUCCESS) {
+          successStreaks.add(successConditions.length);
+          successConditions.add(SudokuBuffer(9));
+        }
+      }
+
+      void retract() {
+        if (statuses.isNotEmpty && currentAge == agesRun.last) {
+          statuses.removeLast();
+          agesRun.removeLast();
+          if (successStreaks.isNotEmpty && successConditions.length == successStreaks.last + 1) {
+            successStreaks.removeLast();
+            successConditions.removeLast();
+          }
+        }
+      }
+
+      // Age 0: INSUFFICIENT
+      apply(Constraint.INSUFFICIENT);
+      currentAge++;
+
+      // Age 1: SUCCESS (new streak)
+      apply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(1));
+      currentAge++;
+
+      // Age 2: SUCCESS (no new streak)
+      apply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(1));
+      currentAge++;
+
+      // Age 3: VIOLATED
+      apply(Constraint.VIOLATED);
+      currentAge++;
+
+      // Age 4: SUCCESS (new streak)
+      apply(Constraint.SUCCESS);
+      expect(successStreaks.length, equals(2));
+
+      // Retract age 4 (removes second streak)
+      retract();
+      expect(statuses.length, equals(4));
+      expect(successStreaks.length, equals(1));
+
+      // Retract age 3
+      currentAge--;
+      retract();
+      expect(statuses.length, equals(3));
+
+      // Retract age 2
+      currentAge--;
+      retract();
+      expect(statuses.length, equals(2));
+
+      // Retract age 1 (removes first streak)
+      currentAge--;
+      retract();
+      expect(statuses.length, equals(1));
+      expect(successStreaks.length, equals(0));
+    });
+
+    test('AllDiff rollback restores eliminated values', () {
+      // Simulate AllDiff constraint affecting multiple cells
+      var domains = List.generate(9, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+
+      // Track which values were eliminated from which cells
+      var eliminationLog = <(int, int)>[]; // (cell, value)
+
+      // Assign value 5 to cell 0, eliminate 5 from cells 1-8
+      domains[0] = BitArray(10)..setBit(5);
+      for (int i = 1; i < 9; i++) {
+        if (domains[i][5]) {
+          eliminationLog.add((i, 5));
+          domains[i].clearBit(5);
+        }
+      }
+
+      // Assign value 3 to cell 1, eliminate 3 from cells 2-8
+      domains[1] = BitArray(10)..setBit(3);
+      for (int i = 2; i < 9; i++) {
+        if (domains[i][3]) {
+          eliminationLog.add((i, 3));
+          domains[i].clearBit(3);
+        }
+      }
+
+      expect(domains[2][5], isFalse);
+      expect(domains[2][3], isFalse);
+      expect(domains[2].cardinality, equals(7));
+
+      // Rollback cell 1 assignment
+      // Find and restore all eliminations from cell 1
+      var toRestore = eliminationLog.where((e) => e.$2 == 3).toList();
+      for (var (cell, value) in toRestore) {
+        domains[cell].setBit(value);
+      }
+      eliminationLog.removeWhere((e) => e.$2 == 3);
+      domains[1] = BitArray(10)..setBits([1, 2, 3, 4, 6, 7, 8, 9]); // Restore minus 5
+
+      expect(domains[2][3], isTrue);
+      expect(domains[2][5], isFalse); // 5 still eliminated
+      expect(domains[2].cardinality, equals(8));
+    });
+
+    test('constraint cascade rollback', () {
+      // Simulate: Constraint A succeeds -> triggers constraint B
+      var constraintAStatuses = <int>[];
+      var constraintBStatuses = <int>[];
+      var constraintAEnabled = true;
+      var constraintBEnabled = false; // Enabled when A succeeds
+
+      // Step 1: A applied, succeeds, enables B
+      constraintAStatuses.add(Constraint.SUCCESS);
+      if (constraintAStatuses.last == Constraint.SUCCESS) {
+        constraintBEnabled = true;
+      }
+
+      // Step 2: B applied (because enabled)
+      if (constraintBEnabled) {
+        constraintBStatuses.add(Constraint.SUCCESS);
+      }
+
+      expect(constraintAStatuses.length, equals(1));
+      expect(constraintBStatuses.length, equals(1));
+
+      // Rollback: First rollback B, then A
+      if (constraintBStatuses.isNotEmpty) {
+        constraintBStatuses.removeLast();
+      }
+      constraintBEnabled = false;
+
+      if (constraintAStatuses.isNotEmpty) {
+        constraintAStatuses.removeLast();
+      }
+
+      expect(constraintAStatuses.length, equals(0));
+      expect(constraintBStatuses.length, equals(0));
+      expect(constraintBEnabled, isFalse);
+    });
+
+    test('full solving step undo with domain restoration', () {
+      // Simulate a solving step with full state
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+      var domains = List.generate(81, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+      var domainSnapshots = <List<BitArray>>[];
+
+      // Helper to snapshot domains
+      List<BitArray> snapshotDomains() {
+        return domains.map((d) {
+          var copy = BitArray(10);
+          copy.setBits(d.asIntIterable().toList());
+          return copy;
+        }).toList();
+      }
+
+      // Save initial state
+      domainSnapshots.add(snapshotDomains());
+
+      // Step 1: Set cell 0 to 5
+      buffer[0] = 5;
+      changes.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+      domains[0] = BitArray(10)..setBit(5);
+      // Propagate: remove 5 from row 0
+      for (int i = 1; i < 9; i++) {
+        domains[i].clearBit(5);
+      }
+      domainSnapshots.add(snapshotDomains());
+
+      // Step 2: Cell 1 inferred to be 3 (simulated)
+      buffer[1] = 3;
+      changes.add(SudokuChange(variable: 1, value: 3, prevValue: 0, assisted: true));
+      domains[1] = BitArray(10)..setBit(3);
+      for (int i = 2; i < 9; i++) {
+        domains[i].clearBit(3);
+      }
+      domainSnapshots.add(snapshotDomains());
+
+      expect(buffer[0], equals(5));
+      expect(buffer[1], equals(3));
+      expect(domains[2][5], isFalse);
+      expect(domains[2][3], isFalse);
+
+      // Rollback step 2
+      var change2 = changes.removeLast();
+      buffer[change2.variable] = change2.prevValue;
+      domainSnapshots.removeLast();
+      domains = domainSnapshots.last.map((d) {
+        var copy = BitArray(10);
+        copy.setBits(d.asIntIterable().toList());
+        return copy;
+      }).toList();
+
+      expect(buffer[1], equals(0));
+      expect(domains[2][3], isTrue);
+      expect(domains[2][5], isFalse); // Still eliminated from step 1
+
+      // Rollback step 1
+      var change1 = changes.removeLast();
+      buffer[change1.variable] = change1.prevValue;
+      domainSnapshots.removeLast();
+      domains = domainSnapshots.last.map((d) {
+        var copy = BitArray(10);
+        copy.setBits(d.asIntIterable().toList());
+        return copy;
+      }).toList();
+
+      expect(buffer[0], equals(0));
+      expect(domains[2][5], isTrue);
+      expect(domains[2].cardinality, equals(9));
     });
   });
 }

@@ -200,3 +200,11 @@ The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the fol
 ### Eliminator Rollback
 - Reinstate clears eliminated values from forbidden list
 - Obsolete conditions are removed when empty
+
+### Multi-Step Constraint Rollback
+- Multiple constraints retract in sequence
+- Domain filtering rollback restores original domain
+- Success streak history tracks and retracts correctly
+- AllDiff rollback restores eliminated values
+- Constraint cascade rollback
+- Full solving step undo with domain restoration

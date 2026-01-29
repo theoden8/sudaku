@@ -598,4 +598,257 @@ void main() {
       expect(changes.length, equals(2));
     });
   });
+
+  group('Multi-Step Rollback', () {
+    test('full undo sequence restores initial state', () {
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+
+      // Make 5 manual changes across the grid
+      var moves = [
+        (0, 5), (10, 3), (40, 7), (72, 9), (80, 1)
+      ];
+
+      for (var (cell, value) in moves) {
+        changes.add(SudokuChange(
+          variable: cell,
+          value: value,
+          prevValue: buffer[cell],
+          assisted: false,
+        ));
+        buffer[cell] = value;
+      }
+
+      expect(changes.length, equals(5));
+      expect(buffer[0], equals(5));
+      expect(buffer[80], equals(1));
+
+      // Undo all changes in reverse order
+      while (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+
+      // All cells back to 0
+      for (var (cell, _) in moves) {
+        expect(buffer[cell], equals(0));
+      }
+      expect(changes.length, equals(0));
+    });
+
+    test('interleaved manual and assisted changes undo correctly', () {
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+
+      // Helper to undo one "move" (all assisted + one manual)
+      void undoMove() {
+        while (changes.isNotEmpty && changes.last.assisted) {
+          var change = changes.removeLast();
+          buffer[change.variable] = change.prevValue;
+        }
+        if (changes.isNotEmpty) {
+          var change = changes.removeLast();
+          buffer[change.variable] = change.prevValue;
+        }
+      }
+
+      // Move 1: manual at cell 0, assisted at cells 1, 2
+      buffer[0] = 5;
+      changes.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+      buffer[1] = 3;
+      changes.add(SudokuChange(variable: 1, value: 3, prevValue: 0, assisted: true));
+      buffer[2] = 7;
+      changes.add(SudokuChange(variable: 2, value: 7, prevValue: 0, assisted: true));
+
+      // Move 2: manual at cell 10, assisted at cell 11
+      buffer[10] = 9;
+      changes.add(SudokuChange(variable: 10, value: 9, prevValue: 0, assisted: false));
+      buffer[11] = 4;
+      changes.add(SudokuChange(variable: 11, value: 4, prevValue: 0, assisted: true));
+
+      // Move 3: manual at cell 20, no assisted
+      buffer[20] = 2;
+      changes.add(SudokuChange(variable: 20, value: 2, prevValue: 0, assisted: false));
+
+      expect(changes.length, equals(6));
+
+      // Undo move 3
+      undoMove();
+      expect(buffer[20], equals(0));
+      expect(buffer[10], equals(9)); // Move 2 still present
+      expect(changes.length, equals(5));
+
+      // Undo move 2
+      undoMove();
+      expect(buffer[10], equals(0));
+      expect(buffer[11], equals(0));
+      expect(buffer[0], equals(5)); // Move 1 still present
+      expect(changes.length, equals(3));
+
+      // Undo move 1
+      undoMove();
+      expect(buffer[0], equals(0));
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+      expect(changes.length, equals(0));
+    });
+
+    test('undo and redo simulation with change replay', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+      var redoStack = <SudokuChange>[];
+
+      // Make changes
+      buffer[0] = 1;
+      changes.add(SudokuChange(variable: 0, value: 1, prevValue: 0, assisted: false));
+      buffer[1] = 2;
+      changes.add(SudokuChange(variable: 1, value: 2, prevValue: 0, assisted: false));
+      buffer[2] = 3;
+      changes.add(SudokuChange(variable: 2, value: 3, prevValue: 0, assisted: false));
+
+      // Undo last two changes (save to redo stack)
+      for (int i = 0; i < 2; i++) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        redoStack.add(change);
+      }
+
+      expect(buffer[0], equals(1));
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+      expect(redoStack.length, equals(2));
+
+      // Redo one change
+      var redoChange = redoStack.removeLast();
+      buffer[redoChange.variable] = redoChange.value;
+      changes.add(redoChange);
+
+      expect(buffer[1], equals(2));
+      expect(changes.length, equals(2));
+      expect(redoStack.length, equals(1));
+    });
+
+    test('overwrite same cell multiple times then undo', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+
+      // Cell 0: 0 -> 1 -> 5 -> 9 -> 3
+      var values = [1, 5, 9, 3];
+      int prevValue = 0;
+      for (var value in values) {
+        changes.add(SudokuChange(
+          variable: 0,
+          value: value,
+          prevValue: prevValue,
+          assisted: false,
+        ));
+        buffer[0] = value;
+        prevValue = value;
+      }
+
+      expect(buffer[0], equals(3));
+      expect(changes.length, equals(4));
+
+      // Undo step by step, verifying intermediate values
+      var expectedValues = [9, 5, 1, 0];
+      for (var expected in expectedValues) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+        expect(buffer[0], equals(expected));
+      }
+    });
+
+    test('partial undo leaves valid intermediate state', () {
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+
+      // Fill a row with values 1-9
+      for (int i = 0; i < 9; i++) {
+        changes.add(SudokuChange(
+          variable: i,
+          value: i + 1,
+          prevValue: 0,
+          assisted: false,
+        ));
+        buffer[i] = i + 1;
+      }
+
+      // Verify row is complete
+      for (int i = 0; i < 9; i++) {
+        expect(buffer[i], equals(i + 1));
+      }
+
+      // Undo last 4 changes
+      for (int i = 0; i < 4; i++) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+
+      // First 5 cells still filled, last 4 empty
+      for (int i = 0; i < 5; i++) {
+        expect(buffer[i], equals(i + 1));
+      }
+      for (int i = 5; i < 9; i++) {
+        expect(buffer[i], equals(0));
+      }
+    });
+
+    test('undo with assisted inference chain', () {
+      var buffer = SudokuBuffer(81);
+      var changes = <SudokuChange>[];
+
+      // Simulate: manual change triggers cascade of 3 assisted inferences
+      // Manual: cell 0 = 5
+      buffer[0] = 5;
+      changes.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+
+      // Assisted cascade: cells 1, 2, 3 get inferred
+      buffer[1] = 7;
+      changes.add(SudokuChange(variable: 1, value: 7, prevValue: 0, assisted: true));
+      buffer[2] = 9;
+      changes.add(SudokuChange(variable: 2, value: 9, prevValue: 0, assisted: true));
+      buffer[3] = 2;
+      changes.add(SudokuChange(variable: 3, value: 2, prevValue: 0, assisted: true));
+
+      // Another manual change triggers more inferences
+      buffer[10] = 8;
+      changes.add(SudokuChange(variable: 10, value: 8, prevValue: 0, assisted: false));
+      buffer[11] = 1;
+      changes.add(SudokuChange(variable: 11, value: 1, prevValue: 0, assisted: true));
+
+      expect(changes.length, equals(6));
+
+      // Single undo should remove move 2 (manual + 1 assisted)
+      while (changes.isNotEmpty && changes.last.assisted) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+      if (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+
+      expect(buffer[10], equals(0));
+      expect(buffer[11], equals(0));
+      expect(buffer[0], equals(5)); // First move still there
+      expect(buffer[1], equals(7));
+      expect(changes.length, equals(4));
+
+      // Second undo removes first move (manual + 3 assisted)
+      while (changes.isNotEmpty && changes.last.assisted) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+      if (changes.isNotEmpty) {
+        var change = changes.removeLast();
+        buffer[change.variable] = change.prevValue;
+      }
+
+      expect(buffer[0], equals(0));
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+      expect(buffer[3], equals(0));
+      expect(changes.length, equals(0));
+    });
+  });
 }

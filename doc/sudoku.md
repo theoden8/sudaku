@@ -104,3 +104,11 @@ The Sudoku layer is tested in `test/sudoku_test.dart` with the following scenari
 - Undo on empty changes list does nothing
 - findPrecedingValue returns correct value from history
 - Undo preserves changes for other variables
+
+### Multi-Step Rollback
+- Full undo sequence restores initial state
+- Interleaved manual and assisted changes undo correctly
+- Undo and redo simulation with change replay
+- Overwrite same cell multiple times then undo
+- Partial undo leaves valid intermediate state
+- Undo with assisted inference chain
