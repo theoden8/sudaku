@@ -6,14 +6,23 @@ import 'package:sudaku/SudokuBuffer.dart';
 
 void main() {
   group('Sudoku Grid Structure', () {
-    test('3x3 sudoku has correct dimensions', () {
-      expect(3 * 3, equals(9)); // n * n = ne2
-      expect(9 * 9, equals(81)); // ne2 * ne2 = ne4
+    test('SudokuBuffer initializes with correct size for 9x9', () {
+      var buffer = SudokuBuffer(81);
+      expect(buffer.length, equals(81));
+      expect(buffer.getBuffer().length, equals(81));
     });
 
-    test('4x4 sudoku has correct dimensions', () {
-      expect(4 * 4, equals(16)); // n * n = ne2
-      expect(16 * 16, equals(256)); // ne2 * ne2 = ne4
+    test('SudokuBuffer initializes with correct size for 16x16', () {
+      var buffer = SudokuBuffer(256);
+      expect(buffer.length, equals(256));
+      expect(buffer.getBuffer().length, equals(256));
+    });
+
+    test('SudokuBuffer initializes all cells to 0', () {
+      var buffer = SudokuBuffer(81);
+      for (int i = 0; i < 81; i++) {
+        expect(buffer[i], equals(0));
+      }
     });
   });
 
