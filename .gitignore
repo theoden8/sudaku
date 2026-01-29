@@ -16,7 +16,6 @@
 *.zsync
 
 # android/
-pubspec.lock
 ios/
 windows/
 .gradle
