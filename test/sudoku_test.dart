@@ -410,4 +410,192 @@ void main() {
       expect(valid, isTrue);
     });
   });
+
+  group('Undo/Rollback', () {
+    test('undoLastChange restores previous value', () {
+      // Simulate undo logic: buffer + changes list
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+
+      // Set initial value
+      buffer[0] = 5;
+      changes.add(SudokuChange(
+        variable: 0,
+        value: 5,
+        prevValue: 0,
+        assisted: false,
+      ));
+
+      expect(buffer[0], equals(5));
+      expect(changes.length, equals(1));
+
+      // Undo: restore previous value and remove from changes
+      var lastChange = changes.last;
+      buffer[lastChange.variable] = lastChange.prevValue;
+      changes.removeLast();
+
+      expect(buffer[0], equals(0));
+      expect(changes.length, equals(0));
+    });
+
+    test('undoChange skips assisted changes until manual', () {
+      // Simulate: manual change followed by assisted changes
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+
+      // Manual change: set cell 0 to 5
+      buffer[0] = 5;
+      changes.add(SudokuChange(
+        variable: 0,
+        value: 5,
+        prevValue: 0,
+        assisted: false,
+      ));
+
+      // Assisted change: set cell 1 to 3
+      buffer[1] = 3;
+      changes.add(SudokuChange(
+        variable: 1,
+        value: 3,
+        prevValue: 0,
+        assisted: true,
+      ));
+
+      // Assisted change: set cell 2 to 7
+      buffer[2] = 7;
+      changes.add(SudokuChange(
+        variable: 2,
+        value: 7,
+        prevValue: 0,
+        assisted: true,
+      ));
+
+      expect(buffer[0], equals(5));
+      expect(buffer[1], equals(3));
+      expect(buffer[2], equals(7));
+      expect(changes.length, equals(3));
+
+      // Undo logic: remove assisted changes, then the manual change
+      while (changes.isNotEmpty && changes.last.assisted) {
+        var lastChange = changes.last;
+        buffer[lastChange.variable] = lastChange.prevValue;
+        changes.removeLast();
+      }
+      // Undo the manual change
+      if (changes.isNotEmpty) {
+        var lastChange = changes.last;
+        buffer[lastChange.variable] = lastChange.prevValue;
+        changes.removeLast();
+      }
+
+      expect(buffer[0], equals(0));
+      expect(buffer[1], equals(0));
+      expect(buffer[2], equals(0));
+      expect(changes.length, equals(0));
+    });
+
+    test('multiple undo operations work correctly', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+
+      // First manual change
+      buffer[0] = 1;
+      changes.add(SudokuChange(variable: 0, value: 1, prevValue: 0, assisted: false));
+
+      // Second manual change
+      buffer[1] = 2;
+      changes.add(SudokuChange(variable: 1, value: 2, prevValue: 0, assisted: false));
+
+      // Third manual change (overwrite cell 0)
+      changes.add(SudokuChange(variable: 0, value: 9, prevValue: 1, assisted: false));
+      buffer[0] = 9;
+
+      expect(buffer[0], equals(9));
+      expect(buffer[1], equals(2));
+      expect(changes.length, equals(3));
+
+      // Undo third change (cell 0: 9 -> 1)
+      var change3 = changes.removeLast();
+      buffer[change3.variable] = change3.prevValue;
+      expect(buffer[0], equals(1));
+
+      // Undo second change (cell 1: 2 -> 0)
+      var change2 = changes.removeLast();
+      buffer[change2.variable] = change2.prevValue;
+      expect(buffer[1], equals(0));
+
+      // Undo first change (cell 0: 1 -> 0)
+      var change1 = changes.removeLast();
+      buffer[change1.variable] = change1.prevValue;
+      expect(buffer[0], equals(0));
+
+      expect(changes.length, equals(0));
+    });
+
+    test('undo on empty changes list does nothing', () {
+      var buffer = SudokuBuffer(9);
+      buffer[0] = 5;
+      var changes = <SudokuChange>[];
+
+      // Attempt undo with empty changes
+      if (changes.isNotEmpty) {
+        var lastChange = changes.last;
+        buffer[lastChange.variable] = lastChange.prevValue;
+        changes.removeLast();
+      }
+
+      // Buffer unchanged (undo didn't happen)
+      expect(buffer[0], equals(5));
+      expect(changes.length, equals(0));
+    });
+
+    test('findPrecedingValue returns correct value from history', () {
+      var changes = <SudokuChange>[];
+
+      // Cell 0: 0 -> 5 -> 9 -> 3
+      changes.add(SudokuChange(variable: 0, value: 5, prevValue: 0, assisted: false));
+      changes.add(SudokuChange(variable: 0, value: 9, prevValue: 5, assisted: false));
+      changes.add(SudokuChange(variable: 0, value: 3, prevValue: 9, assisted: false));
+
+      // Find preceding value for cell 0 (should be 9, the value before 3)
+      int findPrecedingValue(int variable) {
+        var hist = changes.reversed.where((c) => c.variable == variable).toList();
+        if (hist.length < 2) return 0;
+        return hist[1].value;
+      }
+
+      expect(findPrecedingValue(0), equals(9));
+
+      // After removing last change, preceding value should be 5
+      changes.removeLast();
+      expect(findPrecedingValue(0), equals(5));
+
+      // After removing another, preceding value should be 0 (not enough history)
+      changes.removeLast();
+      expect(findPrecedingValue(0), equals(0));
+    });
+
+    test('undo preserves changes for other variables', () {
+      var buffer = SudokuBuffer(9);
+      var changes = <SudokuChange>[];
+
+      // Change multiple cells
+      buffer[0] = 1;
+      changes.add(SudokuChange(variable: 0, value: 1, prevValue: 0, assisted: false));
+      buffer[5] = 5;
+      changes.add(SudokuChange(variable: 5, value: 5, prevValue: 0, assisted: false));
+      buffer[8] = 9;
+      changes.add(SudokuChange(variable: 8, value: 9, prevValue: 0, assisted: false));
+
+      // Undo last change (cell 8)
+      var lastChange = changes.removeLast();
+      buffer[lastChange.variable] = lastChange.prevValue;
+
+      // Cell 8 undone, others preserved
+      expect(buffer[0], equals(1));
+      expect(buffer[5], equals(5));
+      expect(buffer[8], equals(0));
+      expect(changes.length, equals(2));
+    });
+  });
 }

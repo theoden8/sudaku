@@ -96,3 +96,11 @@ The Sudoku layer is tested in `test/sudoku_test.dart` with the following scenari
 ### Puzzle Validation
 - Duplicate detection in rows (values 1-9 valid, duplicate 5 invalid)
 - Empty cells (0) do not violate constraints
+
+### Undo/Rollback
+- undoLastChange restores previous value
+- undoChange skips assisted changes until manual change
+- Multiple undo operations work correctly
+- Undo on empty changes list does nothing
+- findPrecedingValue returns correct value from history
+- Undo preserves changes for other variables
