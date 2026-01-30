@@ -2,31 +2,29 @@
 
 ![](./assets/icon.png)
 
-## about
+## About
 
 [<img src="https://f-droid.org/badge/get-it-on.png"
       alt="Get it on F-Droid"
       height="80">](https://f-droid.org/packages/com.gitea.theoden8.sudaku/)
 
-One of the most mechanical things about solving sudoku puzzles is manually choosing the values that are immediately implied as a consequence of risking/setting a cell. This app aims to alleviate this problem, by providing user with a language in which they can express a system of rules, from which autocompletions should be derived.
+Sudaku is a constraint-based sudoku assistant that lets you define logical rules and relationships between cells. Instead of manually propagating obvious implications when testing hypotheses, you can express patterns using constraints like `alldifferent`, `one-of`, and value elimination. The app automatically handles the mechanical work of propagating these rules, letting you focus on the logical reasoning.
 
-The system consists of a variety of constraints, such as alldifferent, one-of, and plain value elimination, which can be specified individually.
+This isn't a solver - you remain in full control of your logic and strategy. Sudaku simply automates the tedious bookkeeping that comes with exploring different possibilities.
 
 ![solving](./screenshots/solving.jpg)
 
-## why not use a solver
+## Why Not Use a Solver?
 
-This program isn't designed to solve puzzles for you. It isn't designed to ask for your help to solve anything either. It doesn't perform brute-force for you or impose any serious arc consistency. You are still in control of your own logic and victim of your own mistakes.
+Sudaku is designed as an assistant, not a solver. It doesn't brute-force solutions or impose strong arc consistency algorithms. You define the rules based on your own reasoning, and the app propagates the consequences of those rules. You remain in control of the solving strategy - and responsible for any logical mistakes you make.
 
 ![selecting-constraint](./screenshots/selecting-constraint.jpg)
 
-## tools
+## Technology
 
-* [flutter](https://flutter.dev/)
+Built with [Flutter](https://flutter.dev/) for cross-platform support on Android, iOS, Linux, macOS, and Windows.
 
-This is my first mobile application project, and I am being cautious about the language and features.
-
-## building
+## Building
 
 * **Android** (apk)
 
@@ -51,11 +49,11 @@ flutter build linux --release
 appimage-builder --skip-test
 ```
 
-## contributing
+## Contributing
 
-Feel free to request a feature, post a bug, or make a pr. But keep in mind that this is an early stage of development.
+Contributions are welcome! Feel free to open issues for bugs or feature requests, or submit pull requests. Please note that this project is in early development.
 
-## references
+## References
 
 * http://magictour.free.fr/topn87 - hardest 87 9x9 puzzles
 * http://magictour.free.fr/top1465 - hardest 1465 9x9 puzzles
@@ -63,6 +61,6 @@ Feel free to request a feature, post a bug, or make a pr. But keep in mind that 
 * http://pi.math.cornell.edu/~mec/Summer2009/Mahmood/Symmetry.html
 * https://www.csplib.org/Problems/ - list of constraint satisfaction problems
 
-## tipping
+## Support
 
 [<img src="https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png" alt="xmr" height="20" width="20">](https://getmonero.org) [XMR: 86tFFhT6hdUQAzcc2Za7i8ZggwQusf1ssgUNby2ApEvJDBodye8CQdJgXLaNMnun5YHm8im8MhnoK91XPWb99YdvDnfiYGZ](monero:86tFFhT6hdUQAzcc2Za7i8ZggwQusf1ssgUNby2ApEvJDBodye8CQdJgXLaNMnun5YHm8im8MhnoK91XPWb99YdvDnfiYGZ)

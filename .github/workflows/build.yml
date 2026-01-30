@@ -10,6 +10,14 @@ env:
   FVM_VERSION: '3.2.1'
 
 jobs:
+  validate-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Fastlane metadata
+        run: ./scripts/validate_fastlane_metadata.sh
+
   build-linux:
     runs-on: ubuntu-latest
     steps:

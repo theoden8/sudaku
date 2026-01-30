@@ -1,1 +1,5 @@
-Guessing in a sudoku game can become a significant distraction, because of the need to propagate obvious implications and rolling them back. For this reason, in this game you are given the ability to write down relational patterns between cells, and delegate the boring work to the game engine. Your job remains to stay ahead of your own thoughts and to ensure the consistency of your own defined rules.
+Sudaku is a constraint-based sudoku assistant that automates the tedious work of propagating logical implications while you solve puzzles.
+
+Define relationships between cells using constraints like alldifferent, one-of, and value elimination. The app handles the mechanical propagation of these rules, letting you focus on the logical reasoning and strategy.
+
+This is not a solver - you remain in full control and are responsible for your own logic.
