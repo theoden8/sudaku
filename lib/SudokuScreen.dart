@@ -16,6 +16,42 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 
 
+/// Helper widget that renders text with a slight random wobble for pen-and-paper style
+/// Uses index-based seeding for consistent randomness
+class WobblyText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final int seed;
+  final double wobbleAngle;
+  final double wobbleOffset;
+
+  const WobblyText({
+    Key? key,
+    required this.text,
+    required this.style,
+    required this.seed,
+    this.wobbleAngle = 0.06,   // Max rotation in radians (~3.5 degrees)
+    this.wobbleOffset = 1.5,   // Max offset in pixels
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use seed to create consistent random values
+    final random = Random(seed);
+    final angle = (random.nextDouble() - 0.5) * wobbleAngle * 2;
+    final offsetX = (random.nextDouble() - 0.5) * wobbleOffset * 2;
+    final offsetY = (random.nextDouble() - 0.5) * wobbleOffset * 2;
+
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..translate(offsetX, offsetY)
+        ..rotateZ(angle),
+      child: Text(text, style: style),
+    );
+  }
+}
+
 class SudokuScreen extends StatefulWidget {
   static const String routeName = '/sudoku_arguments';
 
@@ -420,6 +456,43 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget _makeSudokuCellImmutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
     int sdval = sd![index];
+
+    final textStyle = TextStyle(
+      fontSize: sz * 0.85,
+      height: 1.0,
+      color: theme.cellForeground,
+      fontWeight: FontWeight.w600,
+    );
+
+    final textWidget = theme.isSketchedStyle
+        ? WobblyText(
+            text: sd!.s_get(sdval),
+            style: textStyle,
+            seed: index * 17 + sdval,  // Unique seed per cell and value
+          )
+        : Text(sd!.s_get(sdval), style: textStyle);
+
+    // For sketched style, use Container with border instead of Card with elevation
+    if (theme.isSketchedStyle) {
+      return Container(
+        decoration: BoxDecoration(
+          color: theme.cellHintColor,
+          border: Border.all(
+            color: theme.cellHintBorder ?? theme.foreground!.withOpacity(0.3),
+            width: 1.0,
+          ),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: EdgeInsets.all(sz * 0.05),
+            child: textWidget,
+          ),
+        ),
+      );
+    }
+
+    // Modern style uses Card with elevation
     return Card(
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
@@ -428,15 +501,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         fit: BoxFit.scaleDown,
         child: Padding(
           padding: EdgeInsets.all(sz * 0.05),
-          child: Text(
-            sd!.s_get(sdval),
-            style: TextStyle(
-              fontSize: sz * 0.85,
-              height: 1.0,
-              color: theme.cellForeground,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: textWidget,
         ),
       ),
     );
@@ -488,6 +553,21 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget _makeSudokuCellMutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
     int sdval = sd![index];
+
+    final textStyle = TextStyle(
+      fontSize: sz * 0.85,
+      height: 1.0,
+      color: this.getCellTextColor(index, ctx),
+    );
+
+    final textWidget = (theme.isSketchedStyle && sdval != 0)
+        ? WobblyText(
+            text: sd!.s_get_display(sdval),
+            style: textStyle,
+            seed: index * 17 + sdval,  // Unique seed per cell and value
+          )
+        : Text(sd!.s_get_display(sdval), style: textStyle);
+
     return TextButton(
       style: ButtonStyle(
         padding: WidgetStateProperty.all(EdgeInsets.zero),
@@ -515,14 +595,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         fit: BoxFit.scaleDown,
         child: Padding(
           padding: EdgeInsets.all(sz * 0.05),
-          child: Text(
-            sd!.s_get_display(sdval),
-            style: TextStyle(
-              fontSize: sz * 0.85,
-              height: 1.0,
-              color: this.getCellTextColor(index, ctx),
-            ),
-          ),
+          child: textWidget,
         ),
       ),
     );

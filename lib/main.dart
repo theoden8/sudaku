@@ -231,7 +231,8 @@ class AppColors {
   static const Color paperDarkInkLight = Color(0xFFA0A0A8);     // Lighter ink
   static const Color paperDarkPencil = Color(0xFF686870);       // Cool gray pencil for inferred
   static const Color paperDarkSelection = Color(0xFF202028);    // Cool selection
-  static const Color paperDarkHint = Color(0xFF1E1E26);         // Hint cells - more distinct, slight blue tint
+  static const Color paperDarkHint = Color(0xFF18182A);         // Hint cells - noticeably blue-tinted
+  static const Color paperDarkHintBorder = Color(0xFF2A2A44);   // Border for hint cells in sketched mode
   static const Color paperDarkGridLine = Color(0xFF34343C);     // Grid lines
 }
 
@@ -273,6 +274,9 @@ class SudokuTheme {
   Color? numpadTextOnLight;
   Color? numpadTextOnColored;
   Color? numpadSelected;
+
+  // Hint cell border (for sketched style)
+  Color? cellHintBorder;
 
   // UI colors (replacing isDark checks)
   Color dialogTitleColor;
@@ -333,6 +337,7 @@ class SudokuTheme {
     required this.onThemeModeChange,
     required this.onThemeStyleChange,
     required this.currentStyle,
+    this.cellHintBorder,
     this.isSketchedStyle = false,
   })
   {
@@ -449,6 +454,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    cellHintBorder: const Color(0xFFD0D8E8),  // Light blue border for hint cells
     isSketchedStyle: true,
   );
 
@@ -540,6 +546,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    cellHintBorder: AppColors.paperDarkHintBorder,  // Blue-ish border for hint cells
     isSketchedStyle: true,
   );
 
