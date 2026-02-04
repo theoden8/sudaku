@@ -1069,22 +1069,15 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     return GestureDetector(
       onTap: !passCondition ? null : () {
-        Scaffold.of(ctx).openDrawer();
         this.runSetState();
         this._showTutorialMessage(
-            title: 'One of',
-            message: 'One of the cells contains a specific value.',
+            title: 'Constraint Options',
+            message: 'The panel now shows constraint options. Each constraint type works differently.',
             nextFunc: () {
               this._showTutorialMessage(
                 title: 'All different',
-                message: 'Match the selected cells with the same number of values.',
+                message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
                 nextFunc: () {
-                  this._showTutorialMessage(
-                    title: 'Instructions',
-                    message: 'Tap "All different".',
-                    nextFunc: () {
-                    }
-                  );
                 }
               );
             }
@@ -1198,6 +1191,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
     final theme = widget.sudokuThemeFunc(context);
+
+    // Show constraint choices when cells are selected
+    if (this._multiSelect != null && this._multiSelect!.cardinality > 0) {
+      return _makeConstraintChoices(ctx);
+    }
+
     var constraints = sd!.assist.constraints.where((Constraint c) {
       return c.status != Constraint.SUCCESS;
     }).toList();
@@ -1226,7 +1225,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Select cells to add constraints',
+              'Long-press cells to select',
               style: TextStyle(
                 color: mutedSecondary,
                 fontSize: 12,
@@ -1378,7 +1377,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Widget _makeDrawerItem({
+  Widget _makeConstraintChoiceButton({
     required IconData icon,
     required String title,
     required List<Color> gradientColors,
@@ -1387,26 +1386,24 @@ class SudokuScreenState extends State<SudokuScreen> {
   }) {
     final bool isEnabled = onTap != null;
     final theme = widget.sudokuThemeFunc(context);
-
-    // Disabled colors that match the theme
     final disabledBg = theme.disabledBg;
     final disabledFg = theme.disabledFg;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             gradient: isEnabled
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isHighlighted
                         ? gradientColors
-                        : [gradientColors[0].withOpacity(0.7), gradientColors[1].withOpacity(0.7)],
+                        : [gradientColors[0].withOpacity(0.8), gradientColors[1].withOpacity(0.8)],
                   )
                 : null,
             color: isEnabled ? null : disabledBg,
@@ -1414,23 +1411,31 @@ class SudokuScreenState extends State<SudokuScreen> {
                 ? [
                     BoxShadow(
                       color: gradientColors[0].withOpacity(isHighlighted ? 0.4 : 0.2),
-                      blurRadius: isHighlighted ? 12 : 6,
-                      offset: Offset(0, isHighlighted ? 4 : 2),
+                      blurRadius: isHighlighted ? 10 : 4,
+                      offset: Offset(0, isHighlighted ? 3 : 2),
                     ),
                   ]
                 : null,
           ),
-          child: ListTile(
-            leading: Icon(
-              icon,
-              color: isEnabled ? Colors.white : disabledFg,
-            ),
-            title: Text(
-              title,
-              style: TextStyle(
-                color: isEnabled ? Colors.white : disabledFg,
-                fontWeight: FontWeight.w600,
-              ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isEnabled ? Colors.white : disabledFg,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: isEnabled ? Colors.white : disabledFg,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1438,110 +1443,89 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Drawer _makeDrawer(BuildContext ctx) {
+  Widget _makeConstraintChoices(BuildContext ctx) {
     final theme = widget.sudokuThemeFunc(context);
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
+    final int selectedCount = this._multiSelect!.cardinality;
 
-    return Drawer(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      child: SafeArea(
-        child: Column(
-          children: <Widget>[
-            // Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.grid_view_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Constraints',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: theme.dialogTitleColor,
-                    ),
-                  ),
-                ],
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_circle_outline_rounded,
+                color: theme.mutedPrimary,
+                size: 20,
               ),
-            ),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            // Constraint options
-            _makeDrawerItem(
-              icon: Icons.looks_one_rounded,
-              title: 'One of',
-              gradientColors: const [AppColors.success, AppColors.successLight],
-              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-                this.interact = OneofInteraction(this);
-                await this.interact!.onSelection();
-                Navigator.pop(ctx);
-                this.runSetState();
-              },
-            ),
-            _makeDrawerItem(
-              icon: Icons.link_rounded,
-              title: 'Equivalence',
-              gradientColors: const [AppColors.constraintPurple, AppColors.constraintPurpleLight],
-              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-                this.interact = EqualInteraction(this);
-                await this.interact!.onSelection();
-                Navigator.pop(ctx);
-                this.runSetState();
-              },
-            ),
-            _makeDrawerItem(
-              icon: Icons.difference_rounded,
-              title: 'All different',
-              gradientColors: const [AppColors.accent, AppColors.accentLight],
-              onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
-                this.interact = AlldiffInteraction(this);
-                await this.interact!.onSelection();
-                Navigator.pop(ctx);
-                this.runSetState();
-              },
-              isHighlighted: isTutorialHighlight,
-            ),
-            _makeDrawerItem(
-              icon: Icons.block_rounded,
-              title: 'Eliminate',
-              gradientColors: const [AppColors.constraintOrange, AppColors.constraintOrangeLight],
-              onTap: (this._multiSelect!.cardinality < 1) ? null : () async {
-                this.interact = EliminatorInteraction(this);
-                await this.interact!.onSelection();
-                Navigator.pop(ctx);
-                this.runSetState();
-              },
-            ),
-            const Spacer(),
-            // Hint text
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Long-press cells to select multiple',
+              const SizedBox(width: 8),
+              Text(
+                '$selectedCount cell${selectedCount > 1 ? 's' : ''} selected',
                 style: TextStyle(
                   color: theme.mutedPrimary,
-                  fontSize: 12,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        // Constraint options
+        _makeConstraintChoiceButton(
+          icon: Icons.looks_one_rounded,
+          title: 'One of',
+          gradientColors: const [AppColors.success, AppColors.successLight],
+          onTap: (selectedCount < 2) ? null : () async {
+            this.interact = OneofInteraction(this);
+            await this.interact!.onSelection();
+            this.runSetState();
+          },
+        ),
+        _makeConstraintChoiceButton(
+          icon: Icons.link_rounded,
+          title: 'Equivalence',
+          gradientColors: const [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+          onTap: (selectedCount < 2) ? null : () async {
+            this.interact = EqualInteraction(this);
+            await this.interact!.onSelection();
+            this.runSetState();
+          },
+        ),
+        _makeConstraintChoiceButton(
+          icon: Icons.difference_rounded,
+          title: 'All different',
+          gradientColors: const [AppColors.accent, AppColors.accentLight],
+          onTap: (selectedCount < 2) ? null : () async {
+            this.interact = AlldiffInteraction(this);
+            await this.interact!.onSelection();
+            this.runSetState();
+          },
+          isHighlighted: isTutorialHighlight,
+        ),
+        _makeConstraintChoiceButton(
+          icon: Icons.block_rounded,
+          title: 'Eliminate',
+          gradientColors: const [AppColors.constraintOrange, AppColors.constraintOrangeLight],
+          onTap: (selectedCount < 1) ? null : () async {
+            this.interact = EliminatorInteraction(this);
+            await this.interact!.onSelection();
+            this.runSetState();
+          },
+        ),
+        const SizedBox(height: 8),
+        // Hint
+        Text(
+          'Select 2+ cells for constraints',
+          style: TextStyle(
+            color: theme.mutedSecondary,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1831,14 +1815,12 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
       ),
       centerTitle: true,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: Icon(
-            Icons.menu_rounded,
-            color: theme.iconColor,
-          ),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_rounded,
+          color: theme.iconColor,
         ),
+        onPressed: () => Navigator.of(ctx).pop(),
       ),
       actions: this._makeToolBar(ctx),
     );
@@ -1848,7 +1830,6 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: appBar,
-        drawer: this._makeDrawer(ctx),
         body: Builder(
           builder: (ctx) {
             this._scaffoldBodyContext = ctx;
