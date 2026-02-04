@@ -1429,21 +1429,25 @@ class SudokuScreenState extends State<SudokuScreen> {
                 : null,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   icon,
                   color: isEnabled ? Colors.white : disabledFg,
-                  size: 20,
+                  size: 18,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: isEnabled ? Colors.white : disabledFg,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: isEnabled ? Colors.white : disabledFg,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
