@@ -1068,20 +1068,28 @@ class SudokuScreenState extends State<SudokuScreen> {
         : [AppColors.warning, AppColors.warningLight]; // Orange when selecting
 
     return GestureDetector(
-      onTap: !passCondition ? null : () {
-        this.runSetState();
-        this._showTutorialMessage(
-            title: 'Constraint Options',
-            message: 'The panel now shows constraint options. Each constraint type works differently.',
-            nextFunc: () {
-              this._showTutorialMessage(
-                title: 'All different',
-                message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
-                nextFunc: () {
-                }
-              );
-            }
-        );
+      onTap: () {
+        if (passCondition) {
+          this.runSetState();
+          this._showTutorialMessage(
+              title: 'Constraint Options',
+              message: 'The panel now shows constraint options. Each constraint type works differently.',
+              nextFunc: () {
+                this._showTutorialMessage(
+                  title: 'All different',
+                  message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
+                  nextFunc: () {
+                  }
+                );
+              }
+          );
+        } else {
+          this._showTutorialMessage(
+              title: 'Select cells',
+              message: 'Long-press on the highlighted cells to select them. These cells form a constraint group.',
+              nextFunc: () {}
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -1738,27 +1746,30 @@ class SudokuScreenState extends State<SudokuScreen> {
     if (showTutorialButton) {
       if (isPortrait) {
         // Portrait: constraint list on left, tutorial button on right (Row)
-        secondaryContent = SingleChildScrollView(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: this._makeConstraintList(ctx)),
-              const SizedBox(width: 8),
-              this._makeTutorialButton(ctx),
-            ],
-          ),
+        secondaryContent = Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: this._makeConstraintList(ctx),
+              ),
+            ),
+            const SizedBox(width: 8),
+            this._makeTutorialButton(ctx),
+          ],
         );
       } else {
         // Landscape: constraint list on top, tutorial button at bottom (Column)
-        secondaryContent = SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              this._makeConstraintList(ctx),
-              const SizedBox(height: 8),
-              this._makeTutorialButton(ctx),
-            ],
-          ),
+        secondaryContent = Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: this._makeConstraintList(ctx),
+              ),
+            ),
+            const SizedBox(height: 8),
+            this._makeTutorialButton(ctx),
+          ],
         );
       }
     } else {
