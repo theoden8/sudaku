@@ -435,8 +435,9 @@ class SudokuScreenState extends State<SudokuScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
                         _buildThemeChip(
                           icon: Icons.wb_sunny,
@@ -448,7 +449,6 @@ class SudokuScreenState extends State<SudokuScreen> {
                             setState(() {});
                           },
                         ),
-                        const SizedBox(width: 6),
                         _buildThemeChip(
                           icon: Icons.nights_stay,
                           label: 'Dark',
@@ -459,7 +459,6 @@ class SudokuScreenState extends State<SudokuScreen> {
                             setState(() {});
                           },
                         ),
-                        const SizedBox(width: 6),
                         _buildThemeChip(
                           icon: Icons.phone_android,
                           label: 'Auto',
@@ -482,8 +481,9 @@ class SudokuScreenState extends State<SudokuScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
                         _buildThemeChip(
                           icon: Icons.auto_awesome,
@@ -495,7 +495,6 @@ class SudokuScreenState extends State<SudokuScreen> {
                             setState(() {});
                           },
                         ),
-                        const SizedBox(width: 6),
                         _buildThemeChip(
                           icon: Icons.edit_note,
                           label: 'Paper',
