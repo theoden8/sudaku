@@ -1775,7 +1775,9 @@ class SudokuScreenState extends State<SudokuScreen> {
         );
       }
     } else {
-      secondaryContent = this._makeConstraintList(ctx);
+      secondaryContent = SingleChildScrollView(
+        child: this._makeConstraintList(ctx),
+      );
     }
 
     // Wrap secondary content with max-width constraint for readability
