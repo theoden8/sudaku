@@ -349,7 +349,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             ],
           ),
           content: Text(
-            'This will clear all your progress. This action cannot be undone.',
+            'Reset the puzzle or return to grid selection.',
             style: TextStyle(
               color: theme.dialogTextColor,
             ),
@@ -366,6 +366,20 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(ctx).pop();
+              }
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: theme.dialogTextColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Main Menu'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
               }
             ),
             TextButton(
@@ -868,7 +882,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   bool _showTutorial = false;
   int _tutorialStage = 0;
-  bool _tutorialDialogShown = false;
+  // Static so it persists across screen instances (survives navigation)
+  static bool _tutorialDialogShownThisSession = false;
 
   BitArray? _tutorialCells = null;
   void _selectTutorialCells() {
@@ -1793,12 +1808,11 @@ class SudokuScreenState extends State<SudokuScreen> {
         this.runSetState();
       });
       this._multiSelect = BitArray(sd!.ne4);
-      this._tutorialDialogShown = false;
     }
 
-    // Show tutorial offer dialog once after sudoku is initialized
-    if (!_tutorialDialogShown) {
-      _tutorialDialogShown = true;
+    // Show tutorial offer dialog once per session (not after reset or navigation)
+    if (!_tutorialDialogShownThisSession) {
+      _tutorialDialogShownThisSession = true;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         _showTutorialOfferDialog();
       });
