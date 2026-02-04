@@ -1736,15 +1736,15 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     Widget secondaryContent;
     if (showTutorialButton) {
-      secondaryContent = Column(
-        children: [
-          Flexible(
-            flex: 0,
-            child: this._makeTutorialButton(ctx),
-          ),
-          const SizedBox(height: 4),
-          Expanded(child: this._makeConstraintList(ctx)),
-        ],
+      secondaryContent = SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            this._makeTutorialButton(ctx),
+            const SizedBox(height: 4),
+            this._makeConstraintList(ctx),
+          ],
+        ),
       );
     } else {
       secondaryContent = this._makeConstraintList(ctx);
