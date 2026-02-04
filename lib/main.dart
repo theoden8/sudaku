@@ -15,6 +15,12 @@ import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 
 
+/// Theme style options
+enum ThemeStyle {
+  modern,
+  penAndPaper,
+}
+
 /// Consistent color palette for the app
 /// Used across all screens to maintain visual language
 class AppColors {
@@ -76,6 +82,26 @@ class AppColors {
   static const Color numpadAvailableDark = Color(0xFF1976D2);   // Darker blue for available
   static const Color numpadSelectedLight = Color(0xFF90CAF9);   // Light blue for selection
   static const Color numpadSelectedDark = Color(0xFF64B5F6);    // Medium light blue for dark theme selection
+
+  // Pen-and-paper theme colors - Light
+  static const Color paperBackground = Color(0xFFFAF8F5);       // Warm cream paper
+  static const Color paperSurface = Color(0xFFF5F2ED);          // Slightly darker paper
+  static const Color paperInk = Color(0xFF2C2C2C);              // Dark ink
+  static const Color paperInkLight = Color(0xFF5C5C5C);         // Lighter ink for hints
+  static const Color paperPencil = Color(0xFF888888);           // Pencil gray for inferred
+  static const Color paperSelection = Color(0xFFE8E4DC);        // Subtle selection
+  static const Color paperHint = Color(0xFFEDE9E0);             // Hint cell background
+  static const Color paperGridLine = Color(0xFFCCC8C0);         // Grid lines
+
+  // Pen-and-paper theme colors - Dark
+  static const Color paperDarkBackground = Color(0xFF1E1C1A);   // Dark warm paper
+  static const Color paperDarkSurface = Color(0xFF2A2826);      // Slightly lighter dark paper
+  static const Color paperDarkInk = Color(0xFFE8E4DC);          // Light ink on dark
+  static const Color paperDarkInkLight = Color(0xFFB8B4AC);     // Lighter ink
+  static const Color paperDarkPencil = Color(0xFF888880);       // Pencil for inferred
+  static const Color paperDarkSelection = Color(0xFF3A3836);    // Subtle selection
+  static const Color paperDarkHint = Color(0xFF323028);         // Hint cell background
+  static const Color paperDarkGridLine = Color(0xFF4A4840);     // Grid lines
 }
 
 void main() => runApp(SudokuApp());
@@ -86,7 +112,9 @@ class SudokuApp extends StatefulWidget {
 }
 
 class SudokuTheme {
-  Function(ThemeMode themeMode) onChange;
+  Function(ThemeMode themeMode) onThemeModeChange;
+  Function(ThemeStyle themeStyle) onThemeStyleChange;
+  ThemeStyle currentStyle;
 
   Color? blue, veryBlue, green, yellow, veryYellow, orange, red, veryRed, purple, cyan;
 
@@ -142,7 +170,9 @@ class SudokuTheme {
     required this.numpadTextOnLight,
     required this.numpadTextOnColored,
     required this.numpadSelected,
-    required this.onChange,
+    required this.onThemeModeChange,
+    required this.onThemeStyleChange,
+    required this.currentStyle,
   })
   {
     this.buttonForeground = Colors.black;
@@ -156,6 +186,7 @@ class SudokuTheme {
 
 class _SudokuAppState extends State<SudokuApp> {
   ThemeMode _themeMode = ThemeMode.system;
+  ThemeStyle _themeStyle = ThemeStyle.modern;
 
   void _setThemeMode(ThemeMode themeMode) {
     setState(() {
@@ -163,7 +194,14 @@ class _SudokuAppState extends State<SudokuApp> {
     });
   }
 
-  SudokuTheme getLightTheme() => SudokuTheme(
+  void _setThemeStyle(ThemeStyle themeStyle) {
+    setState(() {
+      _themeStyle = themeStyle;
+    });
+  }
+
+  // Modern Light Theme
+  SudokuTheme getLightModernTheme() => SudokuTheme(
     blue: Colors.blue[100],
     veryBlue: Colors.blue[200],
     green: Colors.green[100],
@@ -180,7 +218,6 @@ class _SudokuAppState extends State<SudokuApp> {
     cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.lightCellSelection,
-    // Numpad colors for light theme - darker blue available, lighter blue selected
     numpadAvailable: AppColors.numpadAvailableDark,
     numpadAvailableActive: AppColors.accent,
     numpadForbidden: AppColors.errorLight,
@@ -191,27 +228,62 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: AppColors.numpadSelectedLight,
-    onChange: _setThemeMode,
+    onThemeModeChange: _setThemeMode,
+    onThemeStyleChange: _setThemeStyle,
+    currentStyle: _themeStyle,
   );
 
-  SudokuTheme getDarkTheme() => SudokuTheme(
-    blue: Color(0xFF449FCC),
+  // Pen-and-Paper Light Theme - warm, minimalist, classic feel
+  SudokuTheme getLightPenAndPaperTheme() => SudokuTheme(
+    blue: const Color(0xFFD0D8E8),      // Muted blue-gray
+    veryBlue: const Color(0xFFC0C8D8),
+    green: const Color(0xFFD8E0D0),     // Muted sage
+    yellow: const Color(0xFFE8E0C8),    // Muted cream
+    veryYellow: const Color(0xFFE0D8C0),
+    orange: const Color(0xFFE8D8C8),    // Muted peach
+    red: const Color(0xFFE0D0D0),       // Muted rose
+    veryRed: const Color(0xFFD8C0C0),
+    purple: const Color(0xFFD8D0E0),    // Muted lavender
+    cyan: const Color(0xFFD0E0E0),      // Muted teal
+    foreground: AppColors.paperInk,
+    cellForeground: AppColors.paperInk,
+    cellInferColor: AppColors.paperPencil,
+    cellHintColor: AppColors.paperHint,
+    cellBackground: AppColors.paperBackground,
+    cellSelectionColor: AppColors.paperSelection,
+    numpadAvailable: const Color(0xFF5C5C5C),     // Ink gray
+    numpadAvailableActive: const Color(0xFF3C3C3C),
+    numpadForbidden: const Color(0xFFB8A8A8),     // Muted rose
+    numpadForbiddenActive: const Color(0xFF988888),
+    numpadUnconstrained: const Color(0xFFB8B098), // Muted tan
+    numpadDisabledBg: AppColors.paperSurface,
+    numpadDisabledFg: const Color(0xFFBBBBAA),
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: Colors.white,
+    numpadSelected: const Color(0xFFD8D0C0),      // Warm highlight
+    onThemeModeChange: _setThemeMode,
+    onThemeStyleChange: _setThemeStyle,
+    currentStyle: _themeStyle,
+  );
+
+  // Modern Dark Theme
+  SudokuTheme getDarkModernTheme() => SudokuTheme(
+    blue: const Color(0xFF449FCC),
     veryBlue: Colors.blue[200],
-    green: Color(0xFF44AA66),
-    yellow: Color(0xFFBBAA44),
-    veryYellow: Color(0xFFBBAA66),
-    orange: Color(0xFFEEAA55),
-    red: Color(0xFFCC6666),
-    veryRed: Color(0xFFAA4444),
-    purple: Color(0xFF9944AA),
-    cyan: Color(0xFF449999),
+    green: const Color(0xFF44AA66),
+    yellow: const Color(0xFFBBAA44),
+    veryYellow: const Color(0xFFBBAA66),
+    orange: const Color(0xFFEEAA55),
+    red: const Color(0xFFCC6666),
+    veryRed: const Color(0xFFAA4444),
+    purple: const Color(0xFF9944AA),
+    cyan: const Color(0xFF449999),
     foreground: Colors.grey[200],
     cellForeground: Colors.grey[300],
     cellInferColor: AppColors.darkCellInferText,
     cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.darkCellSelection,
-    // Numpad colors for dark theme - darker blue available, lighter blue selected
     numpadAvailable: AppColors.numpadAvailableDark,
     numpadAvailableActive: AppColors.accent,
     numpadForbidden: AppColors.errorLight,
@@ -222,28 +294,68 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: AppColors.numpadSelectedDark,
-    onChange: _setThemeMode,
+    onThemeModeChange: _setThemeMode,
+    onThemeStyleChange: _setThemeStyle,
+    currentStyle: _themeStyle,
+  );
+
+  // Pen-and-Paper Dark Theme - warm, minimalist, classic feel on dark background
+  SudokuTheme getDarkPenAndPaperTheme() => SudokuTheme(
+    blue: const Color(0xFF4A5868),      // Muted slate blue
+    veryBlue: const Color(0xFF5A6878),
+    green: const Color(0xFF4A5848),     // Muted forest
+    yellow: const Color(0xFF585848),    // Muted olive
+    veryYellow: const Color(0xFF686858),
+    orange: const Color(0xFF685848),    // Muted brown
+    red: const Color(0xFF584848),       // Muted burgundy
+    veryRed: const Color(0xFF684858),
+    purple: const Color(0xFF504858),    // Muted plum
+    cyan: const Color(0xFF485858),      // Muted teal
+    foreground: AppColors.paperDarkInk,
+    cellForeground: AppColors.paperDarkInk,
+    cellInferColor: AppColors.paperDarkPencil,
+    cellHintColor: AppColors.paperDarkHint,
+    cellBackground: AppColors.paperDarkBackground,
+    cellSelectionColor: AppColors.paperDarkSelection,
+    numpadAvailable: const Color(0xFFB8B4AC),     // Light ink
+    numpadAvailableActive: const Color(0xFFE8E4DC),
+    numpadForbidden: const Color(0xFF786868),     // Muted rose
+    numpadForbiddenActive: const Color(0xFF685858),
+    numpadUnconstrained: const Color(0xFF787060), // Muted tan
+    numpadDisabledBg: AppColors.paperDarkSurface,
+    numpadDisabledFg: const Color(0xFF585850),
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: const Color(0xFF1E1C1A),
+    numpadSelected: const Color(0xFF4A4840),      // Warm highlight
+    onThemeModeChange: _setThemeMode,
+    onThemeStyleChange: _setThemeStyle,
+    currentStyle: _themeStyle,
   );
 
   SudokuTheme getSudokuTheme(BuildContext context) {
-    if(Theme.of(context).brightness == Brightness.light) {
-      return getLightTheme();
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final isPenAndPaper = _themeStyle == ThemeStyle.penAndPaper;
+
+    if (isLight) {
+      return isPenAndPaper ? getLightPenAndPaperTheme() : getLightModernTheme();
     } else {
-      return getDarkTheme();
+      return isPenAndPaper ? getDarkPenAndPaperTheme() : getDarkModernTheme();
     }
   }
 
   @override
   Widget build(BuildContext ctx) {
+    final isPenAndPaper = _themeStyle == ThemeStyle.penAndPaper;
+
     return MaterialApp(
       title: 'Sudoku',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light().copyWith(
-        primaryColor: AppColors.primaryPurple,
+        primaryColor: isPenAndPaper ? AppColors.paperInk : AppColors.primaryPurple,
         colorScheme: ColorScheme.light().copyWith(
-          primary: AppColors.primaryPurple,
-          secondary: AppColors.secondaryPurple,
-          surface: AppColors.lightBackground,
+          primary: isPenAndPaper ? AppColors.paperInk : AppColors.primaryPurple,
+          secondary: isPenAndPaper ? AppColors.paperInkLight : AppColors.secondaryPurple,
+          surface: isPenAndPaper ? AppColors.paperSurface : AppColors.lightBackground,
         ),
         textTheme: ThemeData.light().textTheme.copyWith(
         ),
@@ -252,18 +364,18 @@ class _SudokuAppState extends State<SudokuApp> {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           }
         ),
-        scaffoldBackgroundColor: AppColors.lightBackground,
+        scaffoldBackgroundColor: isPenAndPaper ? AppColors.paperBackground : AppColors.lightBackground,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
       ),
       darkTheme: ThemeData.dark().copyWith(
-        primaryColor: AppColors.primaryPurple,
+        primaryColor: isPenAndPaper ? AppColors.paperDarkInk : AppColors.primaryPurple,
         colorScheme: ColorScheme.dark().copyWith(
-          primary: AppColors.primaryPurple,
-          secondary: AppColors.secondaryPurple,
-          surface: AppColors.darkSurface,
+          primary: isPenAndPaper ? AppColors.paperDarkInk : AppColors.primaryPurple,
+          secondary: isPenAndPaper ? AppColors.paperDarkInkLight : AppColors.secondaryPurple,
+          surface: isPenAndPaper ? AppColors.paperDarkSurface : AppColors.darkSurface,
         ),
         textTheme: ThemeData.dark().textTheme.copyWith(
         ),
@@ -272,7 +384,7 @@ class _SudokuAppState extends State<SudokuApp> {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           }
         ),
-        scaffoldBackgroundColor: AppColors.darkBackground,
+        scaffoldBackgroundColor: isPenAndPaper ? AppColors.paperDarkBackground : AppColors.darkBackground,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,

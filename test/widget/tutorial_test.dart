@@ -40,7 +40,9 @@ Widget createTestApp({required Widget child}) {
           numpadTextOnLight: Colors.black87,
           numpadTextOnColored: Colors.white,
           numpadSelected: Colors.green[400],
-          onChange: (_) {},
+          onThemeModeChange: (_) {},
+          onThemeStyleChange: (_) {},
+          currentStyle: ThemeStyle.modern,
         ),
       ),
     },
@@ -75,7 +77,9 @@ SudokuTheme getTestTheme(BuildContext ctx) {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: Colors.green[400],
-    onChange: (_) {},
+    onThemeModeChange: (_) {},
+    onThemeStyleChange: (_) {},
+    currentStyle: ThemeStyle.modern,
   );
 }
 
@@ -182,15 +186,10 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Should find theme toggle icon (sun for light mode, moon for dark)
-      final sunIcon = find.byIcon(Icons.wb_sunny);
-      final moonIcon = find.byIcon(Icons.nights_stay);
+      // Should find the palette icon for theme settings popup
+      final paletteIcon = find.byIcon(Icons.palette);
 
-      // One of them should exist
-      expect(
-        sunIcon.evaluate().isNotEmpty || moonIcon.evaluate().isNotEmpty,
-        isTrue,
-      );
+      expect(paletteIcon, findsOneWidget);
     });
   });
 

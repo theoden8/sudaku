@@ -1307,17 +1307,139 @@ class SudokuScreenState extends State<SudokuScreen> {
           }
         },
       ),
-      IconButton(
-        icon: Icon(isDark ? Icons.wb_sunny : Icons.nights_stay, color: iconColor),
-        onPressed: () async {
+      PopupMenuButton<String>(
+        icon: Icon(Icons.palette, color: iconColor),
+        onSelected: (value) {
           final theme = this.widget.sudokuThemeFunc(ctx);
           setState(() {
-            if (isDark) {
-              theme.onChange(ThemeMode.light);
-            } else {
-              theme.onChange(ThemeMode.dark);
+            switch (value) {
+              case 'light':
+                theme.onThemeModeChange(ThemeMode.light);
+                break;
+              case 'dark':
+                theme.onThemeModeChange(ThemeMode.dark);
+                break;
+              case 'system':
+                theme.onThemeModeChange(ThemeMode.system);
+                break;
+              case 'modern':
+                theme.onThemeStyleChange(ThemeStyle.modern);
+                break;
+              case 'penAndPaper':
+                theme.onThemeStyleChange(ThemeStyle.penAndPaper);
+                break;
             }
           });
+        },
+        itemBuilder: (context) {
+          final theme = this.widget.sudokuThemeFunc(ctx);
+          return [
+            PopupMenuItem(
+              enabled: false,
+              child: Text(
+                'BRIGHTNESS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                ),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'light',
+              child: Row(
+                children: [
+                  Icon(Icons.wb_sunny, size: 20),
+                  SizedBox(width: 12),
+                  Text('Light'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'dark',
+              child: Row(
+                children: [
+                  Icon(Icons.nights_stay, size: 20),
+                  SizedBox(width: 12),
+                  Text('Dark'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'system',
+              child: Row(
+                children: [
+                  Icon(Icons.settings_brightness, size: 20),
+                  SizedBox(width: 12),
+                  Text('System'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              enabled: false,
+              child: Text(
+                'STYLE',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                ),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'modern',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 20,
+                    color: theme.currentStyle == ThemeStyle.modern
+                        ? AppColors.primaryPurple
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Modern',
+                    style: TextStyle(
+                      fontWeight: theme.currentStyle == ThemeStyle.modern
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: theme.currentStyle == ThemeStyle.modern
+                          ? AppColors.primaryPurple
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'penAndPaper',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.edit_note,
+                    size: 20,
+                    color: theme.currentStyle == ThemeStyle.penAndPaper
+                        ? AppColors.primaryPurple
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Pen & Paper',
+                    style: TextStyle(
+                      fontWeight: theme.currentStyle == ThemeStyle.penAndPaper
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: theme.currentStyle == ThemeStyle.penAndPaper
+                          ? AppColors.primaryPurple
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ];
         },
       ),
       PopupMenuButton<int>(
