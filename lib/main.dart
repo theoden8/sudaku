@@ -72,9 +72,10 @@ class AppColors {
   static const Color darkCellSelection = Color(0xFF4a4a7e);  // Selected cell background (dark) - more blue
   static const Color lightCellSelection = Color(0xFFD8D8E8); // Selected cell background (light) - subtle gray
 
-  // Numpad selection colors (distinct from available)
-  static const Color numpadSelectedLight = Color(0xFF66BB6A);  // Bright green for selection
-  static const Color numpadSelectedDark = Color(0xFF4CAF50);   // Medium green for dark theme
+  // Numpad colors - darker blue for available, lighter blue for selected
+  static const Color numpadAvailableDark = Color(0xFF1976D2);   // Darker blue for available
+  static const Color numpadSelectedLight = Color(0xFF90CAF9);   // Light blue for selection
+  static const Color numpadSelectedDark = Color(0xFF64B5F6);    // Medium light blue for dark theme selection
 }
 
 void main() => runApp(SudokuApp());
@@ -179,8 +180,8 @@ class _SudokuAppState extends State<SudokuApp> {
     cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.lightCellSelection,
-    // Numpad colors for light theme
-    numpadAvailable: AppColors.accentLight,
+    // Numpad colors for light theme - darker blue available, lighter blue selected
+    numpadAvailable: AppColors.numpadAvailableDark,
     numpadAvailableActive: AppColors.accent,
     numpadForbidden: AppColors.errorLight,
     numpadForbiddenActive: AppColors.error,
@@ -210,8 +211,8 @@ class _SudokuAppState extends State<SudokuApp> {
     cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.darkCellSelection,
-    // Numpad colors for dark theme
-    numpadAvailable: AppColors.accentLight,
+    // Numpad colors for dark theme - darker blue available, lighter blue selected
+    numpadAvailable: AppColors.numpadAvailableDark,
     numpadAvailableActive: AppColors.accent,
     numpadForbidden: AppColors.errorLight,
     numpadForbiddenActive: AppColors.error,
