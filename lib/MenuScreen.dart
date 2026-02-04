@@ -36,9 +36,9 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
   void initState() {
     super.initState();
     _selectionPulseController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
-    );
+    )..repeat(); // Run continuously for smooth animation
   }
 
   @override
@@ -74,15 +74,15 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             final bool isEvenBox = (boxRow + boxCol) % 2 == 0;
 
             if (animate) {
-              // Create wave animation effect based on cell position
-              final double delay = (row + col) / (gridSize * 2);
+              // Create smooth continuous wave animation based on cell position
+              final double cellDelay = (row + col) / (gridSize * 2);
               return AnimatedBuilder(
                 animation: _selectionPulseController,
                 builder: (context, child) {
-                  // Calculate wave effect
-                  final double progress = (_selectionPulseController.value - delay).clamp(0.0, 1.0);
-                  final double wave = sin(progress * 3.14159) * 0.3;
-                  final double opacity = isEvenBox ? 0.3 + wave : 0.2 + wave * 0.5;
+                  // Continuous wave that wraps around smoothly
+                  final double phase = (_selectionPulseController.value + cellDelay) * 2 * 3.14159;
+                  final double wave = (sin(phase) + 1) / 2 * 0.35; // 0 to 0.35 range
+                  final double opacity = isEvenBox ? 0.25 + wave : 0.15 + wave * 0.6;
 
                   return Container(
                     decoration: BoxDecoration(
@@ -153,14 +153,8 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (_selectedSize == n) {
-            _selectedSize = -1;
-            _selectionPulseController.stop();
-            _selectionPulseController.reset();
-          } else {
-            _selectedSize = n;
-            _selectionPulseController.repeat();
-          }
+          // Simply toggle selection - animation runs continuously
+          _selectedSize = (_selectedSize == n) ? -1 : n;
         });
       },
       child: AnimatedContainer(
