@@ -45,7 +45,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: Theme.of(ctx).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(

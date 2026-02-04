@@ -140,7 +140,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -295,7 +295,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -419,7 +419,6 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuCellImmutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
     int sdval = sd![index];
     return Card(
       margin: const EdgeInsets.all(0.0),
@@ -434,7 +433,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             style: TextStyle(
               fontSize: sz * 0.85,
               height: 1.0,
-              color: isDark ? Colors.white : Colors.black87,
+              color: theme.cellForeground,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -602,7 +601,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -665,7 +664,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -1051,7 +1050,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? AppColors.darkSurfaceLight : const Color(0xFFDDDDEE),
+              backgroundColor: Theme.of(context).colorScheme.surface,
               foregroundColor: isDark ? AppColors.darkDialogText : AppColors.lightCancelButton,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1540,7 +1539,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: this._makeSudokuGridContent(ctx, gridSize),
         ),
       ),
