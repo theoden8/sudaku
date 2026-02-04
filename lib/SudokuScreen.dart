@@ -1431,22 +1431,20 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     // Calculate optimal grid size based on orientation
     double gridSize;
-    // Maximum grid size to ensure constraint list fits on tablets/large screens
-    const double maxGridSize = 500.0;
+
+    // Minimum width needed for the constraint list to be readable
+    const double minConstraintListWidth = 200.0;
 
     if (isPortrait) {
-      // In portrait, use full width for grid, leave space for controls below
+      // In portrait, constraint list is below so grid can use full width
       gridSize = min(availableWidth, availableHeight * 0.65);
     } else {
-      // In landscape, use full height for grid, leave space for controls on side
-      // Reserve at least 200px for constraint list
-      final double maxForConstraintList = availableWidth - 200;
-      gridSize = min(availableHeight, min(availableWidth * 0.6, maxForConstraintList));
+      // In landscape, grid limited by height and must leave space for constraint list
+      gridSize = min(availableHeight, availableWidth - minConstraintListWidth);
     }
 
-    // Ensure grid doesn't exceed available space or max size
+    // Ensure grid doesn't exceed available space
     gridSize = min(gridSize, min(availableWidth, availableHeight));
-    gridSize = min(gridSize, maxGridSize);
 
     // Ensure minimum grid size for playability
     final minGridSize = 200.0;
