@@ -1,0 +1,6 @@
+## changes
+
+* revamped UI/UX
+* added light/dark themes with modern and pen-and-paper styles
+* fixed assistant constraint cancellation bug
+* show open source licenses

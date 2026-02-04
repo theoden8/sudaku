@@ -436,6 +436,32 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
               ),
             ],
           ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.iconColor,
+            ),
+            onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'licenses',
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Licenses'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: SafeArea(
@@ -860,6 +886,32 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                             : null,
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.iconColor,
+            ),
+            onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'licenses',
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Licenses'),
                   ],
                 ),
               ),

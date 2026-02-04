@@ -1568,7 +1568,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       TOOLBAR_ASSIST = 0,
       TOOLBAR_TUTOR = 1,
       TOOLBAR_RESET = 2,
-      TOOLBAR_THEME = 3;
+      TOOLBAR_THEME = 3,
+      TOOLBAR_LICENSE = 4;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo_rounded, color: iconColor),
@@ -1613,6 +1614,12 @@ class SudokuScreenState extends State<SudokuScreen> {
             case TOOLBAR_THEME:
               this._showThemeDialog(ctx);
             break;
+            case TOOLBAR_LICENSE:
+              showLicensePage(
+                context: ctx,
+                applicationName: 'Sudaku',
+              );
+            break;
           }
         },
         itemBuilder: (BuildContext ctx) => <PopupMenuEntry<int>>[
@@ -1653,6 +1660,17 @@ class SudokuScreenState extends State<SudokuScreen> {
                 Icon(Icons.refresh_rounded, size: 20),
                 SizedBox(width: 12),
                 Text('Reset'),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: TOOLBAR_LICENSE,
+            child: Row(
+              children: [
+                Icon(Icons.description_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Licenses'),
               ],
             ),
           ),
