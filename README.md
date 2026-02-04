@@ -1,24 +1,41 @@
 # sudaku
 
-![](./assets/icon.png)
+<p align="center">
+  <img src="./assets/icon.png" alt="Sudaku" width="128">
+</p>
+
+<p align="center">
+  <a href="https://github.com/theoden8/sudaku/actions/workflows/build.yml">
+    <img src="https://github.com/theoden8/sudaku/actions/workflows/build.yml/badge.svg" alt="Build">
+  </a>
+  <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
+    <img src="https://img.shields.io/f-droid/v/com.gitea.theoden8.sudaku" alt="F-Droid">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
+    <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
+  </a>
+</p>
 
 ## About
-
-[<img src="https://f-droid.org/badge/get-it-on.png"
-      alt="Get it on F-Droid"
-      height="80">](https://f-droid.org/packages/com.gitea.theoden8.sudaku/)
 
 Sudaku is a constraint-based sudoku assistant that lets you define logical rules and relationships between cells. Instead of manually propagating obvious implications when testing hypotheses, you can express patterns using constraints like `alldifferent`, `one-of`, and value elimination. The app automatically handles the mechanical work of propagating these rules, letting you focus on the logical reasoning.
 
 This isn't a solver - you remain in full control of your logic and strategy. Sudaku simply automates the tedious bookkeeping that comes with exploring different possibilities.
 
-![solving](./screenshots/solving.jpg)
+## Screenshots
+
+<p align="center">
+  <img src="./screenshots/solving.jpg" alt="Solving" width="45%">
+  &nbsp;&nbsp;
+  <img src="./screenshots/selecting-constraint.jpg" alt="Selecting constraint" width="45%">
+</p>
 
 ## Why Not Use a Solver?
 
 Sudaku is designed as an assistant, not a solver. It doesn't brute-force solutions or impose strong arc consistency algorithms. You define the rules based on your own reasoning, and the app propagates the consequences of those rules. You remain in control of the solving strategy - and responsible for any logical mistakes you make.
-
-![selecting-constraint](./screenshots/selecting-constraint.jpg)
 
 ## Technology
 
@@ -29,14 +46,14 @@ Built with [Flutter](https://flutter.dev/) for cross-platform support on Android
 * **Android** (apk)
 
 ```bash
-flutter build apk --release --split-per-api
+fvm flutter build apk --release --split-per-api
 ```
 
 * **MacOS** (app)
 
 ```bash
-flutter create --platforms=windows,macos,linux .
-flutter build macos --release
+fvm flutter create --platforms=windows,macos,linux .
+fvm flutter build macos --release
 # find . -name "*.app"
 ```
 
@@ -44,8 +61,8 @@ flutter build macos --release
 
 ```bash
 # requires appimagetool, appimage-builder
-flutter create --platforms=windows,macos,linux .
-flutter build linux --release
+fvm flutter create --platforms=windows,macos,linux .
+fvm flutter build linux --release
 appimage-builder --skip-test
 ```
 
