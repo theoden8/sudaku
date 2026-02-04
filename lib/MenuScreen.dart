@@ -556,10 +556,10 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
 
             return Stack(
               children: [
-                // Decorative background grids
+                // Decorative background grids - positioned to avoid app bar
                 Positioned(
-                  top: -decorSize * 0.25,
-                  left: -decorSize * 0.25,
+                  top: availableHeight * 0.15,
+                  left: -decorSize * 0.4,
                   child: Transform.rotate(
                     angle: -0.2,
                     child: _buildDecorationGrid(
