@@ -46,14 +46,14 @@ Built with [Flutter](https://flutter.dev/) for cross-platform support on Android
 * **Android** (apk)
 
 ```bash
-flutter build apk --release --split-per-api
+fvm flutter build apk --release --split-per-api
 ```
 
 * **MacOS** (app)
 
 ```bash
-flutter create --platforms=windows,macos,linux .
-flutter build macos --release
+fvm flutter create --platforms=windows,macos,linux .
+fvm flutter build macos --release
 # find . -name "*.app"
 ```
 
@@ -61,8 +61,8 @@ flutter build macos --release
 
 ```bash
 # requires appimagetool, appimage-builder
-flutter create --platforms=windows,macos,linux .
-flutter build linux --release
+fvm flutter create --platforms=windows,macos,linux .
+fvm flutter build linux --release
 appimage-builder --skip-test
 ```
 
