@@ -133,24 +133,34 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showVictoryDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD700), size: 32),
-              SizedBox(width: 12),
+              const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD700), size: 32),
+              const SizedBox(width: 12),
               Text(
                 'Victory!',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
               ),
             ],
           ),
-          content: const Text('Congratulations on solving the puzzle!'),
+          content: Text(
+            'Congratulations on solving the puzzle!',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+            ),
+          ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
@@ -278,28 +288,38 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showResetDialog(BuildContext ctx) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFFF9800), size: 28),
-              SizedBox(width: 12),
+              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF9800), size: 28),
+              const SizedBox(width: 12),
               Text(
                 'Reset Puzzle',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
               ),
             ],
           ),
-          content: const Text('This will clear all your progress. This action cannot be undone.'),
+          content: Text(
+            'This will clear all your progress. This action cannot be undone.',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+            ),
+          ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[600],
+                foregroundColor: isDark ? const Color(0xFF8888AA) : const Color(0xFF666688),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -560,11 +580,13 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -584,12 +606,20 @@ class SudokuScreenState extends State<SudokuScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
               ),
             ],
           ),
-          content: Text(message),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+            ),
+          ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
@@ -811,6 +841,10 @@ class SudokuScreenState extends State<SudokuScreen> {
       return c.status != Constraint.SUCCESS;
     }).toList();
 
+    // Theme-aware muted colors
+    final mutedPrimary = isDark ? const Color(0xFF5a5a8e) : const Color(0xFF9999AA);
+    final mutedSecondary = isDark ? const Color(0xFF4a4a6e) : const Color(0xFFBBBBCC);
+
     if (constraints.isEmpty) {
       return Center(
         child: Column(
@@ -819,13 +853,13 @@ class SudokuScreenState extends State<SudokuScreen> {
             Icon(
               Icons.playlist_add_rounded,
               size: 48,
-              color: isDark ? Colors.white24 : Colors.black26,
+              color: mutedSecondary,
             ),
             const SizedBox(height: 12),
             Text(
               'No constraints yet',
               style: TextStyle(
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: mutedPrimary,
                 fontSize: 14,
               ),
             ),
@@ -833,7 +867,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             Text(
               'Select cells to add constraints',
               style: TextStyle(
-                color: isDark ? Colors.white24 : Colors.black26,
+                color: mutedSecondary,
                 fontSize: 12,
               ),
             ),
@@ -959,8 +993,8 @@ class SudokuScreenState extends State<SudokuScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.white24 : Colors.black12,
-              foregroundColor: isDark ? Colors.white : Colors.black87,
+              backgroundColor: isDark ? const Color(0xFF3a3a5e) : const Color(0xFFDDDDEE),
+              foregroundColor: isDark ? const Color(0xFFAAAACC) : const Color(0xFF666688),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -991,6 +1025,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     bool isHighlighted = false,
   }) {
     final bool isEnabled = onTap != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Disabled colors that match the theme
+    final disabledBg = isDark ? const Color(0xFF2a2a4e) : const Color(0xFFE8E8E8);
+    final disabledFg = isDark ? const Color(0xFF5a5a7e) : const Color(0xFFAAAAAA);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: GestureDetector(
@@ -1008,7 +1048,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                         : [gradientColors[0].withOpacity(0.7), gradientColors[1].withOpacity(0.7)],
                   )
                 : null,
-            color: isEnabled ? null : Colors.grey[300],
+            color: isEnabled ? null : disabledBg,
             boxShadow: isEnabled
                 ? [
                     BoxShadow(
@@ -1022,12 +1062,12 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ListTile(
             leading: Icon(
               icon,
-              color: isEnabled ? Colors.white : Colors.grey[500],
+              color: isEnabled ? Colors.white : disabledFg,
             ),
             title: Text(
               title,
               style: TextStyle(
-                color: isEnabled ? Colors.white : Colors.grey[500],
+                color: isEnabled ? Colors.white : disabledFg,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1132,7 +1172,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: Text(
                 'Long-press cells to select multiple',
                 style: TextStyle(
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: isDark ? const Color(0xFF5a5a8e) : const Color(0xFF9999AA),
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
