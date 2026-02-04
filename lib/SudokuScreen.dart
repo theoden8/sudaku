@@ -1437,7 +1437,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     if (isPortrait) {
       // In portrait, constraint list is below so grid can use full width
-      gridSize = min(availableWidth, availableHeight * 0.65);
+      gridSize = min(availableWidth, availableHeight * 0.7);
     } else {
       // In landscape, grid limited by height and must leave space for constraint list
       gridSize = min(availableHeight, availableWidth - minConstraintListWidth);

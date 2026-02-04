@@ -185,7 +185,7 @@ Multiple techniques ensure no content overflows:
 - START button: Responsive height and width with scaling content
 
 **Sudoku Screen**:
-- Portrait: `min(availableWidth, availableHeight * 0.65)` - full width since constraint list is below
+- Portrait: `min(availableWidth, availableHeight * 0.7)` - full width since constraint list is below
 - Landscape: `min(availableHeight, availableWidth - 200)` - reserves 200px minimum for constraint list
 - Secondary content fills remaining space via `Expanded`
 - Grid centered in both orientations
