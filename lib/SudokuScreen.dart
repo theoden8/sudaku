@@ -1035,8 +1035,8 @@ class SudokuScreenState extends State<SudokuScreen> {
                 this._tutorialStage = 1;
                 this.runSetState();
                 this._showTutorialMessage(
-                  title: 'Multi-selection',
-                  message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
+                  title: 'Select cells',
+                  message: 'Long-press a highlighted cell to start selecting, then tap to add more cells to the constraint group.',
                   nextFunc: (){}
                 );
               }
