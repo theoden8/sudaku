@@ -498,7 +498,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         backgroundColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) {
             if(states.contains(WidgetState.pressed)) {
-              return AppColors.primaryPurple.withOpacity(0.5);
+              return theme.yellow;
             }
             return this.getCellColor(index, ctx);
           }
