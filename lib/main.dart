@@ -224,15 +224,15 @@ class AppColors {
   static const Color paperHint = Color(0xFFE8EEF4);             // Hint cell background (slight blue tint)
   static const Color paperGridLine = Color(0xFF8AAACE);         // Blue-ish grid lines
 
-  // Pen-and-paper theme colors - Dark (darker, more contrast)
-  static const Color paperDarkBackground = Color(0xFF0A0A0C);   // Very dark charcoal
-  static const Color paperDarkSurface = Color(0xFF141416);      // Slightly lighter charcoal
-  static const Color paperDarkInk = Color(0xFFD8D4CC);          // Warm off-white ink
-  static const Color paperDarkInkLight = Color(0xFFA8A49C);     // Lighter ink
-  static const Color paperDarkPencil = Color(0xFF707068);       // Muted pencil for inferred
-  static const Color paperDarkSelection = Color(0xFF242420);    // Subtle selection
-  static const Color paperDarkHint = Color(0xFF1C1C18);         // Hint cell background
-  static const Color paperDarkGridLine = Color(0xFF3A3A34);     // Grid lines
+  // Pen-and-paper theme colors - Dark (cool charcoal, neutral grays)
+  static const Color paperDarkBackground = Color(0xFF0A0A0E);   // Very dark cool charcoal
+  static const Color paperDarkSurface = Color(0xFF141418);      // Slightly lighter cool charcoal
+  static const Color paperDarkInk = Color(0xFFD4D4D8);          // Cool off-white ink
+  static const Color paperDarkInkLight = Color(0xFFA0A0A8);     // Lighter ink
+  static const Color paperDarkPencil = Color(0xFF686870);       // Cool gray pencil for inferred
+  static const Color paperDarkSelection = Color(0xFF202028);    // Cool selection
+  static const Color paperDarkHint = Color(0xFF1E1E26);         // Hint cells - more distinct, slight blue tint
+  static const Color paperDarkGridLine = Color(0xFF34343C);     // Grid lines
 }
 
 void main() => runApp(SudokuApp());
@@ -497,41 +497,41 @@ class _SudokuAppState extends State<SudokuApp> {
     currentStyle: _themeStyle,
   );
 
-  // Pen-and-Paper Dark Theme - very dark charcoal with warm off-white ink
+  // Pen-and-Paper Dark Theme - cool charcoal with neutral off-white ink
   SudokuTheme getDarkPenAndPaperTheme() => SudokuTheme(
-    blue: const Color(0xFF2A3038),      // Very muted slate blue
-    veryBlue: const Color(0xFF3A4048),
-    green: const Color(0xFF2A3028),     // Very muted forest
-    yellow: const Color(0xFF383828),    // Very muted olive
-    veryYellow: const Color(0xFF484838),
-    orange: const Color(0xFF483828),    // Very muted brown
-    red: const Color(0xFF382828),       // Very muted burgundy
-    veryRed: const Color(0xFF482838),
-    purple: const Color(0xFF302838),    // Very muted plum
-    cyan: const Color(0xFF283838),      // Very muted teal
+    blue: const Color(0xFF282830),      // Cool slate
+    veryBlue: const Color(0xFF383840),
+    green: const Color(0xFF283028),     // Slight green tint
+    yellow: const Color(0xFF303028),    // Neutral dark
+    veryYellow: const Color(0xFF404038),
+    orange: const Color(0xFF383030),    // Neutral with slight warmth
+    red: const Color(0xFF302828),       // Neutral dark
+    veryRed: const Color(0xFF403038),
+    purple: const Color(0xFF2C2838),    // Cool purple tint
+    cyan: const Color(0xFF283038),      // Cool teal
     foreground: AppColors.paperDarkInk,
     cellForeground: AppColors.paperDarkInk,
     cellInferColor: AppColors.paperDarkPencil,
     cellHintColor: AppColors.paperDarkHint,
     cellBackground: AppColors.paperDarkBackground,
     cellSelectionColor: AppColors.paperDarkSelection,
-    numpadAvailable: AppColors.paperDarkInk,      // Warm off-white
-    numpadAvailableActive: const Color(0xFFF0ECE4),
-    numpadForbidden: const Color(0xFF584040),     // Muted red
-    numpadForbiddenActive: const Color(0xFF483030),
-    numpadUnconstrained: const Color(0xFF585048), // Muted tan
+    numpadAvailable: AppColors.paperDarkInk,      // Cool off-white
+    numpadAvailableActive: const Color(0xFFE8E8F0),
+    numpadForbidden: const Color(0xFF484048),     // Muted cool red
+    numpadForbiddenActive: const Color(0xFF403038),
+    numpadUnconstrained: const Color(0xFF505058), // Neutral gray
     numpadDisabledBg: AppColors.paperDarkSurface,
-    numpadDisabledFg: const Color(0xFF404038),
+    numpadDisabledFg: const Color(0xFF383840),
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: AppColors.paperDarkBackground,
-    numpadSelected: const Color(0xFF2A2A24),      // Subtle highlight
+    numpadSelected: const Color(0xFF24242C),      // Cool subtle highlight
     dialogTitleColor: AppColors.paperDarkInk,
     dialogTextColor: AppColors.paperDarkPencil,
     mutedPrimary: AppColors.paperDarkPencil,
-    mutedSecondary: const Color(0xFF585048),
+    mutedSecondary: const Color(0xFF505058),
     cancelButtonColor: AppColors.paperDarkPencil,
     disabledBg: AppColors.paperDarkSurface,
-    disabledFg: const Color(0xFF404038),
+    disabledFg: const Color(0xFF383840),
     shadowColor: Colors.black,
     iconColor: AppColors.paperDarkPencil,
     logoColorPrimary: AppColors.paperDarkInk,
