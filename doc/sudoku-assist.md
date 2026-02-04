@@ -232,3 +232,25 @@ The Sudoku Assist layer is tested in `test/sudoku_assist_test.dart` with the fol
 - Redo with interleaved undo operations
 - Redo clears when new constraint applied
 - Redo success streaks correctly
+
+### Constraint Cancellation Rollback
+- Adding and canceling bogus constraint restores original state
+  - Bogus EQUAL constraint causes assisted changes
+  - Removing constraint clears all its assisted changes
+  - Manual values preserved through cancellation
+- Canceling one constraint preserves effects of other constraints
+  - Multiple active constraints with different effects
+  - Removing one constraint clears only its effects
+  - Other constraint effects remain intact
+- Constraint status resets when constraint is removed and re-added
+  - New constraint starts with NOT_RUN status
+  - Empty status history on re-add
+- Domain filtering is recalculated after constraint cancellation
+  - Canceled constraint's domain filters are undone
+  - Other constraints' filters still applied
+- Chained inferences are cleared when root constraint is canceled
+  - Constraint A infers value, Constraint B depends on it
+  - Canceling A clears both A's and B's inferences
+- Eliminations from canceled constraint are reinstated
+  - Values eliminated by canceled constraint restored to domain
+  - Eliminations from other constraints preserved
