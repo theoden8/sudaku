@@ -276,6 +276,10 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6; // cards + margins
                     final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
 
+                    // Check if cards fit horizontally in landscape
+                    final double totalCardsWidth = cardSize * 3 + cardSize * 0.08 * 6;
+                    final bool needsHorizontalScroll = !isPortrait && totalCardsWidth > availableWidth;
+
                     return Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -290,14 +294,23 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                         children: cards,
                                       ))
-                                : SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: cards,
-                                    ),
-                                  ),
+                                : (needsHorizontalScroll
+                                    ? SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: cards,
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: cards,
+                                        ),
+                                      )),
                           ),
                           const SizedBox(height: 16),
                           // Play button
