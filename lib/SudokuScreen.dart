@@ -435,12 +435,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     int sdval = sd![index];
     return TextButton(
       style: ButtonStyle(
-        padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
-          (Set<MaterialState> states) => EdgeInsets.all(0.0)
+        padding: WidgetStateProperty.resolveWith<EdgeInsetsGeometry>(
+          (Set<WidgetState> states) => EdgeInsets.all(0.0)
         ),
-        backgroundColor: MaterialStateProperty.resolveWith<Color?>(
-          (Set<MaterialState> states) {
-            if(states.contains(MaterialState.pressed)) {
+        backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if(states.contains(WidgetState.pressed)) {
               return Colors.blueAccent;
             }
             return this.getCellColor(index, ctx);
@@ -471,40 +471,27 @@ class SudokuScreenState extends State<SudokuScreen> {
     return this._makeSudokuCellMutable(index, sz, ctx);
   }
 
-  Widget _makeSudokuGrid(BuildContext ctx) {
+  Widget _makeSudokuGridContent(BuildContext ctx, double size) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    double w = this.screenWidth;
-    double h = this.screenHeight;
-    double size = min(w, h);
     double sz = (size - 1.0) / sd!.ne2;
-    return SizedBox(
-      child: Container(
-        margin: const EdgeInsets.all(0.0),
-        width: size,
-        height: size,
-        child: CustomScrollView(
-          primary: true,
-          slivers: <Widget>[
-            SliverGrid.count(
-              crossAxisCount: sd!.ne2,
-              children: List<Widget>.generate(sd!.ne4, (index) {
-                int i = index ~/ sd!.ne2, j = index % sd!.ne2;
-                return SizedBox(
-                  child: Container(
-                    margin: const EdgeInsets.all(0.0),
-                    decoration: BoxDecoration(
-                      border: getBorder(i, j, ctx),
-                    ),
-                    width: sz,
-                    height: sz,
-                    child: this._makeSudokuCell(index, sz, ctx),
-                  ),
-                );
-              }),
-            )
-          ],
-        ),
-      ),
+    return CustomScrollView(
+      primary: false,
+      physics: const NeverScrollableScrollPhysics(),
+      slivers: <Widget>[
+        SliverGrid.count(
+          crossAxisCount: sd!.ne2,
+          children: List<Widget>.generate(sd!.ne4, (index) {
+            int i = index ~/ sd!.ne2, j = index % sd!.ne2;
+            return Container(
+              margin: const EdgeInsets.all(0.0),
+              decoration: BoxDecoration(
+                border: getBorder(i, j, ctx),
+              ),
+              child: this._makeSudokuCell(index, sz, ctx),
+            );
+          }),
+        )
+      ],
     );
   }
 
@@ -986,12 +973,61 @@ class SudokuScreenState extends State<SudokuScreen> {
     ];
   }
 
+  Widget _buildResponsiveLayout(BuildContext ctx, BoxConstraints constraints) {
+    final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
+    final double availableWidth = constraints.maxWidth;
+    final double availableHeight = constraints.maxHeight;
+
+    // Calculate optimal grid size based on orientation
+    double gridSize;
+    if (isPortrait) {
+      // In portrait, use full width for grid, leave space for controls below
+      gridSize = min(availableWidth, availableHeight * 0.7);
+    } else {
+      // In landscape, use full height for grid, leave space for controls on side
+      gridSize = min(availableHeight, availableWidth * 0.6);
+    }
+
+    // Ensure grid doesn't exceed available space
+    gridSize = min(gridSize, min(availableWidth, availableHeight));
+
+    this.screenWidth = availableWidth;
+    this.screenHeight = availableHeight;
+
+    Widget gridWidget = SizedBox(
+      width: gridSize,
+      height: gridSize,
+      child: this._makeSudokuGridContent(ctx, gridSize),
+    );
+
+    Widget secondaryWidget = this._showTutorial
+        ? this._makeTutorialButton(ctx)
+        : this._makeConstraintList(ctx);
+
+    if (isPortrait) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Center(child: gridWidget),
+          Expanded(child: secondaryWidget),
+        ],
+      );
+    } else {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Center(child: gridWidget),
+          Expanded(child: secondaryWidget),
+        ],
+      );
+    }
+  }
+
   Widget build(BuildContext ctx) {
     var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuScreenArguments;
     final int n = args.n;
 
     if(sd == null || sd!.n != n) {
-      // print('making new sudoku');
       sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
         this.runSetState();
       });
@@ -1004,41 +1040,22 @@ class SudokuScreenState extends State<SudokuScreen> {
       actions: this._makeToolBar(ctx),
     );
 
-    double w = MediaQuery.of(ctx).size.width;
-    double h = MediaQuery.of(ctx).size.height - MediaQuery.of(ctx).padding.top - MediaQuery.of(ctx).padding.bottom - appBar.preferredSize.height - 8.0;
-    double size = min(w, h);
-
-    this.screenWidth = w;
-    this.screenHeight = h;
-
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         appBar: appBar,
         drawer: this._makeDrawer(ctx),
         body: Builder(
           builder: (ctx) {
             this._scaffoldBodyContext = ctx;
-            return Container(
-              margin: const EdgeInsets.all(4.0),
-              child: (w < h) ?
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  this._makeSudokuGrid(ctx),
-                  this._showTutorial ?
-                    this._makeTutorialButton(ctx)
-                    : this._makeConstraintList(ctx),
-                ],
-              )
-              : Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  this._makeSudokuGrid(ctx),
-                  this._showTutorial ?
-                    this._makeTutorialButton(ctx)
-                    : this._makeConstraintList(ctx),
-                ],
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return _buildResponsiveLayout(context, constraints);
+                  },
+                ),
               ),
             );
           }

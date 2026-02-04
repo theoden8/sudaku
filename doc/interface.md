@@ -133,18 +133,37 @@ Eye-friendly dark interface with:
 
 ## Test Coverage
 
-The interface layer requires Flutter widget tests which are not yet implemented. Future test coverage should include:
+The interface layer has widget tests in `test/widget/tutorial_test.dart` and integration tests in `integration_test/interaction_flow_test.dart`.
 
-### Widget Tests (planned)
-- Menu screen navigation
-- Sudoku grid rendering and cell selection
-- Numpad input handling
-- Constraint creation workflow
-- Theme switching
-- Undo/redo functionality
+### Widget Tests (implemented)
+- Menu screen displays Play button
+- Menu screen Play button is tappable and shows size selection
+- Size selection shows 2, 3, 4 options
+- Selecting size shows play FAB
+- Theme toggle button exists on menu
 
-### Integration Tests (planned)
-- Full puzzle solving workflow
-- Constraint propagation visual feedback
-- Multi-cell selection
-- State persistence
+### Responsive Layout Tests (implemented)
+- Menu screen adapts to portrait orientation
+- Menu screen adapts to landscape orientation
+- Size selection adapts to small screen
+- Size selection adapts to tablet size
+
+### Integration Tests (implemented)
+- Full flow: Menu -> Size Selection -> Sudoku Screen
+- Skip tutorial and view constraint list
+- Cell selection and numpad interaction
+- Undo button functionality
+- Theme toggle works on Sudoku screen
+- Drawer opens with constraint options
+- Menu button in toolbar shows options
+- Assistant settings screen accessible
+- App works in portrait and landscape orientations
+
+### Tutorial Flow
+The tutorial is a multi-stage guided workflow:
+- **Stage 0**: Help button visible, tap to start tutorial, long-press to skip
+- **Stage 1**: Multi-selection mode - user selects highlighted cells
+- **Stage 2**: Open drawer and select "All different" constraint
+- **Stage 3**: Tutorial completion with explanation
+
+Tutorial tests require the full app with assets loaded and are covered in integration tests.

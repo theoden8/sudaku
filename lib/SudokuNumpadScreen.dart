@@ -280,15 +280,116 @@ class NumpadScreenState extends State<NumpadScreen> {
      return <Widget>[]..addAll(this.interact!.makeToolBar(ctx));
   }
 
+  Widget _buildNumpadGrid(BuildContext ctx, double cellSize, int n) {
+    final theme = this.widget.sudokuThemeFunc(ctx);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: n,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: n * n,
+      itemBuilder: (context, val) {
+        return Container(
+          margin: EdgeInsets.all(cellSize * 0.05),
+          child: ElevatedButton(
+            style: ButtonStyle(
+              padding: WidgetStateProperty.resolveWith<EdgeInsetsGeometry>(
+                (Set<WidgetState> states) => EdgeInsets.all(0.0)
+              ),
+              elevation: WidgetStateProperty.resolveWith<double>(
+                (Set<WidgetState> states) {
+                  if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
+                    return 0;
+                  }
+                  return 4.0;
+                }
+              ),
+              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if(states.contains(WidgetState.disabled)) {
+                    return Colors.grey;
+                  }
+                  return this.interact!.getColor(val + 1, theme);
+                }
+              ),
+            ),
+            onPressed: !this.interact!.onPressEnabled(val + 1)
+            ? null : () {
+              this._handleOnPress(ctx, val + 1);
+            },
+            onLongPress: !this.interact!.onLongPressEnabled(val + 1)
+            ? null : () {
+              this._handleOnLongPress(ctx, val + 1);
+            },
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: EdgeInsets.all(cellSize * 0.1),
+                child: Text(
+                  sd.s_get(val + 1),
+                  style: TextStyle(
+                    fontSize: cellSize * 0.4,
+                    color: theme.buttonForeground,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButton(BuildContext ctx) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: this.interact is! MultiselectionInteraction
+        ? ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.all(16.0),
+              elevation: 4.0,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.clear),
+                SizedBox(width: 8),
+                Text('Clear'),
+              ],
+            ),
+            onPressed: () {
+              this._handleOnPress(ctx, 0);
+            },
+          )
+        : ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.all(16.0),
+              elevation: 4.0,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.cancel),
+                SizedBox(width: 8),
+                Text('Cancel'),
+              ],
+            ),
+            onPressed: () {
+              this.reset = true;
+              Navigator.pop(ctx, multiselection);
+            },
+          ),
+    );
+  }
+
   Widget build(BuildContext ctx) {
     this.variables = widget.variables;
     this.sd = widget.sd;
     final int n = sd.n;
     this._resetSelections(widget.nitype, widget.count);
-
-    final double w = (MediaQuery.of(ctx).size.width - 1.0) / n;
-    final double h = (MediaQuery.of(ctx).size.height - 1.0) / (n + 1);
-    final double sz = min(w, h) - 8.0;
 
     String proportionText = '';
     if(widget.nitype == NumpadInteractionType.MULTISELECTION) {
@@ -299,130 +400,71 @@ class NumpadScreenState extends State<NumpadScreen> {
       proportionText = ' (${no_msel}/${widget.count})';
     }
 
-    final theme = this.widget.sudokuThemeFunc(ctx);
-
     return Scaffold(
       appBar: AppBar(
-        title: new Text(
-          'Selecting' + proportionText,
-        ),
+        title: Text('Selecting$proportionText'),
         elevation: 0.0,
         actions: this._makeToolBar(ctx),
       ),
-      body:
-      Column(
-        children: <Widget>[
-          Container(
-            width: (sz * 1.1) * n,
-            height: (sz * 1.1) * n,
-            child: CustomScrollView(
-              primary: true,
-              scrollDirection: Axis.vertical,
-              slivers: <Widget>[
-                SliverGrid.count(
-                  // crossAxisSpacing: h,
-                  crossAxisCount: n,
-                  // mainAxisCount: n,
-                  children: List<Widget>.generate(n * n, (val) =>
-                    SizedBox(
-                      width: sz,
-                      height: sz,
-                      child: Container(
-                        margin: EdgeInsets.all(sz * 0.1),
-                        child: ElevatedButton(
-                          style: ButtonStyle(
-                            padding: MaterialStateProperty.resolveWith<EdgeInsetsGeometry>(
-                              (Set<MaterialState> states) => EdgeInsets.all(0.0)
-                            ),
-                            elevation: MaterialStateProperty.resolveWith<double>(
-                              (Set<MaterialState> states) {
-                                if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
-                                  return 0;
-                                }
-                                return 4.0;
-                              }
-                            ),
-                            backgroundColor: MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if(states.contains(MaterialState.disabled)) {
-                                  return Colors.grey;
-                                }
-                                return this.interact!.getColor(val + 1, theme);
-                              }
-                            ),
-                          ),
-                          onPressed: !this.interact!.onPressEnabled(val + 1)
-                          ? null : () {
-                            this._handleOnPress(ctx, val + 1);
-                          },
-                          onLongPress: !this.interact!.onLongPressEnabled(val + 1)
-                          ? null : () {
-                            this._handleOnLongPress(ctx, val + 1);
-                          },
-                          child: Text(
-                            sd.s_get(val + 1),
-                            style: TextStyle(
-                              fontSize: sz * 0.4,
-                              color: theme.buttonForeground,
-                            ),
-                          ),
-                        ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
+            final double availableWidth = constraints.maxWidth;
+            final double availableHeight = constraints.maxHeight;
+
+            // Calculate grid size to fit the screen
+            double gridSize;
+            if (isPortrait) {
+              // In portrait, grid should take most of the width, leave space for button
+              gridSize = min(availableWidth * 0.95, availableHeight * 0.75);
+            } else {
+              // In landscape, grid should take most of the height, leave space for button
+              gridSize = min(availableHeight * 0.85, availableWidth * 0.6);
+            }
+
+            final double cellSize = gridSize / n;
+
+            if (isPortrait) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: Center(
+                      child: SizedBox(
+                        width: gridSize,
+                        height: gridSize,
+                        child: _buildNumpadGrid(ctx, cellSize, n),
                       ),
                     ),
-                  ).toList(),
-                ),
-              ],
-            ),
-          ),
-          Flex(
-            direction: Axis.vertical,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: (w < h) ? MainAxisAlignment.start : MainAxisAlignment.end,
+                  ),
+                  _buildActionButton(ctx),
+                ],
+              );
+            } else {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Container(
-                    margin: EdgeInsets.all((w < h) ? 0 : sz * 0.1),
-                    child: this.interact is! MultiselectionInteraction ?
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.all(16.0),
-                        elevation: 16.0,
+                  Expanded(
+                    child: Center(
+                      child: SizedBox(
+                        width: gridSize,
+                        height: gridSize,
+                        child: _buildNumpadGrid(ctx, cellSize, n),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(Icons.clear),
-                          Text('Clear'),
-                        ],
-                      ),
-                      onPressed: () {
-                        this._handleOnPress(ctx, 0);
-                      },
-                    )
-                    : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.all(16.0),
-                        elevation: 16.0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(Icons.cancel),
-                          Text('Cancel'),
-                        ],
-                      ),
-                      onPressed: () {
-                        this.reset = true;
-                        Navigator.pop(ctx, multiselection);
-                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: availableWidth - gridSize - 16,
+                    child: Center(
+                      child: _buildActionButton(ctx),
                     ),
                   ),
                 ],
-              ),
-            ]
-          ),
-        ],
+              );
+            }
+          },
+        ),
       ),
     );
   }
