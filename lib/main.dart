@@ -98,6 +98,17 @@ class SudokuTheme {
   Color? constraintEqual;
   Color? constraintAllDiff;
 
+  // Numpad colors
+  Color? numpadAvailable;
+  Color? numpadAvailableActive;
+  Color? numpadForbidden;
+  Color? numpadForbiddenActive;
+  Color? numpadUnconstrained;
+  Color? numpadDisabledBg;
+  Color? numpadDisabledFg;
+  Color? numpadTextOnLight;
+  Color? numpadTextOnColored;
+
   SudokuTheme({
     required this.blue,
     required this.veryBlue,
@@ -115,16 +126,24 @@ class SudokuTheme {
     required this.cellHintColor,
     required this.cellBackground,
     required this.cellSelectionColor,
+    required this.numpadAvailable,
+    required this.numpadAvailableActive,
+    required this.numpadForbidden,
+    required this.numpadForbiddenActive,
+    required this.numpadUnconstrained,
+    required this.numpadDisabledBg,
+    required this.numpadDisabledFg,
+    required this.numpadTextOnLight,
+    required this.numpadTextOnColored,
     required this.onChange,
   })
   {
     this.buttonForeground = Colors.black;
     this.buttonBackground = this.blue;
     this.buttonSelectedBackground = this.green;
-    // Use AppColors for constraint highlighting to match constraint list cards
-    this.constraintOneOf = AppColors.success.withOpacity(0.4);
-    this.constraintEqual = AppColors.constraintPurple.withOpacity(0.4);
-    this.constraintAllDiff = AppColors.accent.withOpacity(0.4);
+    this.constraintOneOf = this.green?.withOpacity(0.4);
+    this.constraintEqual = this.purple?.withOpacity(0.4);
+    this.constraintAllDiff = this.blue?.withOpacity(0.4);
   }
 }
 
@@ -154,6 +173,16 @@ class _SudokuAppState extends State<SudokuApp> {
     cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.lightCellSelection,
+    // Numpad colors for light theme
+    numpadAvailable: AppColors.accentLight,
+    numpadAvailableActive: AppColors.accent,
+    numpadForbidden: AppColors.errorLight,
+    numpadForbiddenActive: AppColors.error,
+    numpadUnconstrained: AppColors.warning,
+    numpadDisabledBg: AppColors.lightDisabledBg,
+    numpadDisabledFg: AppColors.lightDisabledFg,
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: Colors.white,
     onChange: _setThemeMode,
   );
 
@@ -174,6 +203,16 @@ class _SudokuAppState extends State<SudokuApp> {
     cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
     cellSelectionColor: AppColors.darkCellSelection,
+    // Numpad colors for dark theme
+    numpadAvailable: AppColors.accentLight,
+    numpadAvailableActive: AppColors.accent,
+    numpadForbidden: AppColors.errorLight,
+    numpadForbiddenActive: AppColors.error,
+    numpadUnconstrained: AppColors.warningLight,
+    numpadDisabledBg: AppColors.darkDisabledBg,
+    numpadDisabledFg: AppColors.darkDisabledFg,
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: Colors.white,
     onChange: _setThemeMode,
   );
 

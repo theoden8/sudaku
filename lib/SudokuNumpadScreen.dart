@@ -7,7 +7,7 @@ import 'package:bit_array/bit_array.dart';
 
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
-import 'main.dart'; // For AppColors
+import 'main.dart'; // For SudokuTheme
 
 
 class NumpadScreen extends StatefulWidget {
@@ -46,23 +46,23 @@ abstract class NumpadInteraction {
     final theme = numpad.widget.sudokuThemeFunc(ctx);
 
     if(numpad.multiselection[val]) {
-      // Selected values - use theme's selection color (already theme-aware)
+      // Selected values - use theme's selection color
       return theme.cellSelectionColor;
     } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
-      // Forbidden/eliminated values - use error colors
+      // Forbidden/eliminated values
       if(numpad.antiselectionChanges[val]) {
-        return AppColors.error;
+        return theme.numpadForbiddenActive;
       }
-      return AppColors.errorLight;
+      return theme.numpadForbidden;
     } else if(!numpad.constrained[val]) {
-      // Unconstrained values - use warning colors
-      return AppColors.warning;
+      // Unconstrained values
+      return theme.numpadUnconstrained;
     }
-    // Available values - use accent colors
+    // Available values
     if(numpad.antiselectionChanges[val]) {
-      return AppColors.accent;
+      return theme.numpadAvailableActive;
     }
-    return AppColors.accentLight;
+    return theme.numpadAvailable;
   }
 
   bool onPressEnabled(int val) {
@@ -319,9 +319,8 @@ class NumpadScreenState extends State<NumpadScreen> {
               ),
               backgroundColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
                   if(states.contains(WidgetState.disabled)) {
-                    return isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg;
+                    return theme.numpadDisabledBg;
                   }
                   return this.interact!.getColor(val + 1, context);
                 }
@@ -337,12 +336,11 @@ class NumpadScreenState extends State<NumpadScreen> {
             },
             child: Builder(
               builder: (btnContext) {
-                final isDark = Theme.of(btnContext).brightness == Brightness.dark;
                 // Use dark text for light selection background, white for colored buttons
                 final isSelected = this.multiselection[val + 1];
-                final textColor = (isSelected && !isDark)
-                    ? Colors.black87
-                    : Colors.white;
+                final textColor = isSelected
+                    ? theme.numpadTextOnLight
+                    : theme.numpadTextOnColored;
                 return FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Padding(
