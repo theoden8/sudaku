@@ -16,6 +16,94 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 
 
+/// Custom painter for hand-drawn/sketched grid lines (Excalidraw-style)
+class SketchedGridPainter extends CustomPainter {
+  final int n;  // Grid dimension (e.g., 3 for 9x9)
+  final Color lineColor;
+  final double size;
+  final Random _random;
+
+  SketchedGridPainter({
+    required this.n,
+    required this.lineColor,
+    required this.size,
+    int? seed,
+  }) : _random = Random(seed ?? 42);  // Fixed seed for consistent appearance
+
+  @override
+  void paint(Canvas canvas, Size canvasSize) {
+    final ne2 = n * n;  // Total cells per row/column
+    final cellSize = size / ne2;
+
+    // Thin lines for cell borders
+    final thinPaint = Paint()
+      ..color = lineColor.withOpacity(0.5)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Thick lines for box borders
+    final thickPaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Draw horizontal lines
+    for (int i = 0; i <= ne2; i++) {
+      final y = i * cellSize;
+      final isBoxBorder = i % n == 0;
+      final paint = isBoxBorder ? thickPaint : thinPaint;
+      _drawSketchedLine(canvas, Offset(0, y), Offset(size, y), paint);
+    }
+
+    // Draw vertical lines
+    for (int j = 0; j <= ne2; j++) {
+      final x = j * cellSize;
+      final isBoxBorder = j % n == 0;
+      final paint = isBoxBorder ? thickPaint : thinPaint;
+      _drawSketchedLine(canvas, Offset(x, 0), Offset(x, size), paint);
+    }
+  }
+
+  void _drawSketchedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    final path = Path();
+    path.moveTo(start.dx, start.dy);
+
+    // Add slight wobble to make it look hand-drawn
+    final distance = (end - start).distance;
+    final segments = (distance / 20).ceil().clamp(3, 10);
+    final dx = (end.dx - start.dx) / segments;
+    final dy = (end.dy - start.dy) / segments;
+
+    for (int i = 1; i <= segments; i++) {
+      final targetX = start.dx + dx * i;
+      final targetY = start.dy + dy * i;
+
+      // Add small random offsets for wobble effect
+      final wobbleX = (_random.nextDouble() - 0.5) * 1.5;
+      final wobbleY = (_random.nextDouble() - 0.5) * 1.5;
+
+      if (i == segments) {
+        // End exactly at the target for the last segment
+        path.lineTo(end.dx, end.dy);
+      } else {
+        path.lineTo(targetX + wobbleX, targetY + wobbleY);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SketchedGridPainter oldDelegate) {
+    return oldDelegate.n != n ||
+           oldDelegate.lineColor != lineColor ||
+           oldDelegate.size != size;
+  }
+}
+
+
 class SudokuScreen extends StatefulWidget {
   static const String routeName = '/sudoku_arguments';
 
@@ -538,7 +626,8 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget _makeSudokuGridContent(BuildContext ctx, double size) {
     final theme = this.widget.sudokuThemeFunc(ctx);
     double sz = (size - 1.0) / sd!.ne2;
-    return CustomScrollView(
+
+    final gridContent = CustomScrollView(
       primary: false,
       physics: const NeverScrollableScrollPhysics(),
       slivers: <Widget>[
@@ -549,7 +638,8 @@ class SudokuScreenState extends State<SudokuScreen> {
             return Container(
               margin: const EdgeInsets.all(0.0),
               decoration: BoxDecoration(
-                border: getBorder(i, j, ctx),
+                // Use regular borders for modern style, none for sketched
+                border: theme.isSketchedStyle ? null : getBorder(i, j, ctx),
               ),
               child: this._makeSudokuCell(index, sz, ctx),
             );
@@ -557,6 +647,28 @@ class SudokuScreenState extends State<SudokuScreen> {
         )
       ],
     );
+
+    // For sketched style, overlay hand-drawn grid lines
+    if (theme.isSketchedStyle) {
+      return Stack(
+        children: [
+          gridContent,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: SketchedGridPainter(
+                  n: sd!.n,
+                  lineColor: theme.foreground ?? Colors.black,
+                  size: size,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return gridContent;
   }
 
   var _scaffoldBodyContext = null;

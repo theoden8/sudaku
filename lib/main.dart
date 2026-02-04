@@ -143,6 +143,9 @@ class SudokuTheme {
   Color? numpadTextOnColored;
   Color? numpadSelected;
 
+  // Style properties
+  bool isSketchedStyle;
+
   SudokuTheme({
     required this.blue,
     required this.veryBlue,
@@ -173,6 +176,7 @@ class SudokuTheme {
     required this.onThemeModeChange,
     required this.onThemeStyleChange,
     required this.currentStyle,
+    this.isSketchedStyle = false,
   })
   {
     this.buttonForeground = Colors.black;
@@ -264,6 +268,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    isSketchedStyle: true,
   );
 
   // Modern Dark Theme
@@ -330,6 +335,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    isSketchedStyle: true,
   );
 
   SudokuTheme getSudokuTheme(BuildContext context) {
