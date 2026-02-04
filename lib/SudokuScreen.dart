@@ -1737,25 +1737,25 @@ class SudokuScreenState extends State<SudokuScreen> {
     Widget secondaryContent;
     if (showTutorialButton) {
       if (isPortrait) {
-        // Portrait: constraint list on top, tutorial button at bottom (Column)
-        secondaryContent = SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              this._makeConstraintList(ctx),
-              const SizedBox(height: 8),
-              this._makeTutorialButton(ctx),
-            ],
-          ),
-        );
-      } else {
-        // Landscape: constraint list on left, tutorial button on right (Row)
+        // Portrait: constraint list on left, tutorial button on right (Row)
         secondaryContent = SingleChildScrollView(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: this._makeConstraintList(ctx)),
               const SizedBox(width: 8),
+              this._makeTutorialButton(ctx),
+            ],
+          ),
+        );
+      } else {
+        // Landscape: constraint list on top, tutorial button at bottom (Column)
+        secondaryContent = SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              this._makeConstraintList(ctx),
+              const SizedBox(height: 8),
               this._makeTutorialButton(ctx),
             ],
           ),
