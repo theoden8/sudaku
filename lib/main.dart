@@ -69,6 +69,8 @@ class AppColors {
   static const Color lightCellHintBg = Color(0xFFE0E0F0); // Immutable hint cell background (light)
   static const Color darkCellInferText = Color(0xFF7a7aaa);  // Assistant-inferred text (dark)
   static const Color lightCellInferText = Color(0xFF6666aa); // Assistant-inferred text (light)
+  static const Color darkCellSelection = Color(0xFF4a4a7e);  // Selected cell background (dark) - more blue
+  static const Color lightCellSelection = Color(0xFFD8D8E8); // Selected cell background (light) - subtle gray
 }
 
 void main() => runApp(SudokuApp());
@@ -88,6 +90,7 @@ class SudokuTheme {
   Color? cellInferColor;
   Color? cellHintColor;
   Color? cellBackground;
+  Color? cellSelectionColor;
   Color? buttonForeground = Colors.black;
   Color? buttonBackground;
   Color? buttonSelectedBackground;
@@ -111,6 +114,7 @@ class SudokuTheme {
     required this.cellInferColor,
     required this.cellHintColor,
     required this.cellBackground,
+    required this.cellSelectionColor,
     required this.onChange,
   })
   {
@@ -149,6 +153,7 @@ class _SudokuAppState extends State<SudokuApp> {
     cellInferColor: AppColors.lightCellInferText,
     cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
+    cellSelectionColor: AppColors.lightCellSelection,
     onChange: _setThemeMode,
   );
 
@@ -168,6 +173,7 @@ class _SudokuAppState extends State<SudokuApp> {
     cellInferColor: AppColors.darkCellInferText,
     cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
+    cellSelectionColor: AppColors.darkCellSelection,
     onChange: _setThemeMode,
   );
 

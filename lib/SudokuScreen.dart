@@ -453,7 +453,6 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Color? getCellColor(int index, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
     if(sd!.assist.hintContradictions && sd!.assist.getDomain(index).isEmpty) {
       return theme.red;
     } else if(this._multiSelect!.isEmpty) {
@@ -468,8 +467,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       }
     } else {
       if(this._multiSelect![index]) {
-        // Subtle selection highlight - lighter shade of background
-        return isDark ? AppColors.darkSurfaceLight : const Color(0xFFE8E8F0);
+        return theme.cellSelectionColor;
       }
     }
     if(this._tutorialCells != null && this._tutorialCells![index]) {
@@ -500,8 +498,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         backgroundColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) {
             if(states.contains(WidgetState.pressed)) {
-              final isDark = Theme.of(ctx).brightness == Brightness.dark;
-              return isDark ? AppColors.darkSurfaceLight : const Color(0xFFE8E8F0);
+              return theme.cellSelectionColor;
             }
             return this.getCellColor(index, ctx);
           }
