@@ -1730,7 +1730,11 @@ class SudokuScreenState extends State<SudokuScreen> {
       ),
     );
 
-    Widget secondaryContent = (this._showTutorial && this._tutorialStage >= 1)
+    // Show constraint choices when cells are selected (even during tutorial stage 2)
+    final bool cellsSelected = this._multiSelect != null && this._multiSelect!.cardinality > 0;
+    final bool showTutorialButton = this._showTutorial && this._tutorialStage >= 1 && !cellsSelected;
+
+    Widget secondaryContent = showTutorialButton
         ? this._makeTutorialButton(ctx)
         : this._makeConstraintList(ctx);
 
@@ -1815,13 +1819,8 @@ class SudokuScreenState extends State<SudokuScreen> {
         ),
       ),
       centerTitle: true,
-      leading: IconButton(
-        icon: Icon(
-          Icons.arrow_back_rounded,
-          color: theme.iconColor,
-        ),
-        onPressed: () => Navigator.of(ctx).pop(),
-      ),
+      leading: const SizedBox.shrink(),
+      leadingWidth: 0,
       actions: this._makeToolBar(ctx),
     );
 
