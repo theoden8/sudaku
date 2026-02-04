@@ -1140,7 +1140,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
 
     return Drawer(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           children: <Widget>[
@@ -1647,7 +1647,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: appBar,
         drawer: this._makeDrawer(ctx),
         body: Builder(
