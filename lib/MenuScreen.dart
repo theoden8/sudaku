@@ -133,59 +133,62 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             ? (Matrix4.identity()..scale(1.02))
             : Matrix4.identity(),
         child: Padding(
-          padding: EdgeInsets.all(cardSize * 0.08),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Mini grid preview
-              _buildMiniGrid(
-                n,
-                cardSize * 0.45,
-                Colors.white,
-                Colors.white,
-              ),
-              SizedBox(height: cardSize * 0.04),
-              // Size label with optional check icon
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    sizeLabel,
-                    style: TextStyle(
-                      fontSize: cardSize * 0.12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(1, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isSelected) ...[
-                    SizedBox(width: cardSize * 0.04),
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: cardSize * 0.1,
-                    ),
-                  ],
-                ],
-              ),
-              // Difficulty label
-              Text(
-                difficultyLabel,
-                style: TextStyle(
-                  fontSize: cardSize * 0.08,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
+          padding: EdgeInsets.all(cardSize * 0.06),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Mini grid preview
+                _buildMiniGrid(
+                  n,
+                  cardSize * 0.42,
+                  Colors.white,
+                  Colors.white,
                 ),
-              ),
-            ],
+                SizedBox(height: cardSize * 0.03),
+                // Size label with optional check icon
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      sizeLabel,
+                      style: TextStyle(
+                        fontSize: cardSize * 0.11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black26,
+                            offset: Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isSelected) ...[
+                      SizedBox(width: cardSize * 0.03),
+                      Icon(
+                        Icons.check_circle,
+                        color: Colors.white,
+                        size: cardSize * 0.09,
+                      ),
+                    ],
+                  ],
+                ),
+                // Difficulty label
+                Text(
+                  difficultyLabel,
+                  style: TextStyle(
+                    fontSize: cardSize * 0.07,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
