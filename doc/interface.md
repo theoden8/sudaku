@@ -245,9 +245,9 @@ The interface layer has widget tests in `test/widget/tutorial_test.dart` and int
 
 ### Tutorial Flow
 The tutorial is a multi-stage guided workflow:
-- **Stage 0**: Help button visible, tap to start tutorial, long-press to skip
+- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial
 - **Stage 1**: Multi-selection mode - user selects highlighted cells
 - **Stage 2**: Open drawer and select "All different" constraint
 - **Stage 3**: Tutorial completion with explanation
 
-Tutorial tests require the full app with assets loaded and are covered in integration tests.
+The tutorial can be restarted anytime from the toolbar menu. Tutorial tests require the full app with assets loaded and are covered in integration tests.

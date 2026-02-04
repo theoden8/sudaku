@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:bit_array/bit_array.dart';
 
 
@@ -576,8 +577,9 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
   }
 
-  bool _showTutorial = true;
+  bool _showTutorial = false;
   int _tutorialStage = 0;
+  bool _tutorialDialogShown = false;
 
   BitArray? _tutorialCells = null;
   void _selectTutorialCells() {
@@ -655,10 +657,11 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Future<void> _showSkipTutorialDialog() async {
+  Future<void> _showTutorialOfferDialog() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return showDialog<void>(
       context: this.context,
+      barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
           backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
@@ -667,19 +670,30 @@ class SudokuScreenState extends State<SudokuScreen> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.school_rounded, color: AppColors.primaryPurple, size: 28),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
+                  ),
+                ),
+                child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+              ),
               const SizedBox(width: 12),
-              Text(
-                'Skip Tutorial?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+              Expanded(
+                child: Text(
+                  'Welcome!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
               ),
             ],
           ),
           content: Text(
-            'You can restart the tutorial anytime from the menu.',
+            'Would you like a quick tutorial on how to use the constraint assistant?',
             style: TextStyle(
               color: isDark ? AppColors.darkDialogText : Colors.black54,
             ),
@@ -693,8 +707,10 @@ class SudokuScreenState extends State<SudokuScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
-              child: const Text('Cancel'),
+              child: const Text('Skip'),
               onPressed: () {
+                this._showTutorial = false;
+                this.runSetState();
                 Navigator.of(ctx).pop();
               }
             ),
@@ -707,92 +723,23 @@ class SudokuScreenState extends State<SudokuScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
-              child: const Text('Skip'),
+              child: const Text('Start Tutorial'),
               onPressed: () {
-                this._showTutorial = false;
-                this.runSetState();
                 Navigator.of(ctx).pop();
+                this._selectTutorialCells();
+                this._showTutorial = true;
+                this._tutorialStage = 1;
+                this.runSetState();
+                this._showTutorialMessage(
+                  title: 'Multi-selection',
+                  message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
+                  nextFunc: (){}
+                );
               }
             ),
           ],
         );
       },
-    );
-  }
-
-  Widget _makeTutorialButtonStage0(BuildContext ctx) {
-    final iconSize = min(80.0, min(screenWidth, screenHeight) * 0.15);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        GestureDetector(
-          onTap: () {
-            this._selectTutorialCells();
-            this._tutorialStage = 1;
-            this.runSetState();
-            this._showTutorialMessage(
-              title: 'Multi-selection',
-              message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
-              nextFunc: (){}
-            );
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Icon(
-                Icons.help_outline_rounded,
-                color: Colors.white,
-                size: iconSize,
-              ),
-            ),
-          ),
-        ),
-        // Dismiss button in corner
-        Positioned(
-          top: -8,
-          right: -8,
-          child: GestureDetector(
-            onTap: () {
-              this._showSkipTutorialDialog();
-            },
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.darkSurface,
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.close_rounded,
-                color: Colors.white70,
-                size: 16,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -924,13 +871,13 @@ class SudokuScreenState extends State<SudokuScreen> {
         height: buttonSize,
         child: (){
           switch(this._tutorialStage) {
-            case 0:
-              return this._makeTutorialButtonStage0(ctx);
             case 1:
             case 2:
               return this._makeTutorialButtonStage12(ctx);
             case 3:
               return this._makeTutorialButtonStage3(ctx);
+            default:
+              return const SizedBox.shrink();
           }
         }(),
       ),
@@ -1380,8 +1327,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               this._showResetDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
-              this._showTutorial = true;
-              this.runSetState();
+              this._showTutorialOfferDialog();
             break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
@@ -1477,7 +1423,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       ),
     );
 
-    Widget secondaryContent = this._showTutorial
+    Widget secondaryContent = (this._showTutorial && this._tutorialStage >= 1)
         ? this._makeTutorialButton(ctx)
         : this._makeConstraintList(ctx);
 
@@ -1539,6 +1485,15 @@ class SudokuScreenState extends State<SudokuScreen> {
         this.runSetState();
       });
       this._multiSelect = BitArray(sd!.ne4);
+      this._tutorialDialogShown = false;
+    }
+
+    // Show tutorial offer dialog once after sudoku is initialized
+    if (!_tutorialDialogShown) {
+      _tutorialDialogShown = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _showTutorialOfferDialog();
+      });
     }
 
     var appBar = AppBar(
