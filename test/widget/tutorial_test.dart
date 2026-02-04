@@ -29,6 +29,7 @@ Widget createTestApp({required Widget child}) {
           cellInferColor: Colors.grey[500],
           cellHintColor: Colors.grey[300],
           cellBackground: null,
+          cellSelectionColor: Colors.grey[200],
           onChange: (_) {},
         ),
       ),
@@ -53,6 +54,7 @@ SudokuTheme getTestTheme(BuildContext ctx) {
     cellInferColor: Colors.grey[500],
     cellHintColor: Colors.grey[300],
     cellBackground: null,
+    cellSelectionColor: Colors.grey[200],
     onChange: (_) {},
   );
 }
