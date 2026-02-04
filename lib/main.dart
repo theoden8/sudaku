@@ -232,7 +232,7 @@ class AppColors {
   static const Color paperDarkInkLight = Color(0xFFA0A0A8);     // Lighter ink
   static const Color paperDarkPencil = Color(0xFF686870);       // Cool gray pencil for inferred
   static const Color paperDarkSelection = Color(0xFF202028);    // Cool selection
-  static const Color paperDarkHint = Color(0xFF1A1A30);         // Hint cells - clearly blue-tinted background
+  static const Color paperDarkHint = Color(0xFF2E2E48);         // Hint cells - noticeably lighter background
   static const Color paperDarkHintBorder = Color(0xFF383858);  // Prominent blue border for hint cells
   static const Color paperDarkGridLine = Color(0xFF34343C);     // Grid lines
 }
