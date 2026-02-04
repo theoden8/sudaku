@@ -83,6 +83,25 @@ abstract class ConstraintInteraction {
     self.runSetState();
     if(self._showTutorial && self._tutorialStage == 2) {
       self._tutorialStage = 3;
+      // Auto-show final tutorial hint
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        self._showTutorialMessage(
+            title: "New constraint",
+            message: 'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
+            nextFunc: () {
+              self._showTutorialMessage(
+                title: 'Assistant',
+                message: 'Once you get used to using constraints, you should enable default rules through the settings.',
+                nextFunc: () {
+                  self._showTutorial = false;
+                  self._tutorialStage = 0;
+                  self._tutorialCells = null;
+                  self.runSetState();
+                }
+              );
+            }
+        );
+      });
     }
   }
 
