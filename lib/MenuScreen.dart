@@ -308,6 +308,13 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
               color: theme.iconColor,
             ),
             onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+                return;
+              }
               setState(() {
                 switch (value) {
                   case 'light':
@@ -431,6 +438,17 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                             : null,
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'licenses',
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Licenses'),
                   ],
                 ),
               ),
@@ -737,6 +755,13 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               color: theme.iconColor,
             ),
             onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+                return;
+              }
               setState(() {
                 switch (value) {
                   case 'light':
@@ -860,6 +885,17 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                             : null,
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'licenses',
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Licenses'),
                   ],
                 ),
               ),
