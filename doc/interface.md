@@ -10,7 +10,7 @@ Entry point to the application featuring a playful, game-like design:
 - Gradient PLAY button (purple-blue) with play icon
 - "Tap to begin" hint text
 - Decorative background grids (rotated, semi-transparent)
-- Theme toggle button in app bar
+- Theme settings button (palette icon) in app bar opens theme dialog
 
 **Size Selection Dialog**:
 - Three colorful gradient cards for grid sizes:
@@ -112,25 +112,51 @@ Different constraint types and states are color-coded:
 
 ## Themes
 
+The app supports two theme dimensions: **brightness** (Light/Dark/Auto) and **style** (Modern/Pen & Paper).
+
+### Theme Styles
+
+**Modern Style**:
+- Clean, high-contrast interface
+- Solid colors and card-based elevation
+- Contemporary UI aesthetic
+
+**Pen & Paper Style**:
+- Hand-drawn, sketched aesthetic (Excalidraw-inspired)
+- Wobbly grid lines using `SketchedGridPainter`
+- Wobbly text using `WobblyText` widget with per-cell random seed
+- Fountain pen ink colors on cream/charcoal paper backgrounds
+- No elevation shadows, uses borders instead
+
 ### Light Theme
-Clean, high-contrast interface with:
 - White/light backgrounds
 - Black text
 - Pastel colors for constraints
 - Clear cell boundaries
 
 ### Dark Theme
-Eye-friendly dark interface with:
-- Dark gray backgrounds
+- Dark gray backgrounds (charcoal for Pen & Paper)
 - Light gray text
 - Muted but distinct colors for constraints
 - Reduced eye strain for extended solving sessions
 
+### Theme Dialog
+Accessible from:
+- Menu screen: Palette icon button in app bar
+- Sudoku screen: "Theme" option in toolbar menu (⋮)
+
+The dialog presents:
+- **Brightness**: Light, Dark, Auto (system) - chips with selection indicator
+- **Style**: Modern, Paper - chips with selection indicator
+
+### Theme Persistence
+Theme preferences (brightness mode and style) are persisted using `shared_preferences` and restored when the app launches.
+
 ### Theme Switching
-- Automatic: Follows system theme preference
-- Manual: User can override system setting
-- Smooth transitions between themes
-- Colors remain semantically consistent
+- Automatic: Follows system theme preference (when set to Auto)
+- Manual: User can select Light or Dark explicitly
+- Smooth transitions between themes via Flutter's theme animation
+- Colors remain semantically consistent across all combinations
 
 ## Animations
 
