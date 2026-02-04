@@ -308,13 +308,6 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
               color: theme.iconColor,
             ),
             onSelected: (value) {
-              if (value == 'licenses') {
-                showLicensePage(
-                  context: context,
-                  applicationName: 'Sudaku',
-                );
-                return;
-              }
               setState(() {
                 switch (value) {
                   case 'light':
@@ -441,7 +434,22 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
+            ],
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.iconColor,
+            ),
+            onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+              }
+            },
+            itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'licenses',
                 child: Row(
@@ -755,13 +763,6 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               color: theme.iconColor,
             ),
             onSelected: (value) {
-              if (value == 'licenses') {
-                showLicensePage(
-                  context: context,
-                  applicationName: 'Sudaku',
-                );
-                return;
-              }
               setState(() {
                 switch (value) {
                   case 'light':
@@ -888,7 +889,22 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
+            ],
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.iconColor,
+            ),
+            onSelected: (value) {
+              if (value == 'licenses') {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'Sudaku',
+                );
+              }
+            },
+            itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'licenses',
                 child: Row(
