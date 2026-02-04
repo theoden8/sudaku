@@ -221,7 +221,8 @@ class AppColors {
   static const Color paperInkLight = Color(0xFF3A5A7C);         // Lighter blue ink for hints
   static const Color paperPencil = Color(0xFF6A8AAA);           // Faded blue for inferred
   static const Color paperSelection = Color(0xFFE0E8F0);        // Light blue selection
-  static const Color paperHint = Color(0xFFE8EEF4);             // Hint cell background (slight blue tint)
+  static const Color paperHint = Color(0xFFD8E4F0);             // Hint cells - clearly blue-tinted
+  static const Color paperHintBorder = Color(0xFFB0C4D8);       // Visible blue border for hint cells
   static const Color paperGridLine = Color(0xFF8AAACE);         // Blue-ish grid lines
 
   // Pen-and-paper theme colors - Dark (cool charcoal, neutral grays)
@@ -231,8 +232,8 @@ class AppColors {
   static const Color paperDarkInkLight = Color(0xFFA0A0A8);     // Lighter ink
   static const Color paperDarkPencil = Color(0xFF686870);       // Cool gray pencil for inferred
   static const Color paperDarkSelection = Color(0xFF202028);    // Cool selection
-  static const Color paperDarkHint = Color(0xFF18182A);         // Hint cells - noticeably blue-tinted
-  static const Color paperDarkHintBorder = Color(0xFF2A2A44);   // Border for hint cells in sketched mode
+  static const Color paperDarkHint = Color(0xFF1A1A30);         // Hint cells - clearly blue-tinted background
+  static const Color paperDarkHintBorder = Color(0xFF383858);  // Prominent blue border for hint cells
   static const Color paperDarkGridLine = Color(0xFF34343C);     // Grid lines
 }
 
@@ -454,7 +455,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
-    cellHintBorder: const Color(0xFFD0D8E8),  // Light blue border for hint cells
+    cellHintBorder: AppColors.paperHintBorder,  // Visible blue border for hint cells
     isSketchedStyle: true,
   );
 

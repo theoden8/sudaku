@@ -479,7 +479,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           color: theme.cellHintColor,
           border: Border.all(
             color: theme.cellHintBorder ?? theme.foreground!.withOpacity(0.3),
-            width: 1.0,
+            width: 1.5,
           ),
         ),
         child: FittedBox(
