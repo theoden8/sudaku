@@ -380,29 +380,37 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
           builder: (context, constraints) {
             final double availableWidth = constraints.maxWidth;
             final double availableHeight = constraints.maxHeight;
-            final double buttonSize = min(availableWidth * 0.6, availableHeight * 0.35);
+            final double shortestSide = min(availableWidth, availableHeight);
+
+            // Scale logo size based on screen - larger on bigger screens
+            final double logoSize = min(shortestSide * 0.4, 280);
+            final double buttonWidth = min(shortestSide * 0.5, 320);
+            final double buttonHeight = min(shortestSide * 0.15, 72);
+
+            // Decoration grid sizes scale with screen
+            final double decorSize = shortestSide * 0.2;
 
             return Stack(
               children: [
                 // Decorative background grids
                 Positioned(
-                  top: -30,
-                  left: -30,
+                  top: -decorSize * 0.25,
+                  left: -decorSize * 0.25,
                   child: Transform.rotate(
                     angle: -0.2,
                     child: _buildDecorationGrid(
-                      120,
+                      decorSize,
                       isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
                 Positioned(
-                  bottom: -40,
-                  right: -40,
+                  bottom: -decorSize * 0.3,
+                  right: -decorSize * 0.3,
                   child: Transform.rotate(
                     angle: 0.3,
                     child: _buildDecorationGrid(
-                      150,
+                      decorSize * 1.2,
                       isDark ? Colors.white : Colors.black,
                     ),
                   ),
@@ -420,14 +428,14 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                             scale: 1.0 + (_pulseController.value * 0.05),
                             child: _buildMiniGrid(
                               3,
-                              min(availableWidth * 0.35, 150),
+                              logoSize,
                               isDark ? Colors.blue[300]! : Colors.blue[600]!,
                               isDark ? Colors.blue[200]! : Colors.blue[400]!,
                             ),
                           );
                         },
                       ),
-                      SizedBox(height: availableHeight * 0.06),
+                      SizedBox(height: shortestSide * 0.06),
                       // Play button
                       AnimatedBuilder(
                         animation: _pulseController,
@@ -440,10 +448,10 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                         child: GestureDetector(
                           onTap: () => _showPlayDialog(ctx),
                           child: Container(
-                            width: buttonSize,
-                            height: buttonSize * 0.45,
+                            width: buttonWidth,
+                            height: buttonHeight,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(buttonSize * 0.15),
+                              borderRadius: BorderRadius.circular(buttonHeight * 0.5),
                               gradient: const LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -466,14 +474,14 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                 Icon(
                                   Icons.play_arrow_rounded,
                                   color: Colors.white,
-                                  size: buttonSize * 0.2,
+                                  size: buttonHeight * 0.5,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'PLAY',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: buttonSize * 0.15,
+                                    fontSize: buttonHeight * 0.35,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 4,
                                   ),
@@ -483,13 +491,13 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                           ),
                         ),
                       ),
-                      SizedBox(height: availableHeight * 0.04),
+                      SizedBox(height: shortestSide * 0.04),
                       // Subtitle
                       Text(
                         'Tap to begin',
                         style: TextStyle(
                           color: isDark ? Colors.white38 : Colors.black38,
-                          fontSize: 14,
+                          fontSize: min(16, shortestSide * 0.025),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
