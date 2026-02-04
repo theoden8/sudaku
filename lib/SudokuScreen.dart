@@ -1061,7 +1061,25 @@ class SudokuScreenState extends State<SudokuScreen> {
         (msel) => tutorialCellsUnset[msel]
       )
     );
+    final bool justEnteredStage2 = passCondition && this._tutorialStage == 1;
     this._tutorialStage = !passCondition ? 1 : 2;
+
+    // Auto-show hint when cells are correctly selected
+    if (justEnteredStage2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        this._showTutorialMessage(
+            title: 'Constraint Options',
+            message: 'The panel now shows constraint options. Each constraint type works differently.',
+            nextFunc: () {
+              this._showTutorialMessage(
+                title: 'All different',
+                message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
+                nextFunc: () {}
+              );
+            }
+        );
+      });
+    }
 
     final gradientColors = passCondition
         ? [AppColors.success, AppColors.successLight] // Green when ready
