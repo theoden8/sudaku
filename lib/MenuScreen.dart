@@ -85,9 +85,9 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
 
   // Colors for each grid size
   static const Map<int, List<Color>> _sizeColors = {
-    2: [Color(0xFF4CAF50), Color(0xFF81C784)], // Green
-    3: [Color(0xFF2196F3), Color(0xFF64B5F6)], // Blue
-    4: [Color(0xFF9C27B0), Color(0xFFBA68C8)], // Purple
+    2: [AppColors.success, AppColors.successLight], // Green
+    3: [AppColors.accent, AppColors.accentLight], // Blue
+    4: [AppColors.constraintPurple, AppColors.constraintPurpleLight], // Purple
   };
 
   Widget _makeSudokuSizeCard(BuildContext ctx, Function setState, int n, double cardSize) {
@@ -224,7 +224,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return Scaffold(
-              backgroundColor: isDark ? const Color(0xFF1a1a2e) : const Color(0xFFF5F5F5),
+              backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
@@ -390,7 +390,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1a1a2e) : const Color(0xFFF5F5F5),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -499,13 +499,13 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Color(0xFF667eea),
-                                  Color(0xFF764ba2),
+                                  AppColors.primaryPurple,
+                                  AppColors.secondaryPurple,
                                 ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF667eea).withOpacity(0.4),
+                                  color: AppColors.primaryPurple.withOpacity(0.4),
                                   blurRadius: 25,
                                   offset: const Offset(0, 10),
                                 ),

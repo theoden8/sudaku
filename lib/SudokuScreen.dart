@@ -138,13 +138,13 @@ class SudokuScreenState extends State<SudokuScreen> {
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Row(
             children: [
-              const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFD700), size: 32),
+              const Icon(Icons.emoji_events_rounded, color: AppColors.gold, size: 32),
               const SizedBox(width: 12),
               Text(
                 'Victory!',
@@ -158,13 +158,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'Congratulations on solving the puzzle!',
             style: TextStyle(
-              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+              color: isDark ? AppColors.darkDialogText : Colors.black54,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -293,13 +293,13 @@ class SudokuScreenState extends State<SudokuScreen> {
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF9800), size: 28),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 28),
               const SizedBox(width: 12),
               Text(
                 'Reset Puzzle',
@@ -313,13 +313,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'This will clear all your progress. This action cannot be undone.',
             style: TextStyle(
-              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+              color: isDark ? AppColors.darkDialogText : Colors.black54,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: isDark ? const Color(0xFF8888AA) : const Color(0xFF666688),
+                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -332,7 +332,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             ),
             TextButton(
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935),
+                backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -586,7 +586,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF2a2a4e) : Colors.white,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -597,7 +597,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                    colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
                   ),
                 ),
                 child: const Icon(Icons.lightbulb_rounded, color: Colors.white, size: 20),
@@ -617,13 +617,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             message,
             style: TextStyle(
-              color: isDark ? const Color(0xFFAAAACC) : Colors.black54,
+              color: isDark ? AppColors.darkDialogText : Colors.black54,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF667eea),
+                backgroundColor: AppColors.primaryPurple,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -642,47 +642,144 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Widget _makeTutorialButtonStage0(BuildContext ctx) {
-    final iconSize = min(80.0, min(screenWidth, screenHeight) * 0.15);
-    return GestureDetector(
-      onTap: () {
-        this._selectTutorialCells();
-        this._tutorialStage = 1;
-        this.runSetState();
-        this._showTutorialMessage(
-          title: 'Multi-selection',
-          message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
-          nextFunc: (){}
-        );
-      },
-      onLongPress: () {
-        this._showTutorial = false;
-        this.runSetState();
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+  Future<void> _showSkipTutorialDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return showDialog<void>(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF667eea).withOpacity(0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+          title: Row(
+            children: [
+              const Icon(Icons.school_rounded, color: AppColors.primaryPurple, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Skip Tutorial?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'You can restart the tutorial anytime from the menu.',
+            style: TextStyle(
+              color: isDark ? AppColors.darkDialogText : Colors.black54,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              }
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Skip'),
+              onPressed: () {
+                this._showTutorial = false;
+                this.runSetState();
+                Navigator.of(ctx).pop();
+              }
             ),
           ],
-        ),
-        child: Center(
-          child: Icon(
-            Icons.help_outline_rounded,
-            color: Colors.white,
-            size: iconSize,
+        );
+      },
+    );
+  }
+
+  Widget _makeTutorialButtonStage0(BuildContext ctx) {
+    final iconSize = min(80.0, min(screenWidth, screenHeight) * 0.15);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () {
+            this._selectTutorialCells();
+            this._tutorialStage = 1;
+            this.runSetState();
+            this._showTutorialMessage(
+              title: 'Multi-selection',
+              message: 'Long-press to enter multi-selection mode. To proceed, select the highlighted cells.',
+              nextFunc: (){}
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryPurple.withOpacity(0.4),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                Icons.help_outline_rounded,
+                color: Colors.white,
+                size: iconSize,
+              ),
+            ),
           ),
         ),
-      ),
+        // Dismiss button in corner
+        Positioned(
+          top: -8,
+          right: -8,
+          child: GestureDetector(
+            onTap: () {
+              this._showSkipTutorialDialog();
+            },
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.darkSurface,
+                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white70,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -703,8 +800,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     this._tutorialStage = !passCondition ? 1 : 2;
 
     final gradientColors = passCondition
-        ? [const Color(0xFF4CAF50), const Color(0xFF81C784)] // Green when ready
-        : [const Color(0xFFFF9800), const Color(0xFFFFB74D)]; // Orange when selecting
+        ? [AppColors.success, AppColors.successLight] // Green when ready
+        : [AppColors.warning, AppColors.warningLight]; // Orange when selecting
 
     return GestureDetector(
       onTap: !passCondition ? null : () {
@@ -783,11 +880,11 @@ class SudokuScreenState extends State<SudokuScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
+            colors: [AppColors.success, AppColors.successLight],
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF4CAF50).withOpacity(0.4),
+              color: AppColors.success.withOpacity(0.4),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -829,9 +926,9 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   // Color mapping for constraint types
   static const Map<ConstraintType, List<Color>> _constraintColors = {
-    ConstraintType.ONE_OF: [Color(0xFF4CAF50), Color(0xFF81C784)],
-    ConstraintType.EQUAL: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
-    ConstraintType.ALLDIFF: [Color(0xFF2196F3), Color(0xFF64B5F6)],
+    ConstraintType.ONE_OF: [AppColors.success, AppColors.successLight],
+    ConstraintType.EQUAL: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ConstraintType.ALLDIFF: [AppColors.accent, AppColors.accentLight],
   };
 
   var _selectedConstraint = null;
@@ -842,8 +939,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     }).toList();
 
     // Theme-aware muted colors
-    final mutedPrimary = isDark ? const Color(0xFF5a5a8e) : const Color(0xFF9999AA);
-    final mutedSecondary = isDark ? const Color(0xFF4a4a6e) : const Color(0xFFBBBBCC);
+    final mutedPrimary = isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary;
+    final mutedSecondary = isDark ? AppColors.darkMutedSecondary : AppColors.lightMutedSecondary;
 
     if (constraints.isEmpty) {
       return Center(
@@ -896,7 +993,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               borderRadius: BorderRadius.circular(12),
               gradient: isViolated
                   ? const LinearGradient(
-                      colors: [Color(0xFFE53935), Color(0xFFEF5350)],
+                      colors: [AppColors.error, AppColors.errorLight],
                     )
                   : LinearGradient(
                       begin: Alignment.topLeft,
@@ -993,8 +1090,8 @@ class SudokuScreenState extends State<SudokuScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? const Color(0xFF3a3a5e) : const Color(0xFFDDDDEE),
-              foregroundColor: isDark ? const Color(0xFFAAAACC) : const Color(0xFF666688),
+              backgroundColor: isDark ? AppColors.darkSurfaceLight : const Color(0xFFDDDDEE),
+              foregroundColor: isDark ? AppColors.darkDialogText : AppColors.lightCancelButton,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1028,8 +1125,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Disabled colors that match the theme
-    final disabledBg = isDark ? const Color(0xFF2a2a4e) : const Color(0xFFE8E8E8);
-    final disabledFg = isDark ? const Color(0xFF5a5a7e) : const Color(0xFFAAAAAA);
+    final disabledBg = isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg;
+    final disabledFg = isDark ? AppColors.darkDisabledFg : AppColors.lightDisabledFg;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1082,7 +1179,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
 
     return Drawer(
-      backgroundColor: isDark ? const Color(0xFF1a1a2e) : const Color(0xFFF5F5F5),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       child: SafeArea(
         child: Column(
           children: <Widget>[
@@ -1096,7 +1193,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        colors: [AppColors.primaryPurple, AppColors.secondaryPurple],
                       ),
                     ),
                     child: const Icon(
@@ -1123,7 +1220,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             _makeDrawerItem(
               icon: Icons.looks_one_rounded,
               title: 'One of',
-              gradientColors: const [Color(0xFF4CAF50), Color(0xFF81C784)],
+              gradientColors: const [AppColors.success, AppColors.successLight],
               onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
                 this.interact = OneofInteraction(this);
                 await this.interact!.onSelection();
@@ -1134,7 +1231,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             _makeDrawerItem(
               icon: Icons.link_rounded,
               title: 'Equivalence',
-              gradientColors: const [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+              gradientColors: const [AppColors.constraintPurple, AppColors.constraintPurpleLight],
               onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
                 this.interact = EqualInteraction(this);
                 await this.interact!.onSelection();
@@ -1145,7 +1242,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             _makeDrawerItem(
               icon: Icons.difference_rounded,
               title: 'All different',
-              gradientColors: const [Color(0xFF2196F3), Color(0xFF64B5F6)],
+              gradientColors: const [AppColors.accent, AppColors.accentLight],
               onTap: (this._multiSelect!.cardinality < 2) ? null : () async {
                 this.interact = AlldiffInteraction(this);
                 await this.interact!.onSelection();
@@ -1157,7 +1254,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             _makeDrawerItem(
               icon: Icons.block_rounded,
               title: 'Eliminate',
-              gradientColors: const [Color(0xFFFF5722), Color(0xFFFF8A65)],
+              gradientColors: const [AppColors.constraintOrange, AppColors.constraintOrangeLight],
               onTap: (this._multiSelect!.cardinality < 1) ? null : () async {
                 this.interact = EliminatorInteraction(this);
                 await this.interact!.onSelection();
@@ -1172,7 +1269,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: Text(
                 'Long-press cells to select multiple',
                 style: TextStyle(
-                  color: isDark ? const Color(0xFF5a5a8e) : const Color(0xFF9999AA),
+                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
@@ -1357,7 +1454,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          color: isDark ? const Color(0xFF2a2a4e) : Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           child: this._makeSudokuGridContent(ctx, gridSize),
         ),
       ),
@@ -1455,7 +1552,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF1a1a2e) : const Color(0xFFF5F5F5),
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: appBar,
         drawer: this._makeDrawer(ctx),
         body: Builder(
