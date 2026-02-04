@@ -1209,26 +1209,27 @@ class SudokuScreenState extends State<SudokuScreen> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.playlist_add_rounded,
-              size: 48,
+              size: 32,
               color: mutedSecondary,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               'No constraints yet',
               style: TextStyle(
                 color: mutedPrimary,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               'Long-press cells to select',
               style: TextStyle(
                 color: mutedSecondary,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ],
