@@ -395,6 +395,166 @@ class SudokuScreenState extends State<SudokuScreen> {
     });
   }
 
+  Future<void> _showThemeDialog(BuildContext ctx) async {
+    return showDialog<void>(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Get fresh theme for current state
+            final currentTheme = widget.sudokuThemeFunc(context);
+            return AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.palette_rounded, color: AppColors.primaryPurple, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Theme',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: currentTheme.dialogTitleColor,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'BRIGHTNESS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: currentTheme.mutedPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _buildThemeChip(
+                        icon: Icons.wb_sunny,
+                        label: 'Light',
+                        onTap: () {
+                          currentTheme.onThemeModeChange(ThemeMode.light);
+                          setDialogState(() {});
+                          setState(() {});
+                        },
+                      ),
+                      _buildThemeChip(
+                        icon: Icons.nights_stay,
+                        label: 'Dark',
+                        onTap: () {
+                          currentTheme.onThemeModeChange(ThemeMode.dark);
+                          setDialogState(() {});
+                          setState(() {});
+                        },
+                      ),
+                      _buildThemeChip(
+                        icon: Icons.settings_brightness,
+                        label: 'System',
+                        onTap: () {
+                          currentTheme.onThemeModeChange(ThemeMode.system);
+                          setDialogState(() {});
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'STYLE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: currentTheme.mutedPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _buildThemeChip(
+                        icon: Icons.auto_awesome,
+                        label: 'Modern',
+                        isSelected: currentTheme.currentStyle == ThemeStyle.modern,
+                        onTap: () {
+                          currentTheme.onThemeStyleChange(ThemeStyle.modern);
+                          setDialogState(() {});
+                          setState(() {});
+                        },
+                      ),
+                      _buildThemeChip(
+                        icon: Icons.edit_note,
+                        label: 'Pen & Paper',
+                        isSelected: currentTheme.currentStyle == ThemeStyle.penAndPaper,
+                        onTap: () {
+                          currentTheme.onThemeStyleChange(ThemeStyle.penAndPaper);
+                          setDialogState(() {});
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: currentTheme.cancelButtonColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  child: const Text('Done'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    final theme = widget.sudokuThemeFunc(context);
+    return ActionChip(
+      avatar: Icon(
+        icon,
+        size: 18,
+        color: isSelected ? AppColors.primaryPurple : theme.iconColor,
+      ),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppColors.primaryPurple : theme.dialogTextColor,
+        ),
+      ),
+      backgroundColor: isSelected
+          ? AppColors.primaryPurple.withOpacity(0.1)
+          : Theme.of(context).colorScheme.surface,
+      side: BorderSide(
+        color: isSelected ? AppColors.primaryPurple : theme.disabledFg,
+      ),
+      onPressed: onTap,
+    );
+  }
+
   Border getBorder(int i, int j, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
 
@@ -1385,7 +1545,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     const int
       TOOLBAR_ASSIST = 0,
       TOOLBAR_TUTOR = 1,
-      TOOLBAR_RESET = 2;
+      TOOLBAR_RESET = 2,
+      TOOLBAR_THEME = 3;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo_rounded, color: iconColor),
@@ -1414,140 +1575,6 @@ class SudokuScreenState extends State<SudokuScreen> {
           }
         },
       ),
-      PopupMenuButton<String>(
-        icon: Icon(Icons.palette, color: iconColor),
-        onSelected: (value) {
-          final theme = this.widget.sudokuThemeFunc(ctx);
-          setState(() {
-            switch (value) {
-              case 'light':
-                theme.onThemeModeChange(ThemeMode.light);
-                break;
-              case 'dark':
-                theme.onThemeModeChange(ThemeMode.dark);
-                break;
-              case 'system':
-                theme.onThemeModeChange(ThemeMode.system);
-                break;
-              case 'modern':
-                theme.onThemeStyleChange(ThemeStyle.modern);
-                break;
-              case 'penAndPaper':
-                theme.onThemeStyleChange(ThemeStyle.penAndPaper);
-                break;
-            }
-          });
-        },
-        itemBuilder: (context) {
-          return [
-            PopupMenuItem(
-              enabled: false,
-              child: Text(
-                'BRIGHTNESS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: theme.mutedPrimary,
-                ),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'light',
-              child: Row(
-                children: [
-                  Icon(Icons.wb_sunny, size: 20),
-                  SizedBox(width: 12),
-                  Text('Light'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'dark',
-              child: Row(
-                children: [
-                  Icon(Icons.nights_stay, size: 20),
-                  SizedBox(width: 12),
-                  Text('Dark'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'system',
-              child: Row(
-                children: [
-                  Icon(Icons.settings_brightness, size: 20),
-                  SizedBox(width: 12),
-                  Text('System'),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              enabled: false,
-              child: Text(
-                'STYLE',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: theme.mutedPrimary,
-                ),
-              ),
-            ),
-            PopupMenuItem(
-              value: 'modern',
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 20,
-                    color: theme.currentStyle == ThemeStyle.modern
-                        ? AppColors.primaryPurple
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Modern',
-                    style: TextStyle(
-                      fontWeight: theme.currentStyle == ThemeStyle.modern
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: theme.currentStyle == ThemeStyle.modern
-                          ? AppColors.primaryPurple
-                          : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'penAndPaper',
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.edit_note,
-                    size: 20,
-                    color: theme.currentStyle == ThemeStyle.penAndPaper
-                        ? AppColors.primaryPurple
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Pen & Paper',
-                    style: TextStyle(
-                      fontWeight: theme.currentStyle == ThemeStyle.penAndPaper
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: theme.currentStyle == ThemeStyle.penAndPaper
-                          ? AppColors.primaryPurple
-                          : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ];
-        },
-      ),
       PopupMenuButton<int>(
         icon: Icon(Icons.more_vert_rounded, color: iconColor),
         onSelected: (int opt) {
@@ -1560,6 +1587,9 @@ class SudokuScreenState extends State<SudokuScreen> {
             break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
+            break;
+            case TOOLBAR_THEME:
+              this._showThemeDialog(ctx);
             break;
           }
         },
@@ -1580,7 +1610,17 @@ class SudokuScreenState extends State<SudokuScreen> {
               children: [
                 Icon(Icons.school_rounded, size: 20),
                 SizedBox(width: 12),
-                Text('Tutor'),
+                Text('Tutorial'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: TOOLBAR_THEME,
+            child: Row(
+              children: [
+                Icon(Icons.palette_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('Theme'),
               ],
             ),
           ),
