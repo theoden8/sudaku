@@ -422,56 +422,35 @@ class NumpadScreenState extends State<NumpadScreen> {
             final double availableWidth = constraints.maxWidth;
             final double availableHeight = constraints.maxHeight;
 
-            // Calculate grid size to fit the screen
+            // Calculate grid size to fit the screen with button below
             double gridSize;
             if (isPortrait) {
               // In portrait, grid should take most of the width, leave space for button
               gridSize = min(availableWidth * 0.95, availableHeight * 0.75);
             } else {
-              // In landscape, grid should take most of the height, leave space for button
-              gridSize = min(availableHeight * 0.85, availableWidth * 0.6);
+              // In landscape, grid is limited by height (leave space for button below)
+              gridSize = min(availableHeight * 0.75, availableWidth * 0.85);
             }
 
             final double cellSize = gridSize / n;
 
-            if (isPortrait) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Expanded(
-                    child: Center(
-                      child: SizedBox(
-                        width: gridSize,
-                        height: gridSize,
-                        child: _buildNumpadGrid(ctx, cellSize, n),
-                      ),
+            // Both orientations use Column layout with button below grid
+            // Grid is centered horizontally
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: gridSize,
+                      height: gridSize,
+                      child: _buildNumpadGrid(ctx, cellSize, n),
                     ),
                   ),
-                  _buildActionButton(ctx),
-                ],
-              );
-            } else {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Expanded(
-                    child: Center(
-                      child: SizedBox(
-                        width: gridSize,
-                        height: gridSize,
-                        child: _buildNumpadGrid(ctx, cellSize, n),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: availableWidth - gridSize - 16,
-                    child: Center(
-                      child: _buildActionButton(ctx),
-                    ),
-                  ),
-                ],
-              );
-            }
+                ),
+                _buildActionButton(ctx),
+              ],
+            );
           },
         ),
       ),
