@@ -15,6 +15,137 @@ import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 
 
+/// Custom painter for hand-drawn/sketched grid lines (Excalidraw-style)
+/// Used for pen-and-paper theme to give a hand-drawn feel
+class SketchedGridPainter extends CustomPainter {
+  final int n;  // Grid dimension (e.g., 3 for 9x9)
+  final Color lineColor;
+  final double size;
+  final List<List<double>> _wobbleCache;
+  final double wobbleAmount;
+  final double thinLineWidth;
+  final double thickLineWidth;
+
+  SketchedGridPainter({
+    required this.n,
+    required this.lineColor,
+    required this.size,
+    this.wobbleAmount = 3.0,
+    this.thinLineWidth = 1.0,
+    this.thickLineWidth = 2.5,
+  }) : _wobbleCache = _generateWobbleCache(n, wobbleAmount);
+
+  // Pre-generate wobble values so they're consistent across repaints
+  static List<List<double>> _generateWobbleCache(int n, double wobbleAmount) {
+    final random = Random(42);  // Fixed seed for consistency
+    final ne2 = n * n;
+    final totalLines = (ne2 + 1) * 2;  // Horizontal + vertical lines
+    final segmentsPerLine = 12;  // Max segments per line
+
+    return List.generate(totalLines, (lineIndex) {
+      return List.generate(segmentsPerLine * 2, (i) {
+        return (random.nextDouble() - 0.5) * wobbleAmount;
+      });
+    });
+  }
+
+  @override
+  void paint(Canvas canvas, Size canvasSize) {
+    final ne2 = n * n;  // Total cells per row/column
+    final cellSize = size / ne2;
+
+    // Thin lines for cell borders
+    final thinPaint = Paint()
+      ..color = lineColor.withOpacity(0.4)
+      ..strokeWidth = thinLineWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Thick lines for box borders
+    final thickPaint = Paint()
+      ..color = lineColor.withOpacity(0.9)
+      ..strokeWidth = thickLineWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    int lineIndex = 0;
+
+    // Draw horizontal lines
+    for (int i = 0; i <= ne2; i++) {
+      final y = i * cellSize;
+      final isBoxBorder = i % n == 0;
+      final paint = isBoxBorder ? thickPaint : thinPaint;
+      _drawSketchedLine(canvas, Offset(0, y), Offset(size, y), paint, lineIndex++);
+    }
+
+    // Draw vertical lines
+    for (int j = 0; j <= ne2; j++) {
+      final x = j * cellSize;
+      final isBoxBorder = j % n == 0;
+      final paint = isBoxBorder ? thickPaint : thinPaint;
+      _drawSketchedLine(canvas, Offset(x, 0), Offset(x, size), paint, lineIndex++);
+    }
+  }
+
+  void _drawSketchedLine(Canvas canvas, Offset start, Offset end, Paint paint, int lineIndex) {
+    final path = Path();
+
+    // Slightly offset start point for more hand-drawn feel
+    final wobbles = _wobbleCache[lineIndex % _wobbleCache.length];
+    final startWobble = wobbles[0] * 0.3;
+
+    path.moveTo(
+      start.dx + (start.dy == end.dy ? 0 : startWobble),
+      start.dy + (start.dx == end.dx ? 0 : startWobble),
+    );
+
+    // Add wobble to make it look hand-drawn
+    final distance = (end - start).distance;
+    final segments = (distance / 25).ceil().clamp(4, 12);
+    final dx = (end.dx - start.dx) / segments;
+    final dy = (end.dy - start.dy) / segments;
+
+    for (int i = 1; i <= segments; i++) {
+      final targetX = start.dx + dx * i;
+      final targetY = start.dy + dy * i;
+
+      if (i == segments) {
+        // End with slight wobble too
+        final endWobble = wobbles[1] * 0.3;
+        path.lineTo(
+          end.dx + (start.dy == end.dy ? 0 : endWobble),
+          end.dy + (start.dx == end.dx ? 0 : endWobble),
+        );
+      } else {
+        // Use pre-computed wobble values
+        final wobbleIdx = (i * 2) % wobbles.length;
+        final wobbleX = wobbles[wobbleIdx];
+        final wobbleY = wobbles[wobbleIdx + 1];
+
+        // Apply wobble perpendicular to line direction
+        if (start.dy == end.dy) {
+          // Horizontal line - wobble vertically
+          path.lineTo(targetX, targetY + wobbleY);
+        } else {
+          // Vertical line - wobble horizontally
+          path.lineTo(targetX + wobbleX, targetY);
+        }
+      }
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SketchedGridPainter oldDelegate) {
+    return oldDelegate.n != n ||
+           oldDelegate.lineColor != lineColor ||
+           oldDelegate.size != size ||
+           oldDelegate.wobbleAmount != wobbleAmount;
+  }
+}
+
+
 /// Theme style options
 enum ThemeStyle {
   modern,
@@ -83,25 +214,25 @@ class AppColors {
   static const Color numpadSelectedLight = Color(0xFF90CAF9);   // Light blue for selection
   static const Color numpadSelectedDark = Color(0xFF64B5F6);    // Medium light blue for dark theme selection
 
-  // Pen-and-paper theme colors - Light
+  // Pen-and-paper theme colors - Light (blue fountain pen ink)
   static const Color paperBackground = Color(0xFFFAF8F5);       // Warm cream paper
   static const Color paperSurface = Color(0xFFF5F2ED);          // Slightly darker paper
-  static const Color paperInk = Color(0xFF2C2C2C);              // Dark ink
-  static const Color paperInkLight = Color(0xFF5C5C5C);         // Lighter ink for hints
-  static const Color paperPencil = Color(0xFF888888);           // Pencil gray for inferred
-  static const Color paperSelection = Color(0xFFE8E4DC);        // Subtle selection
-  static const Color paperHint = Color(0xFFEDE9E0);             // Hint cell background
-  static const Color paperGridLine = Color(0xFFCCC8C0);         // Grid lines
+  static const Color paperInk = Color(0xFF1A3A5C);              // Blue fountain pen ink
+  static const Color paperInkLight = Color(0xFF3A5A7C);         // Lighter blue ink for hints
+  static const Color paperPencil = Color(0xFF6A8AAA);           // Faded blue for inferred
+  static const Color paperSelection = Color(0xFFE0E8F0);        // Light blue selection
+  static const Color paperHint = Color(0xFFE8EEF4);             // Hint cell background (slight blue tint)
+  static const Color paperGridLine = Color(0xFF8AAACE);         // Blue-ish grid lines
 
-  // Pen-and-paper theme colors - Dark
-  static const Color paperDarkBackground = Color(0xFF1E1C1A);   // Dark warm paper
-  static const Color paperDarkSurface = Color(0xFF2A2826);      // Slightly lighter dark paper
-  static const Color paperDarkInk = Color(0xFFE8E4DC);          // Light ink on dark
-  static const Color paperDarkInkLight = Color(0xFFB8B4AC);     // Lighter ink
-  static const Color paperDarkPencil = Color(0xFF888880);       // Pencil for inferred
-  static const Color paperDarkSelection = Color(0xFF3A3836);    // Subtle selection
-  static const Color paperDarkHint = Color(0xFF323028);         // Hint cell background
-  static const Color paperDarkGridLine = Color(0xFF4A4840);     // Grid lines
+  // Pen-and-paper theme colors - Dark (darker, more contrast)
+  static const Color paperDarkBackground = Color(0xFF0A0A0C);   // Very dark charcoal
+  static const Color paperDarkSurface = Color(0xFF141416);      // Slightly lighter charcoal
+  static const Color paperDarkInk = Color(0xFFD8D4CC);          // Warm off-white ink
+  static const Color paperDarkInkLight = Color(0xFFA8A49C);     // Lighter ink
+  static const Color paperDarkPencil = Color(0xFF707068);       // Muted pencil for inferred
+  static const Color paperDarkSelection = Color(0xFF242420);    // Subtle selection
+  static const Color paperDarkHint = Color(0xFF1C1C18);         // Hint cell background
+  static const Color paperDarkGridLine = Color(0xFF3A3A34);     // Grid lines
 }
 
 void main() => runApp(SudokuApp());
@@ -143,6 +274,20 @@ class SudokuTheme {
   Color? numpadTextOnColored;
   Color? numpadSelected;
 
+  // UI colors (replacing isDark checks)
+  Color dialogTitleColor;
+  Color dialogTextColor;
+  Color mutedPrimary;
+  Color mutedSecondary;
+  Color cancelButtonColor;
+  Color disabledBg;
+  Color disabledFg;
+  Color shadowColor;
+  Color iconColor;
+  Color logoColorPrimary;
+  Color logoColorSecondary;
+  Color subtitleColor;
+
   // Style properties
   bool isSketchedStyle;
 
@@ -173,6 +318,18 @@ class SudokuTheme {
     required this.numpadTextOnLight,
     required this.numpadTextOnColored,
     required this.numpadSelected,
+    required this.dialogTitleColor,
+    required this.dialogTextColor,
+    required this.mutedPrimary,
+    required this.mutedSecondary,
+    required this.cancelButtonColor,
+    required this.disabledBg,
+    required this.disabledFg,
+    required this.shadowColor,
+    required this.iconColor,
+    required this.logoColorPrimary,
+    required this.logoColorSecondary,
+    required this.subtitleColor,
     required this.onThemeModeChange,
     required this.onThemeStyleChange,
     required this.currentStyle,
@@ -232,39 +389,63 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: AppColors.numpadSelectedLight,
+    dialogTitleColor: Colors.black87,
+    dialogTextColor: Colors.black54,
+    mutedPrimary: AppColors.lightMutedPrimary,
+    mutedSecondary: AppColors.lightMutedSecondary,
+    cancelButtonColor: AppColors.lightCancelButton,
+    disabledBg: AppColors.lightDisabledBg,
+    disabledFg: AppColors.lightDisabledFg,
+    shadowColor: Colors.grey,
+    iconColor: Colors.black54,
+    logoColorPrimary: Colors.blue.shade600,
+    logoColorSecondary: Colors.blue.shade400,
+    subtitleColor: Colors.black38,
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
   );
 
-  // Pen-and-Paper Light Theme - warm, minimalist, classic feel
+  // Pen-and-Paper Light Theme - blue fountain pen ink on cream paper
   SudokuTheme getLightPenAndPaperTheme() => SudokuTheme(
     blue: const Color(0xFFD0D8E8),      // Muted blue-gray
     veryBlue: const Color(0xFFC0C8D8),
-    green: const Color(0xFFD8E0D0),     // Muted sage
+    green: const Color(0xFFD8E8D8),     // Muted sage
     yellow: const Color(0xFFE8E0C8),    // Muted cream
     veryYellow: const Color(0xFFE0D8C0),
     orange: const Color(0xFFE8D8C8),    // Muted peach
-    red: const Color(0xFFE0D0D0),       // Muted rose
+    red: const Color(0xFFE8D0D0),       // Muted rose
     veryRed: const Color(0xFFD8C0C0),
-    purple: const Color(0xFFD8D0E0),    // Muted lavender
-    cyan: const Color(0xFFD0E0E0),      // Muted teal
+    purple: const Color(0xFFD8D0E8),    // Muted lavender
+    cyan: const Color(0xFFD0E0E8),      // Muted teal
     foreground: AppColors.paperInk,
     cellForeground: AppColors.paperInk,
     cellInferColor: AppColors.paperPencil,
     cellHintColor: AppColors.paperHint,
     cellBackground: AppColors.paperBackground,
     cellSelectionColor: AppColors.paperSelection,
-    numpadAvailable: const Color(0xFF5C5C5C),     // Ink gray
-    numpadAvailableActive: const Color(0xFF3C3C3C),
+    numpadAvailable: AppColors.paperInk,          // Blue ink
+    numpadAvailableActive: const Color(0xFF0A2A4C),
     numpadForbidden: const Color(0xFFB8A8A8),     // Muted rose
     numpadForbiddenActive: const Color(0xFF988888),
-    numpadUnconstrained: const Color(0xFFB8B098), // Muted tan
+    numpadUnconstrained: const Color(0xFF8A9AAA), // Muted blue-gray
     numpadDisabledBg: AppColors.paperSurface,
-    numpadDisabledFg: const Color(0xFFBBBBAA),
-    numpadTextOnLight: Colors.black87,
+    numpadDisabledFg: const Color(0xFFBBBBCC),
+    numpadTextOnLight: AppColors.paperInk,
     numpadTextOnColored: Colors.white,
-    numpadSelected: const Color(0xFFD8D0C0),      // Warm highlight
+    numpadSelected: const Color(0xFFD0E0F0),      // Light blue highlight
+    dialogTitleColor: AppColors.paperInk,
+    dialogTextColor: AppColors.paperPencil,
+    mutedPrimary: AppColors.paperPencil,
+    mutedSecondary: const Color(0xFF8A9AAA),
+    cancelButtonColor: AppColors.paperPencil,
+    disabledBg: AppColors.paperSurface,
+    disabledFg: const Color(0xFFBBBBCC),
+    shadowColor: const Color(0xFF8A9AAA),
+    iconColor: AppColors.paperPencil,
+    logoColorPrimary: AppColors.paperInk,
+    logoColorSecondary: AppColors.paperInk,
+    subtitleColor: AppColors.paperPencil.withOpacity(0.6),
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
@@ -299,39 +480,63 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: AppColors.numpadSelectedDark,
+    dialogTitleColor: Colors.white,
+    dialogTextColor: AppColors.darkDialogText,
+    mutedPrimary: AppColors.darkMutedPrimary,
+    mutedSecondary: AppColors.darkMutedSecondary,
+    cancelButtonColor: AppColors.darkCancelButton,
+    disabledBg: AppColors.darkDisabledBg,
+    disabledFg: AppColors.darkDisabledFg,
+    shadowColor: Colors.black,
+    iconColor: Colors.white70,
+    logoColorPrimary: Colors.blue.shade300,
+    logoColorSecondary: Colors.blue.shade200,
+    subtitleColor: Colors.white38,
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
   );
 
-  // Pen-and-Paper Dark Theme - warm, minimalist, classic feel on dark background
+  // Pen-and-Paper Dark Theme - very dark charcoal with warm off-white ink
   SudokuTheme getDarkPenAndPaperTheme() => SudokuTheme(
-    blue: const Color(0xFF4A5868),      // Muted slate blue
-    veryBlue: const Color(0xFF5A6878),
-    green: const Color(0xFF4A5848),     // Muted forest
-    yellow: const Color(0xFF585848),    // Muted olive
-    veryYellow: const Color(0xFF686858),
-    orange: const Color(0xFF685848),    // Muted brown
-    red: const Color(0xFF584848),       // Muted burgundy
-    veryRed: const Color(0xFF684858),
-    purple: const Color(0xFF504858),    // Muted plum
-    cyan: const Color(0xFF485858),      // Muted teal
+    blue: const Color(0xFF2A3038),      // Very muted slate blue
+    veryBlue: const Color(0xFF3A4048),
+    green: const Color(0xFF2A3028),     // Very muted forest
+    yellow: const Color(0xFF383828),    // Very muted olive
+    veryYellow: const Color(0xFF484838),
+    orange: const Color(0xFF483828),    // Very muted brown
+    red: const Color(0xFF382828),       // Very muted burgundy
+    veryRed: const Color(0xFF482838),
+    purple: const Color(0xFF302838),    // Very muted plum
+    cyan: const Color(0xFF283838),      // Very muted teal
     foreground: AppColors.paperDarkInk,
     cellForeground: AppColors.paperDarkInk,
     cellInferColor: AppColors.paperDarkPencil,
     cellHintColor: AppColors.paperDarkHint,
     cellBackground: AppColors.paperDarkBackground,
     cellSelectionColor: AppColors.paperDarkSelection,
-    numpadAvailable: const Color(0xFFB8B4AC),     // Light ink
-    numpadAvailableActive: const Color(0xFFE8E4DC),
-    numpadForbidden: const Color(0xFF786868),     // Muted rose
-    numpadForbiddenActive: const Color(0xFF685858),
-    numpadUnconstrained: const Color(0xFF787060), // Muted tan
+    numpadAvailable: AppColors.paperDarkInk,      // Warm off-white
+    numpadAvailableActive: const Color(0xFFF0ECE4),
+    numpadForbidden: const Color(0xFF584040),     // Muted red
+    numpadForbiddenActive: const Color(0xFF483030),
+    numpadUnconstrained: const Color(0xFF585048), // Muted tan
     numpadDisabledBg: AppColors.paperDarkSurface,
-    numpadDisabledFg: const Color(0xFF585850),
+    numpadDisabledFg: const Color(0xFF404038),
     numpadTextOnLight: Colors.black87,
-    numpadTextOnColored: const Color(0xFF1E1C1A),
-    numpadSelected: const Color(0xFF4A4840),      // Warm highlight
+    numpadTextOnColored: AppColors.paperDarkBackground,
+    numpadSelected: const Color(0xFF2A2A24),      // Subtle highlight
+    dialogTitleColor: AppColors.paperDarkInk,
+    dialogTextColor: AppColors.paperDarkPencil,
+    mutedPrimary: AppColors.paperDarkPencil,
+    mutedSecondary: const Color(0xFF585048),
+    cancelButtonColor: AppColors.paperDarkPencil,
+    disabledBg: AppColors.paperDarkSurface,
+    disabledFg: const Color(0xFF404038),
+    shadowColor: Colors.black,
+    iconColor: AppColors.paperDarkPencil,
+    logoColorPrimary: AppColors.paperDarkInk,
+    logoColorSecondary: AppColors.paperDarkInk,
+    subtitleColor: AppColors.paperDarkPencil.withOpacity(0.6),
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,

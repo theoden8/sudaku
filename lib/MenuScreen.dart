@@ -48,18 +48,18 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
   }
 
   // Build a mini sudoku grid preview with optional animation
-  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor, {bool animate = false}) {
+  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor, {bool animate = false, bool isSketchedStyle = false}) {
     final int gridSize = n * n;
 
     Widget gridContent = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: primaryColor, width: 2),
+        borderRadius: BorderRadius.circular(isSketchedStyle ? 4 : 8),
+        border: isSketchedStyle ? null : Border.all(color: primaryColor, width: 2),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(isSketchedStyle ? 2 : 6),
         child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -72,6 +72,15 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             final int boxRow = row ~/ n;
             final int boxCol = col ~/ n;
             final bool isEvenBox = (boxRow + boxCol) % 2 == 0;
+
+            if (isSketchedStyle) {
+              // Simpler look for pen-and-paper style - no cell borders, subtle coloring
+              return Container(
+                color: isEvenBox
+                    ? primaryColor.withOpacity(0.08)
+                    : secondaryColor.withOpacity(0.04),
+              );
+            }
 
             if (animate) {
               // Create smooth continuous wave animation based on cell position
@@ -133,6 +142,33 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       ),
     );
 
+    // For sketched style, overlay hand-drawn grid lines
+    if (isSketchedStyle) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          children: [
+            gridContent,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: SketchedGridPainter(
+                    n: n,
+                    lineColor: primaryColor,
+                    size: size,
+                    wobbleAmount: 2.0,  // Less wobble for smaller grids
+                    thinLineWidth: 0.8,
+                    thickLineWidth: 1.8,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return gridContent;
   }
 
@@ -143,7 +179,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
     4: [AppColors.constraintPurple, AppColors.constraintPurpleLight], // Purple
   };
 
-  Widget _makeSudokuSizeCard(BuildContext ctx, int n, double cardSize) {
+  Widget _makeSudokuSizeCard(BuildContext ctx, int n, double cardSize, {bool isSketchedStyle = false, Color? sketchedLineColor}) {
     final bool isSelected = _selectedSize == n;
     final colors = _sizeColors[n]!;
     final int totalCells = n * n;
@@ -198,9 +234,10 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                 _buildMiniGrid(
                   n,
                   cardSize * 0.42,
-                  Colors.white,
-                  Colors.white,
-                  animate: isSelected,
+                  isSketchedStyle ? (sketchedLineColor ?? Colors.white) : Colors.white,
+                  isSketchedStyle ? (sketchedLineColor ?? Colors.white) : Colors.white,
+                  animate: isSelected && !isSketchedStyle,
+                  isSketchedStyle: isSketchedStyle,
                 ),
                 SizedBox(height: cardSize * 0.03),
                 // Size label with optional check icon
@@ -253,7 +290,6 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
   @override
   Widget build(BuildContext context) {
     final theme = widget.sudokuThemeFunc(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -269,7 +305,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
           PopupMenuButton<String>(
             icon: Icon(
               Icons.palette,
-              color: isDark ? Colors.white70 : Colors.black54,
+              color: theme.iconColor,
             ),
             onSelected: (value) {
               setState(() {
@@ -300,7 +336,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                    color: theme.mutedPrimary,
                   ),
                 ),
               ),
@@ -342,7 +378,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                    color: theme.mutedPrimary,
                   ),
                 ),
               ),
@@ -427,9 +463,15 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             }
 
             final cards = [
-              _makeSudokuSizeCard(context, 2, cardSize),
-              _makeSudokuSizeCard(context, 3, cardSize),
-              _makeSudokuSizeCard(context, 4, cardSize),
+              _makeSudokuSizeCard(context, 2, cardSize,
+                  isSketchedStyle: theme.isSketchedStyle,
+                  sketchedLineColor: theme.foreground),
+              _makeSudokuSizeCard(context, 3, cardSize,
+                  isSketchedStyle: theme.isSketchedStyle,
+                  sketchedLineColor: theme.foreground),
+              _makeSudokuSizeCard(context, 4, cardSize,
+                  isSketchedStyle: theme.isSketchedStyle,
+                  sketchedLineColor: theme.foreground),
             ];
 
             final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6;
@@ -547,18 +589,18 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
   }
 
   // Build a mini sudoku grid preview (static version for main menu)
-  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor) {
+  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor, {bool isSketchedStyle = false}) {
     final int gridSize = n * n;
 
-    return Container(
+    Widget gridContent = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: primaryColor, width: 2),
+        borderRadius: BorderRadius.circular(isSketchedStyle ? 4 : 8),
+        border: isSketchedStyle ? null : Border.all(color: primaryColor, width: 2),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(isSketchedStyle ? 2 : 6),
         child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -571,6 +613,15 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             final int boxRow = row ~/ n;
             final int boxCol = col ~/ n;
             final bool isEvenBox = (boxRow + boxCol) % 2 == 0;
+
+            if (isSketchedStyle) {
+              // Simpler look for pen-and-paper style
+              return Container(
+                color: isEvenBox
+                    ? primaryColor.withOpacity(0.1)
+                    : secondaryColor.withOpacity(0.05),
+              );
+            }
 
             return Container(
               decoration: BoxDecoration(
@@ -595,6 +646,35 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         ),
       ),
     );
+
+    // For sketched style, overlay hand-drawn grid lines
+    if (isSketchedStyle) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          children: [
+            gridContent,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: SketchedGridPainter(
+                    n: n,
+                    lineColor: primaryColor,
+                    size: size,
+                    wobbleAmount: 2.0,
+                    thinLineWidth: 0.8,
+                    thickLineWidth: 1.8,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return gridContent;
   }
 
   Future<void> _showPlayDialog(BuildContext ctx) async {
@@ -625,16 +705,15 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildDecorationGrid(double size, Color color) {
+  Widget _buildDecorationGrid(double size, Color color, {bool isSketchedStyle = false}) {
     return Opacity(
-      opacity: 0.1,
-      child: _buildMiniGrid(3, size, color, color),
+      opacity: isSketchedStyle ? 0.15 : 0.1,
+      child: _buildMiniGrid(3, size, color, color, isSketchedStyle: isSketchedStyle),
     );
   }
 
   Widget build(BuildContext ctx) {
     final theme = widget.sudokuThemeFunc(ctx);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -647,7 +726,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             fontWeight: FontWeight.w900,
             fontSize: 28,
             letterSpacing: 4,
-            color: isDark ? Colors.white : Colors.black87,
+            color: theme.dialogTitleColor,
           ),
         ),
         centerTitle: true,
@@ -655,7 +734,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
           PopupMenuButton<String>(
             icon: Icon(
               Icons.palette,
-              color: isDark ? Colors.white70 : Colors.black54,
+              color: theme.iconColor,
             ),
             onSelected: (value) {
               setState(() {
@@ -686,7 +765,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                    color: theme.mutedPrimary,
                   ),
                 ),
               ),
@@ -728,7 +807,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                    color: theme.mutedPrimary,
                   ),
                 ),
               ),
@@ -810,10 +889,11 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   top: availableHeight * 0.15,
                   left: -decorSize * 0.4,
                   child: Transform.rotate(
-                    angle: -0.2,
+                    angle: theme.isSketchedStyle ? -0.15 : -0.2,
                     child: _buildDecorationGrid(
                       decorSize,
-                      isDark ? Colors.white : Colors.black,
+                      theme.foreground ?? theme.dialogTitleColor,
+                      isSketchedStyle: theme.isSketchedStyle,
                     ),
                   ),
                 ),
@@ -821,10 +901,11 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   bottom: -decorSize * 0.3,
                   right: -decorSize * 0.3,
                   child: Transform.rotate(
-                    angle: 0.3,
+                    angle: theme.isSketchedStyle ? 0.2 : 0.3,
                     child: _buildDecorationGrid(
                       decorSize * 1.2,
-                      isDark ? Colors.white : Colors.black,
+                      theme.foreground ?? theme.dialogTitleColor,
+                      isSketchedStyle: theme.isSketchedStyle,
                     ),
                   ),
                 ),
@@ -838,12 +919,17 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                         animation: _pulseController,
                         builder: (context, child) {
                           return Transform.scale(
-                            scale: 1.0 + (_pulseController.value * 0.05),
+                            scale: theme.isSketchedStyle ? 1.0 : (1.0 + (_pulseController.value * 0.05)),
                             child: _buildMiniGrid(
                               3,
                               logoSize,
-                              isDark ? Colors.blue[300]! : Colors.blue[600]!,
-                              isDark ? Colors.blue[200]! : Colors.blue[400]!,
+                              theme.isSketchedStyle
+                                  ? (theme.foreground ?? Colors.black)
+                                  : theme.logoColorPrimary,
+                              theme.isSketchedStyle
+                                  ? (theme.foreground ?? Colors.black)
+                                  : theme.logoColorSecondary,
+                              isSketchedStyle: theme.isSketchedStyle,
                             ),
                           );
                         },
@@ -909,7 +995,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                       Text(
                         'Tap to begin',
                         style: TextStyle(
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: theme.subtitleColor,
                           fontSize: min(16, shortestSide * 0.025),
                           fontWeight: FontWeight.w500,
                         ),

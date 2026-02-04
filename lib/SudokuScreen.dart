@@ -16,94 +16,6 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 
 
-/// Custom painter for hand-drawn/sketched grid lines (Excalidraw-style)
-class SketchedGridPainter extends CustomPainter {
-  final int n;  // Grid dimension (e.g., 3 for 9x9)
-  final Color lineColor;
-  final double size;
-  final Random _random;
-
-  SketchedGridPainter({
-    required this.n,
-    required this.lineColor,
-    required this.size,
-    int? seed,
-  }) : _random = Random(seed ?? 42);  // Fixed seed for consistent appearance
-
-  @override
-  void paint(Canvas canvas, Size canvasSize) {
-    final ne2 = n * n;  // Total cells per row/column
-    final cellSize = size / ne2;
-
-    // Thin lines for cell borders
-    final thinPaint = Paint()
-      ..color = lineColor.withOpacity(0.5)
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Thick lines for box borders
-    final thickPaint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Draw horizontal lines
-    for (int i = 0; i <= ne2; i++) {
-      final y = i * cellSize;
-      final isBoxBorder = i % n == 0;
-      final paint = isBoxBorder ? thickPaint : thinPaint;
-      _drawSketchedLine(canvas, Offset(0, y), Offset(size, y), paint);
-    }
-
-    // Draw vertical lines
-    for (int j = 0; j <= ne2; j++) {
-      final x = j * cellSize;
-      final isBoxBorder = j % n == 0;
-      final paint = isBoxBorder ? thickPaint : thinPaint;
-      _drawSketchedLine(canvas, Offset(x, 0), Offset(x, size), paint);
-    }
-  }
-
-  void _drawSketchedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
-    final path = Path();
-    path.moveTo(start.dx, start.dy);
-
-    // Add slight wobble to make it look hand-drawn
-    final distance = (end - start).distance;
-    final segments = (distance / 20).ceil().clamp(3, 10);
-    final dx = (end.dx - start.dx) / segments;
-    final dy = (end.dy - start.dy) / segments;
-
-    for (int i = 1; i <= segments; i++) {
-      final targetX = start.dx + dx * i;
-      final targetY = start.dy + dy * i;
-
-      // Add small random offsets for wobble effect
-      final wobbleX = (_random.nextDouble() - 0.5) * 1.5;
-      final wobbleY = (_random.nextDouble() - 0.5) * 1.5;
-
-      if (i == segments) {
-        // End exactly at the target for the last segment
-        path.lineTo(end.dx, end.dy);
-      } else {
-        path.lineTo(targetX + wobbleX, targetY + wobbleY);
-      }
-    }
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant SketchedGridPainter oldDelegate) {
-    return oldDelegate.n != n ||
-           oldDelegate.lineColor != lineColor ||
-           oldDelegate.size != size;
-  }
-}
-
-
 class SudokuScreen extends StatefulWidget {
   static const String routeName = '/sudoku_arguments';
 
@@ -223,7 +135,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showVictoryDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
@@ -240,7 +152,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 'Victory!',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: theme.dialogTitleColor,
                 ),
               ),
             ],
@@ -248,7 +160,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'Congratulations on solving the puzzle!',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
@@ -378,7 +290,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showResetDialog(BuildContext ctx) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
@@ -395,7 +307,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 'Reset Puzzle',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: theme.dialogTitleColor,
                 ),
               ),
             ],
@@ -403,13 +315,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'This will clear all your progress. This action cannot be undone.',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
+                foregroundColor: theme.cancelButtonColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -707,7 +619,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
@@ -735,7 +647,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: theme.dialogTitleColor,
                   ),
                 ),
               ),
@@ -744,7 +656,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             message,
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
@@ -770,7 +682,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialOfferDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
@@ -798,7 +710,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   'Welcome!',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: theme.dialogTitleColor,
                   ),
                 ),
               ),
@@ -807,13 +719,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'Would you like a quick tutorial on how to use the constraint assistant?',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
+                foregroundColor: theme.cancelButtonColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1005,14 +917,14 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     var constraints = sd!.assist.constraints.where((Constraint c) {
       return c.status != Constraint.SUCCESS;
     }).toList();
 
     // Theme-aware muted colors
-    final mutedPrimary = isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary;
-    final mutedSecondary = isDark ? AppColors.darkMutedSecondary : AppColors.lightMutedSecondary;
+    final mutedPrimary = theme.mutedPrimary;
+    final mutedSecondary = theme.mutedSecondary;
 
     if (constraints.isEmpty) {
       return Center(
@@ -1163,7 +1075,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.surface,
-              foregroundColor: isDark ? AppColors.darkDialogText : AppColors.lightCancelButton,
+              foregroundColor: theme.cancelButtonColor,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1194,11 +1106,11 @@ class SudokuScreenState extends State<SudokuScreen> {
     bool isHighlighted = false,
   }) {
     final bool isEnabled = onTap != null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
 
     // Disabled colors that match the theme
-    final disabledBg = isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg;
-    final disabledFg = isDark ? AppColors.darkDisabledFg : AppColors.lightDisabledFg;
+    final disabledBg = theme.disabledBg;
+    final disabledFg = theme.disabledFg;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1247,7 +1159,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Drawer _makeDrawer(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
 
     return Drawer(
@@ -1280,7 +1192,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: theme.dialogTitleColor,
                     ),
                   ),
                 ],
@@ -1341,7 +1253,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: Text(
                 'Long-press cells to select multiple',
                 style: TextStyle(
-                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                  color: theme.mutedPrimary,
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
@@ -1374,14 +1286,15 @@ class SudokuScreenState extends State<SudokuScreen> {
       SudokuAssistScreen.routeName,
       arguments: SudokuAssistScreenArguments(
         sd: this.sd!,
+        sudokuThemeFunc: widget.sudokuThemeFunc,
       ),
     );
     this.runAssistant();
   }
 
   List<Widget> _makeToolBar(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? Colors.white70 : Colors.black54;
+    final theme = widget.sudokuThemeFunc(context);
+    final iconColor = theme.iconColor;
 
     if(this._showTutorial && this._tutorialStage >= 1) {
       return <Widget>[];
@@ -1443,7 +1356,6 @@ class SudokuScreenState extends State<SudokuScreen> {
           });
         },
         itemBuilder: (context) {
-          final theme = this.widget.sudokuThemeFunc(ctx);
           return [
             PopupMenuItem(
               enabled: false,
@@ -1452,7 +1364,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                  color: theme.mutedPrimary,
                 ),
               ),
             ),
@@ -1494,7 +1406,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                  color: theme.mutedPrimary,
                 ),
               ),
             ),
@@ -1605,6 +1517,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _buildResponsiveLayout(BuildContext ctx, BoxConstraints constraints) {
+    final theme = widget.sudokuThemeFunc(ctx);
     final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
     final double availableWidth = constraints.maxWidth;
     final double availableHeight = constraints.maxHeight;
@@ -1633,8 +1546,6 @@ class SudokuScreenState extends State<SudokuScreen> {
     this.screenWidth = availableWidth;
     this.screenHeight = availableHeight;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     Widget gridWidget = Container(
       width: gridSize,
       height: gridSize,
@@ -1642,7 +1553,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : Colors.grey).withOpacity(0.3),
+            color: theme.shadowColor.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -1712,7 +1623,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget build(BuildContext ctx) {
     var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuScreenArguments;
     final int n = args.n;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
       sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
@@ -1739,7 +1650,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           fontWeight: FontWeight.w900,
           fontSize: 24,
           letterSpacing: 3,
-          color: isDark ? Colors.white : Colors.black87,
+          color: theme.dialogTitleColor,
         ),
       ),
       centerTitle: true,
@@ -1747,7 +1658,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         builder: (context) => IconButton(
           icon: Icon(
             Icons.menu_rounded,
-            color: isDark ? Colors.white70 : Colors.black54,
+            color: theme.iconColor,
           ),
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
