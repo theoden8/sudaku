@@ -82,21 +82,32 @@ Different constraint types and states are color-coded:
 4. Constraints propagate automatically
 
 ### Creating Constraints
-1. Select multiple cells (tap each cell)
-2. Open the Assist screen
-3. Choose constraint type (AllDiff, OneOf, Equal)
-4. Set conditions (optional)
-5. Activate constraint
-6. Return to main screen to see effects
+1. Long-press a cell to start selection mode
+2. Tap additional cells to add them to the selection
+3. Constraint options appear inline (replacing the constraint list):
+   - **One of**: One cell contains a specific value
+   - **Equivalence**: Selected cells have the same value
+   - **All different**: All selected cells have different values
+   - **Eliminate**: Remove values from domain
+4. Tap a constraint type to apply it
+5. Constraint propagates automatically
+
+### Inline Constraint Panel
+When cells are selected, the constraint list area transforms into a constraint choice panel:
+- **Responsive layout**: Shows 2×2 grid when width ≥ 280px, single column otherwise
+- **Full-width buttons**: Buttons expand to fill available space
+- **Header**: Shows number of selected cells
+- **Disabled states**: Options requiring 2+ cells are disabled when insufficient cells selected
 
 ### Managing Constraints
-- View list of all constraints in Assist screen
+- Active constraints shown in scrollable list when no cells selected
 - Each constraint shows:
   - Type and affected cells
   - Current status (active/inactive, success/violated)
-  - Age (how long ago it was applied)
-  - History of applications
-- Toggle constraints on/off
+  - Checkbox to enable/disable
+  - Delete button (X) to remove
+- Tap constraint to highlight its cells on the grid
+- Toggle constraints on/off via checkbox
 - Delete constraints no longer needed
 
 ### Domain Visualization
@@ -264,16 +275,28 @@ The interface layer has widget tests in `test/widget/tutorial_test.dart` and int
 - Cell selection and numpad interaction
 - Undo button functionality
 - Theme toggle works on Sudoku screen
-- Drawer opens with constraint options
+- Inline constraint options appear when cells selected
 - Menu button in toolbar shows options
 - Assistant settings screen accessible
 - App works in portrait and landscape orientations
 
 ### Tutorial Flow
-The tutorial is a multi-stage guided workflow:
-- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial
-- **Stage 1**: Multi-selection mode - user selects highlighted cells
-- **Stage 2**: Open drawer and select "All different" constraint
-- **Stage 3**: Tutorial completion with explanation
+The tutorial is a multi-stage guided workflow with automatic hints:
+- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial (once per session)
+- **Stage 1**: Multi-selection mode - user long-presses then taps highlighted cells
+  - Tutorial button shows finger icon (orange)
+  - Tapping button shows hint: "Long-press a highlighted cell to start selecting, then tap to add more cells to the constraint group."
+- **Stage 2**: Select "All different" constraint from inline options
+  - Tutorial button turns green (checkmark) when correct cells selected
+  - Hint auto-shows explaining constraint options
+  - "All different" button is highlighted
+- **Stage 3**: Tutorial completion
+  - Auto-shows explanation of the assistant system
+  - Tutorial ends automatically after final hint
 
-The tutorial can be restarted anytime from the toolbar menu. Tutorial tests require the full app with assets loaded and are covered in integration tests.
+**Tutorial Layout**:
+- Portrait: Constraint list on left, tutorial button on right (Row)
+- Landscape: Constraint list on top, tutorial button at bottom (Column)
+- Both wrapped in scrollable container for overflow safety
+
+The tutorial can be restarted from a fresh puzzle. Reset button now labeled "Reset / Menu" offering both reset and main menu options.

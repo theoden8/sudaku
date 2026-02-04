@@ -4,3 +4,5 @@
 * added light/dark themes with modern and pen-and-paper styles
 * fixed assistant constraint cancellation bug
 * show open source licenses
+* removed drawer - constraint options now shown inline when cells selected
+* improved tutorial with auto-hints and responsive layout
