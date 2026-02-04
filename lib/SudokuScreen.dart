@@ -1459,84 +1459,120 @@ class SudokuScreenState extends State<SudokuScreen> {
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
     final int selectedCount = this._multiSelect!.cardinality;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Header
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    final buttons = [
+      _makeConstraintChoiceButton(
+        icon: Icons.looks_one_rounded,
+        title: 'One of',
+        gradientColors: const [AppColors.success, AppColors.successLight],
+        onTap: (selectedCount < 2) ? null : () async {
+          this.interact = OneofInteraction(this);
+          await this.interact!.onSelection();
+          this.runSetState();
+        },
+      ),
+      _makeConstraintChoiceButton(
+        icon: Icons.link_rounded,
+        title: 'Equivalence',
+        gradientColors: const [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+        onTap: (selectedCount < 2) ? null : () async {
+          this.interact = EqualInteraction(this);
+          await this.interact!.onSelection();
+          this.runSetState();
+        },
+      ),
+      _makeConstraintChoiceButton(
+        icon: Icons.difference_rounded,
+        title: 'All different',
+        gradientColors: const [AppColors.accent, AppColors.accentLight],
+        onTap: (selectedCount < 2) ? null : () async {
+          this.interact = AlldiffInteraction(this);
+          await this.interact!.onSelection();
+          this.runSetState();
+        },
+        isHighlighted: isTutorialHighlight,
+      ),
+      _makeConstraintChoiceButton(
+        icon: Icons.block_rounded,
+        title: 'Eliminate',
+        gradientColors: const [AppColors.constraintOrange, AppColors.constraintOrangeLight],
+        onTap: (selectedCount < 1) ? null : () async {
+          this.interact = EliminatorInteraction(this);
+          await this.interact!.onSelection();
+          this.runSetState();
+        },
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Use 2 columns if width >= 280, otherwise single column
+        final bool useTwoColumns = constraints.maxWidth >= 280;
+
+        Widget buttonGrid;
+        if (useTwoColumns) {
+          buttonGrid = Column(
             children: [
-              Icon(
-                Icons.add_circle_outline_rounded,
-                color: theme.mutedPrimary,
-                size: 20,
+              Row(
+                children: [
+                  Expanded(child: buttons[0]),
+                  Expanded(child: buttons[1]),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                '$selectedCount cell${selectedCount > 1 ? 's' : ''} selected',
-                style: TextStyle(
-                  color: theme.mutedPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+              Row(
+                children: [
+                  Expanded(child: buttons[2]),
+                  Expanded(child: buttons[3]),
+                ],
               ),
             ],
-          ),
-        ),
-        // Constraint options
-        _makeConstraintChoiceButton(
-          icon: Icons.looks_one_rounded,
-          title: 'One of',
-          gradientColors: const [AppColors.success, AppColors.successLight],
-          onTap: (selectedCount < 2) ? null : () async {
-            this.interact = OneofInteraction(this);
-            await this.interact!.onSelection();
-            this.runSetState();
-          },
-        ),
-        _makeConstraintChoiceButton(
-          icon: Icons.link_rounded,
-          title: 'Equivalence',
-          gradientColors: const [AppColors.constraintPurple, AppColors.constraintPurpleLight],
-          onTap: (selectedCount < 2) ? null : () async {
-            this.interact = EqualInteraction(this);
-            await this.interact!.onSelection();
-            this.runSetState();
-          },
-        ),
-        _makeConstraintChoiceButton(
-          icon: Icons.difference_rounded,
-          title: 'All different',
-          gradientColors: const [AppColors.accent, AppColors.accentLight],
-          onTap: (selectedCount < 2) ? null : () async {
-            this.interact = AlldiffInteraction(this);
-            await this.interact!.onSelection();
-            this.runSetState();
-          },
-          isHighlighted: isTutorialHighlight,
-        ),
-        _makeConstraintChoiceButton(
-          icon: Icons.block_rounded,
-          title: 'Eliminate',
-          gradientColors: const [AppColors.constraintOrange, AppColors.constraintOrangeLight],
-          onTap: (selectedCount < 1) ? null : () async {
-            this.interact = EliminatorInteraction(this);
-            await this.interact!.onSelection();
-            this.runSetState();
-          },
-        ),
-        const SizedBox(height: 8),
-        // Hint
-        Text(
-          'Select 2+ cells for constraints',
-          style: TextStyle(
-            color: theme.mutedSecondary,
-            fontSize: 11,
-          ),
-        ),
-      ],
+          );
+        } else {
+          buttonGrid = Column(
+            children: buttons,
+          );
+        }
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: theme.mutedPrimary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$selectedCount cell${selectedCount > 1 ? 's' : ''} selected',
+                    style: TextStyle(
+                      color: theme.mutedPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Constraint options
+            buttonGrid,
+            const SizedBox(height: 4),
+            // Hint
+            Text(
+              'Select 2+ cells for constraints',
+              style: TextStyle(
+                color: theme.mutedSecondary,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
