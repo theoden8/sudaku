@@ -185,14 +185,16 @@ Multiple techniques ensure no content overflows:
 - START button: Responsive height and width with scaling content
 
 **Sudoku Screen**:
-- Grid size: `min(availableWidth, availableHeight * 0.7)` in portrait
+- Grid size: `min(availableWidth, availableHeight * 0.65)` in portrait
+- Maximum grid size: 500px to ensure constraint list fits on tablets
+- Landscape: Reserves at least 200px for constraint list
 - Secondary content fills remaining space via `Expanded`
 - Grid centered in both orientations
 
 **Numpad Screen**:
 - Grid size adapts to leave room for action button
-- Portrait: Grid above, button below
-- Landscape: Grid left, button right
+- Both orientations: Grid centered horizontally, button below
+- Colors routed through `SudokuTheme` for customization
 
 **Assistant Screen**:
 - `ConstrainedBox` limits width to 600px for readability
