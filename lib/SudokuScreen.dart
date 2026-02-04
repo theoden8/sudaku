@@ -1669,7 +1669,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               children: [
                 Icon(Icons.refresh_rounded, size: 20),
                 SizedBox(width: 12),
-                Text('Reset'),
+                Text('Reset / Menu'),
               ],
             ),
           ),
