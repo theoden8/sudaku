@@ -294,13 +294,15 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                         children: cards,
                                       ))
                                 // Use FittedBox in landscape to scale down if needed
-                                : FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: cards,
+                                : Center(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: cards,
+                                      ),
                                     ),
                                   ),
                           ),
