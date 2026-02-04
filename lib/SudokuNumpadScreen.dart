@@ -7,6 +7,7 @@ import 'package:bit_array/bit_array.dart';
 
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
+import 'main.dart'; // For AppColors
 
 
 class NumpadScreen extends StatefulWidget {
@@ -41,21 +42,27 @@ abstract class NumpadInteraction {
     this.numpad = numpad;
   }
 
-  Color? getColor(int val, var theme) {
+  Color? getColor(int val, BuildContext ctx) {
+    final theme = numpad.widget.sudokuThemeFunc(ctx);
+
     if(numpad.multiselection[val]) {
-      return theme.yellow;
+      // Selected values - use theme's selection color (already theme-aware)
+      return theme.cellSelectionColor;
     } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
+      // Forbidden/eliminated values - use error colors
       if(numpad.antiselectionChanges[val]) {
-        return theme.veryRed;
+        return AppColors.error;
       }
-      return theme.red;
+      return AppColors.errorLight;
     } else if(!numpad.constrained[val]) {
-      return theme.orange;
+      // Unconstrained values - use warning colors
+      return AppColors.warning;
     }
+    // Available values - use accent colors
     if(numpad.antiselectionChanges[val]) {
-      return theme.veryBlue;
+      return AppColors.accent;
     }
-    return theme.blue;
+    return AppColors.accentLight;
   }
 
   bool onPressEnabled(int val) {
@@ -312,10 +319,11 @@ class NumpadScreenState extends State<NumpadScreen> {
               ),
               backgroundColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
                   if(states.contains(WidgetState.disabled)) {
-                    return Colors.grey;
+                    return isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg;
                   }
-                  return this.interact!.getColor(val + 1, theme);
+                  return this.interact!.getColor(val + 1, context);
                 }
               ),
             ),
@@ -327,18 +335,29 @@ class NumpadScreenState extends State<NumpadScreen> {
             ? null : () {
               this._handleOnLongPress(ctx, val + 1);
             },
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Padding(
-                padding: EdgeInsets.all(cellSize * 0.1),
-                child: Text(
-                  sd.s_get(val + 1),
-                  style: TextStyle(
-                    fontSize: cellSize * 0.4,
-                    color: theme.buttonForeground,
+            child: Builder(
+              builder: (btnContext) {
+                final isDark = Theme.of(btnContext).brightness == Brightness.dark;
+                // Use dark text for light selection background, white for colored buttons
+                final isSelected = this.multiselection[val + 1];
+                final textColor = (isSelected && !isDark)
+                    ? Colors.black87
+                    : Colors.white;
+                return FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: EdgeInsets.all(cellSize * 0.1),
+                    child: Text(
+                      sd.s_get(val + 1),
+                      style: TextStyle(
+                        fontSize: cellSize * 0.4,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         );
