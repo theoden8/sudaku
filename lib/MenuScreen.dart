@@ -336,20 +336,27 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                     elevation: 8,
                                     shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
                                   ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.play_arrow_rounded, size: 32),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'START',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 2,
-                                        ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.play_arrow_rounded, size: 32),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'START',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 2,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
