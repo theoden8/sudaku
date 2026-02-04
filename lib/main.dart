@@ -63,6 +63,12 @@ class AppColors {
 
   // Special colors
   static const Color gold = Color(0xFFFFD700);
+
+  // Cell colors for grid
+  static const Color darkCellHintBg = Color(0xFF3a3a5e);  // Immutable hint cell background (dark)
+  static const Color lightCellHintBg = Color(0xFFE0E0F0); // Immutable hint cell background (light)
+  static const Color darkCellInferText = Color(0xFF7a7aaa);  // Assistant-inferred text (dark)
+  static const Color lightCellInferText = Color(0xFF6666aa); // Assistant-inferred text (light)
 }
 
 void main() => runApp(SudokuApp());
@@ -139,8 +145,8 @@ class _SudokuAppState extends State<SudokuApp> {
     cyan: Colors.cyan[100],
     foreground: Colors.black,
     cellForeground: Colors.black,
-    cellInferColor: Colors.grey[500],
-    cellHintColor: Colors.grey[300],
+    cellInferColor: AppColors.lightCellInferText,
+    cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
     onChange: _setThemeMode,
   );
@@ -158,8 +164,8 @@ class _SudokuAppState extends State<SudokuApp> {
     cyan: Color(0xFF449999),
     foreground: Colors.grey[200],
     cellForeground: Colors.grey[300],
-    cellInferColor: Colors.grey[500],
-    cellHintColor: Colors.grey[400],
+    cellInferColor: AppColors.darkCellInferText,
+    cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
     onChange: _setThemeMode,
   );

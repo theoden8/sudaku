@@ -417,6 +417,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuCellImmutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
     int sdval = sd![index];
     return Card(
       margin: const EdgeInsets.all(0.0),
@@ -429,7 +430,8 @@ class SudokuScreenState extends State<SudokuScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: sz * 0.9,
-            color: Colors.black,
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
