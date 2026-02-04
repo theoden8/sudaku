@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 
 import 'package:bit_array/bit_array.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 
 
 import 'SudokuNumpadScreen.dart';
@@ -367,26 +368,49 @@ class _SudokuAppState extends State<SudokuApp> {
   }
 
   Future<void> _loadThemePreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final themeModeIndex = prefs.getInt(_themeModeKey);
-    final themeStyleIndex = prefs.getInt(_themeStyleKey);
-
-    setState(() {
-      if (themeModeIndex != null && themeModeIndex < ThemeMode.values.length) {
-        _themeMode = ThemeMode.values[themeModeIndex];
+    try {
+      // Debug: show where data is stored
+      try {
+        final appSupportDir = await getApplicationSupportDirectory();
+        debugPrint('App support directory: ${appSupportDir.path}');
+      } catch (e) {
+        debugPrint('Could not get app support directory: $e');
       }
-      if (themeStyleIndex != null && themeStyleIndex < ThemeStyle.values.length) {
-        _themeStyle = ThemeStyle.values[themeStyleIndex];
-      }
-      _isLoading = false;
-    });
+
+      final prefs = await SharedPreferences.getInstance();
+
+      final themeModeIndex = prefs.getInt(_themeModeKey);
+      final themeStyleIndex = prefs.getInt(_themeStyleKey);
+
+      debugPrint('Loaded theme prefs: mode=$themeModeIndex, style=$themeStyleIndex');
+
+      setState(() {
+        if (themeModeIndex != null && themeModeIndex < ThemeMode.values.length) {
+          _themeMode = ThemeMode.values[themeModeIndex];
+        }
+        if (themeStyleIndex != null && themeStyleIndex < ThemeStyle.values.length) {
+          _themeStyle = ThemeStyle.values[themeStyleIndex];
+        }
+        _isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('Error loading theme preferences: $e');
+      debugPrint('Stack trace: $stackTrace');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveThemePreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_themeModeKey, _themeMode.index);
-    await prefs.setInt(_themeStyleKey, _themeStyle.index);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_themeModeKey, _themeMode.index);
+      await prefs.setInt(_themeStyleKey, _themeStyle.index);
+      debugPrint('Saved theme prefs: mode=${_themeMode.index}, style=${_themeStyle.index}');
+    } catch (e) {
+      debugPrint('Error saving theme preferences: $e');
+    }
   }
 
   void _setThemeMode(ThemeMode themeMode) {
