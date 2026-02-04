@@ -106,6 +106,8 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
+        width: cardSize,
+        height: cardSize * 0.9,
         margin: EdgeInsets.all(cardSize * 0.05),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -134,31 +136,27 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
           padding: EdgeInsets.all(cardSize * 0.08),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Mini grid preview
-              Expanded(
-                flex: 3,
-                child: Center(
-                  child: _buildMiniGrid(
-                    n,
-                    cardSize * 0.45,
-                    Colors.white,
-                    Colors.white,
-                  ),
-                ),
+              _buildMiniGrid(
+                n,
+                cardSize * 0.4,
+                Colors.white,
+                Colors.white,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: cardSize * 0.05),
               // Size label
               Text(
                 sizeLabel,
                 style: TextStyle(
-                  fontSize: cardSize * 0.12,
+                  fontSize: cardSize * 0.11,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  shadows: [
+                  shadows: const [
                     Shadow(
                       color: Colors.black26,
-                      offset: const Offset(1, 1),
+                      offset: Offset(1, 1),
                       blurRadius: 2,
                     ),
                   ],
@@ -168,17 +166,17 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               Text(
                 difficultyLabel,
                 style: TextStyle(
-                  fontSize: cardSize * 0.08,
+                  fontSize: cardSize * 0.07,
                   color: Colors.white.withOpacity(0.9),
                   fontWeight: FontWeight.w500,
                 ),
               ),
               if (isSelected) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: cardSize * 0.02),
                 Icon(
                   Icons.check_circle,
                   color: Colors.white,
-                  size: cardSize * 0.1,
+                  size: cardSize * 0.08,
                 ),
               ],
             ],
@@ -244,11 +242,17 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     final double availableWidth = constraints.maxWidth;
                     final double availableHeight = constraints.maxHeight;
 
+                    // Calculate card size to fit 3 cards + button + padding
                     double cardSize;
                     if (isPortrait) {
-                      cardSize = min(availableWidth * 0.85, availableHeight * 0.28);
+                      // Reserve space for button (56px) + padding (48px)
+                      final double availableForCards = availableHeight - 104;
+                      cardSize = min(
+                        availableWidth * 0.7,
+                        availableForCards / 3.3, // 3 cards with some spacing
+                      );
                     } else {
-                      cardSize = min(availableHeight * 0.7, availableWidth * 0.28);
+                      cardSize = min(availableHeight * 0.65, availableWidth / 4);
                     }
 
                     final cards = [
@@ -258,18 +262,19 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     ];
 
                     return Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
                         children: [
                           Expanded(
                             child: isPortrait
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: cards.map((c) => Expanded(child: c)).toList(),
+                                    children: cards,
                                   )
                                 : Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: cards.map((c) => Expanded(child: c)).toList(),
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: cards,
                                   ),
                           ),
                           const SizedBox(height: 16),
