@@ -676,24 +676,22 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButton(BuildContext ctx) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.all(32.0),
-        child: (){
-          switch(this._tutorialStage) {
-            case 0:
-              return this._makeTutorialButtonStage0(ctx);
-            break;
-            case 1:
-            case 2:
-              return this._makeTutorialButtonStage12(ctx);
-            break;
-            case 3:
-              return this._makeTutorialButtonStage3(ctx);
-            break;
-          }
-        }(),
-      ),
+    return Container(
+      margin: const EdgeInsets.all(32.0),
+      child: (){
+        switch(this._tutorialStage) {
+          case 0:
+            return this._makeTutorialButtonStage0(ctx);
+          break;
+          case 1:
+          case 2:
+            return this._makeTutorialButtonStage12(ctx);
+          break;
+          case 3:
+            return this._makeTutorialButtonStage3(ctx);
+          break;
+        }
+      }(),
     );
   }
 
@@ -767,11 +765,9 @@ class SudokuScreenState extends State<SudokuScreen> {
         }
       ));
     }
-    return Expanded(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: listTiles,
-      ),
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: listTiles,
     );
   }
 
