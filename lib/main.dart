@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'package:bit_array/bit_array.dart';
-// import 'package:flutter_redux/flutter_redux.dart';
-// import 'package:redux/redux.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'SudokuNumpadScreen.dart';
@@ -354,19 +353,54 @@ class SudokuTheme {
 }
 
 class _SudokuAppState extends State<SudokuApp> {
+  static const String _themeModeKey = 'themeMode';
+  static const String _themeStyleKey = 'themeStyle';
+
   ThemeMode _themeMode = ThemeMode.system;
   ThemeStyle _themeStyle = ThemeStyle.modern;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemePreferences();
+  }
+
+  Future<void> _loadThemePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final themeModeIndex = prefs.getInt(_themeModeKey);
+    final themeStyleIndex = prefs.getInt(_themeStyleKey);
+
+    setState(() {
+      if (themeModeIndex != null && themeModeIndex < ThemeMode.values.length) {
+        _themeMode = ThemeMode.values[themeModeIndex];
+      }
+      if (themeStyleIndex != null && themeStyleIndex < ThemeStyle.values.length) {
+        _themeStyle = ThemeStyle.values[themeStyleIndex];
+      }
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveThemePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_themeModeKey, _themeMode.index);
+    await prefs.setInt(_themeStyleKey, _themeStyle.index);
+  }
 
   void _setThemeMode(ThemeMode themeMode) {
     setState(() {
       _themeMode = themeMode;
     });
+    _saveThemePreferences();
   }
 
   void _setThemeStyle(ThemeStyle themeStyle) {
     setState(() {
       _themeStyle = themeStyle;
     });
+    _saveThemePreferences();
   }
 
   // Modern Light Theme
@@ -570,6 +604,18 @@ class _SudokuAppState extends State<SudokuApp> {
 
   @override
   Widget build(BuildContext ctx) {
+    // Show loading screen while preferences are being loaded
+    if (_isLoading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     final isPenAndPaper = _themeStyle == ThemeStyle.penAndPaper;
 
     return MaterialApp(
