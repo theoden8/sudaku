@@ -423,8 +423,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
       color: theme.cellHintColor,
-      child: Container(
-        margin: EdgeInsets.all(0.0),
+      child: Center(
         child: Text(
           sd!.s_get(sdval),
           textAlign: TextAlign.center,
@@ -483,17 +482,16 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuCellMutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    int i = index ~/ sd!.ne2, j = index % sd!.ne2;
     int sdval = sd![index];
     return TextButton(
       style: ButtonStyle(
-        padding: WidgetStateProperty.resolveWith<EdgeInsetsGeometry>(
-          (Set<WidgetState> states) => EdgeInsets.all(0.0)
-        ),
+        padding: WidgetStateProperty.all(EdgeInsets.zero),
+        minimumSize: WidgetStateProperty.all(Size.zero),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         backgroundColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) {
             if(states.contains(WidgetState.pressed)) {
-              return Colors.blueAccent;
+              return AppColors.primaryPurple.withOpacity(0.5);
             }
             return this.getCellColor(index, ctx);
           }
@@ -505,12 +503,14 @@ class SudokuScreenState extends State<SudokuScreen> {
       onLongPress: () {
         this._handleLongPressCell(index);
       },
-      child: Text(
-        sd!.s_get_display(sdval),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: sz * 0.9,
-          color: this.getCellTextColor(index, ctx),
+      child: Center(
+        child: Text(
+          sd!.s_get_display(sdval),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: sz * 0.9,
+            color: this.getCellTextColor(index, ctx),
+          ),
         ),
       ),
     );
