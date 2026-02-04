@@ -482,6 +482,8 @@ class SudokuScreenState extends State<SudokuScreen> {
             width: 1.5,
           ),
         ),
+        // Extra padding to prevent wobbly text from clipping at borders
+        padding: const EdgeInsets.all(2.0),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Padding(
@@ -568,9 +570,12 @@ class SudokuScreenState extends State<SudokuScreen> {
           )
         : Text(sd!.s_get_display(sdval), style: textStyle);
 
+    // Extra padding for sketched style to prevent wobbly text clipping
+    final buttonPadding = theme.isSketchedStyle ? const EdgeInsets.all(2.0) : EdgeInsets.zero;
+
     return TextButton(
       style: ButtonStyle(
-        padding: WidgetStateProperty.all(EdgeInsets.zero),
+        padding: WidgetStateProperty.all(buttonPadding),
         minimumSize: WidgetStateProperty.all(Size.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: WidgetStateProperty.all(const RoundedRectangleBorder(
