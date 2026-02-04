@@ -299,6 +299,9 @@ class NumpadScreenState extends State<NumpadScreen> {
               padding: WidgetStateProperty.resolveWith<EdgeInsetsGeometry>(
                 (Set<WidgetState> states) => EdgeInsets.all(0.0)
               ),
+              shape: WidgetStateProperty.all(const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              )),
               elevation: WidgetStateProperty.resolveWith<double>(
                 (Set<WidgetState> states) {
                   if(this.multiselection[val + 1] || this.antiselectionChanges[val + 1]) {
@@ -351,6 +354,9 @@ class NumpadScreenState extends State<NumpadScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.all(16.0),
               elevation: 4.0,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -368,6 +374,9 @@ class NumpadScreenState extends State<NumpadScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.all(16.0),
               elevation: 4.0,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
