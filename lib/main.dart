@@ -117,9 +117,10 @@ class SudokuTheme {
     this.buttonForeground = Colors.black;
     this.buttonBackground = this.blue;
     this.buttonSelectedBackground = this.green;
-    this.constraintOneOf = this.green;
-    this.constraintEqual = this.purple;
-    this.constraintAllDiff = this.cyan;
+    // Use AppColors for constraint highlighting to match constraint list cards
+    this.constraintOneOf = AppColors.success.withOpacity(0.4);
+    this.constraintEqual = AppColors.constraintPurple.withOpacity(0.4);
+    this.constraintAllDiff = AppColors.accent.withOpacity(0.4);
   }
 }
 
