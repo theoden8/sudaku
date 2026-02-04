@@ -58,102 +58,136 @@ SudokuTheme getTestTheme(BuildContext ctx) {
 }
 
 void main() {
-  group('Tutorial Widget Tests', () {
-    testWidgets('Menu screen displays Play button', (WidgetTester tester) async {
+  group('Menu Screen Widget Tests', () {
+    testWidgets('Menu screen displays app title', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
+      // Use pump with duration instead of pumpAndSettle due to continuous animation
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Find the Play button
-      expect(find.text('Play'), findsOneWidget);
-      expect(find.byIcon(Icons.play_circle_filled), findsOneWidget);
+      // Find the app title
+      expect(find.text('SUDAKU'), findsOneWidget);
     });
 
-    testWidgets('Menu screen Play button is tappable', (WidgetTester tester) async {
+    testWidgets('Menu screen displays PLAY button', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Tap the Play area (Card with InkWell)
-      await tester.tap(find.text('Play'));
-      await tester.pumpAndSettle();
+      // Find the PLAY button text
+      expect(find.text('PLAY'), findsOneWidget);
+    });
+
+    testWidgets('Menu screen displays "Tap to begin" hint', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp(
+        child: MenuScreen(sudokuThemeFunc: getTestTheme),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Tap to begin'), findsOneWidget);
+    });
+
+    testWidgets('Menu screen PLAY button opens size selection', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp(
+        child: MenuScreen(sudokuThemeFunc: getTestTheme),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap the PLAY area
+      await tester.tap(find.text('PLAY'));
+      // Wait for dialog animation
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Should show the size selection dialog
-      expect(find.text('Selecting size'), findsOneWidget);
+      expect(find.text('Choose Your Grid'), findsOneWidget);
     });
 
-    testWidgets('Size selection shows 2, 3, 4 options', (WidgetTester tester) async {
+    testWidgets('Size selection shows grid preview cards', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Tap Play to show size selection
-      await tester.tap(find.text('Play'));
-      await tester.pumpAndSettle();
+      // Tap PLAY to show size selection
+      await tester.tap(find.text('PLAY'));
+      await tester.pump(const Duration(milliseconds: 500));
 
-      // Should show size options
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
+      // Should show size labels for each grid option
+      expect(find.text('4×4'), findsOneWidget);   // 2x2 grid = 4x4 cells
+      expect(find.text('9×9'), findsOneWidget);   // 3x3 grid = 9x9 cells
+      expect(find.text('16×16'), findsOneWidget); // 4x4 grid = 16x16 cells
     });
 
-    testWidgets('Selecting size shows play FAB', (WidgetTester tester) async {
+    testWidgets('Size selection shows difficulty labels', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Tap Play to show size selection
-      await tester.tap(find.text('Play'));
-      await tester.pumpAndSettle();
+      // Tap PLAY to show size selection
+      await tester.tap(find.text('PLAY'));
+      await tester.pump(const Duration(milliseconds: 500));
 
-      // Initially no FAB
-      expect(find.byIcon(Icons.play_arrow), findsNothing);
+      // Should show difficulty labels
+      expect(find.text('Easy'), findsOneWidget);
+      expect(find.text('Classic'), findsOneWidget);
+      expect(find.text('Challenge'), findsOneWidget);
+    });
 
-      // Select size 3 (standard Sudoku)
-      await tester.tap(find.text('3'));
-      await tester.pumpAndSettle();
+    testWidgets('Selecting size shows START button', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp(
+        child: MenuScreen(sudokuThemeFunc: getTestTheme),
+      ));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // FAB should appear
-      expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      // Tap PLAY to show size selection
+      await tester.tap(find.text('PLAY'));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Select Classic (9×9)
+      await tester.tap(find.text('Classic'));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // START button should be visible
+      expect(find.text('START'), findsOneWidget);
     });
 
     testWidgets('Theme toggle button exists on menu', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Should find theme toggle icon (sun for light mode)
-      expect(find.byIcon(Icons.wb_sunny), findsOneWidget);
+      // Should find theme toggle icon (sun for light mode, moon for dark)
+      final sunIcon = find.byIcon(Icons.wb_sunny);
+      final moonIcon = find.byIcon(Icons.nights_stay);
+
+      // One of them should exist
+      expect(
+        sunIcon.evaluate().isNotEmpty || moonIcon.evaluate().isNotEmpty,
+        isTrue,
+      );
     });
   });
 
   // Note: Tutorial flow tests require running the full app with assets loaded.
   // These tests are moved to integration tests (integration_test/interaction_flow_test.dart)
   // which can properly load assets and test the full tutorial flow.
-  //
-  // The tutorial flow includes:
-  // - Stage 0: Help button visible, tap to start tutorial, long-press to skip
-  // - Stage 1: Multi-selection mode - select highlighted cells
-  // - Stage 2: Open drawer and select "All different" constraint
-  // - Stage 3: Tutorial completion
-  //
-  // Widget tests here focus on testable components without asset dependencies.
 
   group('Responsive Layout Tests', () {
     testWidgets('Menu screen adapts to portrait orientation', (WidgetTester tester) async {
-      // Set a portrait size
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
 
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Play button should be visible
-      expect(find.text('Play'), findsOneWidget);
+      expect(find.text('PLAY'), findsOneWidget);
 
-      // Reset size
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -161,19 +195,16 @@ void main() {
     });
 
     testWidgets('Menu screen adapts to landscape orientation', (WidgetTester tester) async {
-      // Set a landscape size
       tester.view.physicalSize = const Size(800, 400);
       tester.view.devicePixelRatio = 1.0;
 
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Play button should still be visible
-      expect(find.text('Play'), findsOneWidget);
+      expect(find.text('PLAY'), findsOneWidget);
 
-      // Reset size
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -181,22 +212,20 @@ void main() {
     });
 
     testWidgets('Size selection adapts to small screen', (WidgetTester tester) async {
-      // Set a small phone size
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1.0;
 
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Play'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('PLAY'));
+      await tester.pump(const Duration(milliseconds: 500));
 
-      // Size options should still be visible
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
+      expect(find.text('4×4'), findsOneWidget);
+      expect(find.text('9×9'), findsOneWidget);
+      expect(find.text('16×16'), findsOneWidget);
 
       addTearDown(() {
         tester.view.resetPhysicalSize();
@@ -205,22 +234,20 @@ void main() {
     });
 
     testWidgets('Size selection adapts to tablet size', (WidgetTester tester) async {
-      // Set a tablet size
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
 
       await tester.pumpWidget(createTestApp(
         child: MenuScreen(sudokuThemeFunc: getTestTheme),
       ));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Play'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('PLAY'));
+      await tester.pump(const Duration(milliseconds: 500));
 
-      // Size options should still be visible
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
+      expect(find.text('4×4'), findsOneWidget);
+      expect(find.text('9×9'), findsOneWidget);
+      expect(find.text('16×16'), findsOneWidget);
 
       addTearDown(() {
         tester.view.resetPhysicalSize();
