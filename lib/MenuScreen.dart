@@ -13,30 +13,45 @@ class MenuScreen extends StatefulWidget {
   State createState() => MenuScreenState();
 }
 
-class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
+// Separate widget for size selection with its own animation controller
+class _SizeSelectionContent extends StatefulWidget {
+  final Function(BuildContext) sudokuThemeFunc;
+  final BuildContext parentContext;
+
+  const _SizeSelectionContent({
+    required this.sudokuThemeFunc,
+    required this.parentContext,
+  });
+
+  @override
+  State<_SizeSelectionContent> createState() => _SizeSelectionContentState();
+}
+
+class _SizeSelectionContentState extends State<_SizeSelectionContent>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _selectionPulseController;
+  int _selectedSize = -1;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    _selectionPulseController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-    )..repeat(reverse: true);
+    );
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _selectionPulseController.dispose();
     super.dispose();
   }
 
-  // Build a mini sudoku grid preview
-  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor) {
+  // Build a mini sudoku grid preview with optional animation
+  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor, {bool animate = false}) {
     final int gridSize = n * n;
-    final double cellSize = size / gridSize;
 
-    return Container(
+    Widget gridContent = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -57,6 +72,42 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             final int boxRow = row ~/ n;
             final int boxCol = col ~/ n;
             final bool isEvenBox = (boxRow + boxCol) % 2 == 0;
+
+            if (animate) {
+              // Create wave animation effect based on cell position
+              final double delay = (row + col) / (gridSize * 2);
+              return AnimatedBuilder(
+                animation: _selectionPulseController,
+                builder: (context, child) {
+                  // Calculate wave effect
+                  final double progress = (_selectionPulseController.value - delay).clamp(0.0, 1.0);
+                  final double wave = sin(progress * 3.14159) * 0.3;
+                  final double opacity = isEvenBox ? 0.3 + wave : 0.2 + wave * 0.5;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isEvenBox
+                          ? primaryColor.withOpacity(opacity.clamp(0.1, 0.6))
+                          : secondaryColor.withOpacity((opacity * 0.7).clamp(0.05, 0.4)),
+                      border: Border(
+                        right: BorderSide(
+                          color: (col + 1) % n == 0 && col < gridSize - 1
+                              ? primaryColor
+                              : primaryColor.withOpacity(0.2),
+                          width: (col + 1) % n == 0 ? 1.5 : 0.5,
+                        ),
+                        bottom: BorderSide(
+                          color: (row + 1) % n == 0 && row < gridSize - 1
+                              ? primaryColor
+                              : primaryColor.withOpacity(0.2),
+                          width: (row + 1) % n == 0 ? 1.5 : 0.5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
 
             return Container(
               decoration: BoxDecoration(
@@ -81,6 +132,8 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         ),
       ),
     );
+
+    return gridContent;
   }
 
   // Colors for each grid size
@@ -90,7 +143,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     4: [AppColors.constraintPurple, AppColors.constraintPurpleLight], // Purple
   };
 
-  Widget _makeSudokuSizeCard(BuildContext ctx, Function setState, int n, double cardSize) {
+  Widget _makeSudokuSizeCard(BuildContext ctx, int n, double cardSize) {
     final bool isSelected = _selectedSize == n;
     final colors = _sizeColors[n]!;
     final int totalCells = n * n;
@@ -100,7 +153,14 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedSize = isSelected ? -1 : n;
+          if (_selectedSize == n) {
+            _selectedSize = -1;
+            _selectionPulseController.stop();
+            _selectionPulseController.reset();
+          } else {
+            _selectedSize = n;
+            _selectionPulseController.repeat();
+          }
         });
       },
       child: AnimatedContainer(
@@ -140,12 +200,13 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Mini grid preview
+                // Mini grid preview with animation when selected
                 _buildMiniGrid(
                   n,
                   cardSize * 0.42,
                   Colors.white,
                   Colors.white,
+                  animate: isSelected,
                 ),
                 SizedBox(height: cardSize * 0.03),
                 // Size label with optional check icon
@@ -195,10 +256,228 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     );
   }
 
-  int _selectedSize = -1;
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.sudokuThemeFunc(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Choose Your Grid',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(isDark ? Icons.wb_sunny : Icons.nights_stay),
+            onPressed: () {
+              setState(() {
+                theme.onChange(isDark ? ThemeMode.light : ThemeMode.dark);
+              });
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
+            final double availableWidth = constraints.maxWidth;
+            final double availableHeight = constraints.maxHeight;
+
+            // Calculate card size with minimum sizes for usability
+            double cardSize;
+            const double minCardSize = 120.0;
+
+            if (isPortrait) {
+              final double availableForCards = availableHeight - 88;
+              cardSize = max(minCardSize, min(
+                availableWidth * 0.65,
+                availableForCards / 3.2,
+              ));
+            } else {
+              cardSize = max(minCardSize, min(
+                availableHeight * 0.7,
+                (availableWidth - 48) / 3.5,
+              ));
+            }
+
+            final cards = [
+              _makeSudokuSizeCard(context, 2, cardSize),
+              _makeSudokuSizeCard(context, 3, cardSize),
+              _makeSudokuSizeCard(context, 4, cardSize),
+            ];
+
+            final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6;
+            final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
+
+            return Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: isPortrait
+                        ? (needsScroll
+                            ? ListView(children: cards)
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: cards,
+                              ))
+                        : Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: cards,
+                              ),
+                            ),
+                          ),
+                  ),
+                  SizedBox(height: min(16, availableHeight * 0.02)),
+                  // Play button
+                  AnimatedOpacity(
+                    opacity: _selectedSize == -1 ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedSlide(
+                      offset: _selectedSize == -1
+                          ? const Offset(0, 0.5)
+                          : Offset.zero,
+                      duration: const Duration(milliseconds: 200),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: min(availableWidth * 0.8, 300),
+                          maxHeight: min(56, availableHeight * 0.1),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _selectedSize == -1 ? null : () {
+                            Navigator.pushNamed(
+                              widget.parentContext,
+                              SudokuScreen.routeName,
+                              arguments: SudokuScreenArguments(n: _selectedSize),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _sizeColors[_selectedSize]?[0] ?? Colors.grey,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(min(28, availableHeight * 0.05)),
+                            ),
+                            elevation: 8,
+                            shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.play_arrow_rounded, size: 32),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'START',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: min(16, availableHeight * 0.02)),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  // Build a mini sudoku grid preview (static version for main menu)
+  Widget _buildMiniGrid(int n, double size, Color primaryColor, Color secondaryColor) {
+    final int gridSize = n * n;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: primaryColor, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: gridSize,
+          ),
+          itemCount: gridSize * gridSize,
+          itemBuilder: (context, index) {
+            final int row = index ~/ gridSize;
+            final int col = index % gridSize;
+            final int boxRow = row ~/ n;
+            final int boxCol = col ~/ n;
+            final bool isEvenBox = (boxRow + boxCol) % 2 == 0;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isEvenBox ? primaryColor.withOpacity(0.3) : secondaryColor.withOpacity(0.2),
+                border: Border(
+                  right: BorderSide(
+                    color: (col + 1) % n == 0 && col < gridSize - 1
+                        ? primaryColor
+                        : primaryColor.withOpacity(0.2),
+                    width: (col + 1) % n == 0 ? 1.5 : 0.5,
+                  ),
+                  bottom: BorderSide(
+                    color: (row + 1) % n == 0 && row < gridSize - 1
+                        ? primaryColor
+                        : primaryColor.withOpacity(0.2),
+                    width: (row + 1) % n == 0 ? 1.5 : 0.5,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   Future<void> _showPlayDialog(BuildContext ctx) async {
-    _selectedSize = -1;
     await showGeneralDialog(
       context: ctx,
       barrierDismissible: true,
@@ -218,161 +497,9 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         );
       },
       pageBuilder: (_, __, ___) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            final theme = widget.sudokuThemeFunc(ctx);
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-
-            return Scaffold(
-              backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-              appBar: AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                title: const Text(
-                  'Choose Your Grid',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                centerTitle: true,
-                actions: [
-                  IconButton(
-                    icon: Icon(isDark ? Icons.wb_sunny : Icons.nights_stay),
-                    onPressed: () {
-                      setState(() {
-                        theme.onChange(isDark ? ThemeMode.light : ThemeMode.dark);
-                      });
-                    },
-                  ),
-                ],
-              ),
-              body: SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
-                    final double availableWidth = constraints.maxWidth;
-                    final double availableHeight = constraints.maxHeight;
-
-                    // Calculate card size with minimum sizes for usability
-                    double cardSize;
-                    const double minCardSize = 120.0; // Minimum card size
-
-                    if (isPortrait) {
-                      // Reserve space for button (72px) + padding
-                      final double availableForCards = availableHeight - 88;
-                      cardSize = max(minCardSize, min(
-                        availableWidth * 0.65,
-                        availableForCards / 3.2,
-                      ));
-                    } else {
-                      cardSize = max(minCardSize, min(
-                        availableHeight * 0.7,
-                        (availableWidth - 48) / 3.5,
-                      ));
-                    }
-
-                    final cards = [
-                      _makeSudokuSizeCard(ctx, setState, 2, cardSize),
-                      _makeSudokuSizeCard(ctx, setState, 3, cardSize),
-                      _makeSudokuSizeCard(ctx, setState, 4, cardSize),
-                    ];
-
-                    // Check if cards will overflow and need scrolling
-                    final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6; // cards + margins
-                    final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
-
-                    return Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: isPortrait
-                                ? (needsScroll
-                                    ? ListView(
-                                        children: cards,
-                                      )
-                                    : Column(
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: cards,
-                                      ))
-                                // Use FittedBox in landscape to scale down if needed
-                                : Center(
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: cards,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                          SizedBox(height: min(16, availableHeight * 0.02)),
-                          // Play button
-                          AnimatedOpacity(
-                            opacity: _selectedSize == -1 ? 0.0 : 1.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: AnimatedSlide(
-                              offset: _selectedSize == -1
-                                  ? const Offset(0, 0.5)
-                                  : Offset.zero,
-                              duration: const Duration(milliseconds: 200),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: min(availableWidth * 0.8, 300),
-                                  maxHeight: min(56, availableHeight * 0.1),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _selectedSize == -1 ? null : () {
-                                    Navigator.pushNamed(
-                                      this.context,
-                                      SudokuScreen.routeName,
-                                      arguments: SudokuScreenArguments(n: _selectedSize),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _sizeColors[_selectedSize]?[0] ?? Colors.grey,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(min(28, availableHeight * 0.05)),
-                                    ),
-                                    elevation: 8,
-                                    shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
-                                  ),
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 16),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.play_arrow_rounded, size: 32),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'START',
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 2,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: min(16, availableHeight * 0.02)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            );
-          },
+        return _SizeSelectionContent(
+          sudokuThemeFunc: widget.sudokuThemeFunc,
+          parentContext: this.context,
         );
       },
     );
