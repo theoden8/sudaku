@@ -14,12 +14,14 @@ class SudokuAssistScreen extends StatefulWidget {
 
 class SudokuAssistScreenArguments {
   Sudoku sd;
+  Function(BuildContext) sudokuThemeFunc;
 
-  SudokuAssistScreenArguments({required this.sd});
+  SudokuAssistScreenArguments({required this.sd, required this.sudokuThemeFunc});
 }
 
 class SudokuAssistScreenState extends State<SudokuAssistScreen> {
   late Sudoku sd;
+  late Function(BuildContext) sudokuThemeFunc;
 
   void runSetState() {
     setState((){});
@@ -35,7 +37,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
     List<Color>? gradientColors,
     bool isIndented = false,
   }) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    final theme = sudokuThemeFunc(ctx);
     final colors = gradientColors ?? [AppColors.primaryPurple, AppColors.secondaryPurple];
 
     return Padding(
@@ -45,11 +47,11 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: Theme.of(ctx).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: (isDark ? Colors.black : Colors.grey).withOpacity(0.1),
+              color: theme.shadowColor.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -75,8 +77,8 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
                         colors: value
                             ? colors
                             : [
-                                isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg,
-                                isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg,
+                                theme.disabledBg,
+                                theme.disabledBg,
                               ],
                       ),
                     ),
@@ -84,7 +86,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
                       icon,
                       color: value
                           ? Colors.white
-                          : (isDark ? AppColors.darkDisabledFg : AppColors.lightDisabledFg),
+                          : theme.disabledFg,
                       size: 22,
                     ),
                   ),
@@ -99,7 +101,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: theme.dialogTitleColor,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -107,7 +109,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
                           subtitle,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? AppColors.darkDialogText : AppColors.lightMutedPrimary,
+                            color: theme.dialogTextColor,
                           ),
                         ),
                       ],
@@ -130,7 +132,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
   }
 
   Widget _buildSectionHeader(BuildContext ctx, String title) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    final theme = sudokuThemeFunc(ctx);
     return Padding(
       padding: const EdgeInsets.only(left: 4, top: 16, bottom: 8),
       child: Text(
@@ -138,7 +140,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+          color: theme.mutedPrimary,
           letterSpacing: 0.5,
         ),
       ),
@@ -229,11 +231,11 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
   Widget build(BuildContext ctx) {
     var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuAssistScreenArguments;
     this.sd = args.sd;
-
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    this.sudokuThemeFunc = args.sudokuThemeFunc;
+    final theme = sudokuThemeFunc(ctx);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: Theme.of(ctx).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -259,7 +261,7 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
               'Assistant',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
+                color: theme.dialogTitleColor,
               ),
             ),
           ],

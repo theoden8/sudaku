@@ -13,35 +13,7 @@ Widget createTestApp({required Widget child}) {
     themeMode: ThemeMode.light,
     routes: {
       SudokuScreen.routeName: (ctx) => SudokuScreen(
-        sudokuThemeFunc: (ctx) => SudokuTheme(
-          blue: Colors.blue[100],
-          veryBlue: Colors.blue[200],
-          green: Colors.green[100],
-          yellow: Colors.yellow[100],
-          veryYellow: Colors.yellow[200],
-          orange: Colors.orange[100],
-          red: Colors.red[100],
-          veryRed: Colors.red[200],
-          purple: Colors.purple[100],
-          cyan: Colors.cyan[100],
-          foreground: Colors.black,
-          cellForeground: Colors.black,
-          cellInferColor: Colors.grey[500],
-          cellHintColor: Colors.grey[300],
-          cellBackground: null,
-          cellSelectionColor: Colors.grey[200],
-          numpadAvailable: Colors.blue[200],
-          numpadAvailableActive: Colors.blue[400],
-          numpadForbidden: Colors.red[200],
-          numpadForbiddenActive: Colors.red[400],
-          numpadUnconstrained: Colors.orange[300],
-          numpadDisabledBg: Colors.grey[300],
-          numpadDisabledFg: Colors.grey[500],
-          numpadTextOnLight: Colors.black87,
-          numpadTextOnColored: Colors.white,
-          numpadSelected: Colors.green[400],
-          onChange: (_) {},
-        ),
+        sudokuThemeFunc: getTestTheme,
       ),
     },
   );
@@ -75,7 +47,22 @@ SudokuTheme getTestTheme(BuildContext ctx) {
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
     numpadSelected: Colors.green[400],
-    onChange: (_) {},
+    dialogTitleColor: Colors.black87,
+    dialogTextColor: Colors.black54,
+    mutedPrimary: Colors.grey.shade600,
+    mutedSecondary: Colors.grey.shade500,
+    cancelButtonColor: Colors.grey.shade600,
+    disabledBg: Colors.grey.shade300,
+    disabledFg: Colors.grey.shade500,
+    shadowColor: Colors.grey,
+    iconColor: Colors.black54,
+    logoColorPrimary: Colors.blue.shade600,
+    logoColorSecondary: Colors.blue.shade400,
+    subtitleColor: Colors.black38,
+    onThemeModeChange: (_) {},
+    onThemeStyleChange: (_) {},
+    currentStyle: ThemeStyle.modern,
+    currentMode: ThemeMode.system,
   );
 }
 
@@ -182,15 +169,10 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Should find theme toggle icon (sun for light mode, moon for dark)
-      final sunIcon = find.byIcon(Icons.wb_sunny);
-      final moonIcon = find.byIcon(Icons.nights_stay);
+      // Should find the palette icon for theme settings popup
+      final paletteIcon = find.byIcon(Icons.palette);
 
-      // One of them should exist
-      expect(
-        sunIcon.evaluate().isNotEmpty || moonIcon.evaluate().isNotEmpty,
-        isTrue,
-      );
+      expect(paletteIcon, findsOneWidget);
     });
   });
 

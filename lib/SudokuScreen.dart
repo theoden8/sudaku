@@ -16,6 +16,42 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 
 
+/// Helper widget that renders text with a slight random wobble for pen-and-paper style
+/// Uses index-based seeding for consistent randomness
+class WobblyText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final int seed;
+  final double wobbleAngle;
+  final double wobbleOffset;
+
+  const WobblyText({
+    Key? key,
+    required this.text,
+    required this.style,
+    required this.seed,
+    this.wobbleAngle = 0.06,   // Max rotation in radians (~3.5 degrees)
+    this.wobbleOffset = 1.5,   // Max offset in pixels
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use seed to create consistent random values
+    final random = Random(seed);
+    final angle = (random.nextDouble() - 0.5) * wobbleAngle * 2;
+    final offsetX = (random.nextDouble() - 0.5) * wobbleOffset * 2;
+    final offsetY = (random.nextDouble() - 0.5) * wobbleOffset * 2;
+
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..translate(offsetX, offsetY)
+        ..rotateZ(angle),
+      child: Text(text, style: style),
+    );
+  }
+}
+
 class SudokuScreen extends StatefulWidget {
   static const String routeName = '/sudoku_arguments';
 
@@ -135,12 +171,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showVictoryDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -152,7 +188,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 'Victory!',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: theme.dialogTitleColor,
                 ),
               ),
             ],
@@ -160,7 +196,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'Congratulations on solving the puzzle!',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
@@ -290,12 +326,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showResetDialog(BuildContext ctx) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -307,7 +343,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                 'Reset Puzzle',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: theme.dialogTitleColor,
                 ),
               ),
             ],
@@ -315,13 +351,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'This will clear all your progress. This action cannot be undone.',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
+                foregroundColor: theme.cancelButtonColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -357,6 +393,188 @@ class SudokuScreenState extends State<SudokuScreen> {
     setState(() {
       this.sd = null;
     });
+  }
+
+  Future<void> _showThemeDialog(BuildContext ctx) async {
+    return showDialog<void>(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Get fresh theme for current state
+            final currentTheme = widget.sudokuThemeFunc(context);
+            return AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.palette_rounded, color: AppColors.primaryPurple, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Theme',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: currentTheme.dialogTitleColor,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BRIGHTNESS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: currentTheme.mutedPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _buildThemeChip(
+                          icon: Icons.wb_sunny,
+                          label: 'Light',
+                          isSelected: currentTheme.currentMode == ThemeMode.light,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.light);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        _buildThemeChip(
+                          icon: Icons.nights_stay,
+                          label: 'Dark',
+                          isSelected: currentTheme.currentMode == ThemeMode.dark,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.dark);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        _buildThemeChip(
+                          icon: Icons.phone_android,
+                          label: 'Auto',
+                          isSelected: currentTheme.currentMode == ThemeMode.system,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.system);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'STYLE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: currentTheme.mutedPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _buildThemeChip(
+                          icon: Icons.auto_awesome,
+                          label: 'Modern',
+                          isSelected: currentTheme.currentStyle == ThemeStyle.modern,
+                          onTap: () {
+                            currentTheme.onThemeStyleChange(ThemeStyle.modern);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        _buildThemeChip(
+                          icon: Icons.edit_note,
+                          label: 'Paper',
+                          isSelected: currentTheme.currentStyle == ThemeStyle.penAndPaper,
+                          onTap: () {
+                            currentTheme.onThemeStyleChange(ThemeStyle.penAndPaper);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: currentTheme.cancelButtonColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  child: const Text('Done'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isSelected = false,
+  }) {
+    final theme = widget.sudokuThemeFunc(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: isSelected
+              ? AppColors.primaryPurple.withOpacity(0.15)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? AppColors.primaryPurple : theme.disabledFg,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? AppColors.primaryPurple : theme.iconColor,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? AppColors.primaryPurple : theme.dialogTextColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Border getBorder(int i, int j, BuildContext ctx) {
@@ -419,8 +637,46 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuCellImmutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
     int sdval = sd![index];
+
+    final textStyle = TextStyle(
+      fontSize: sz * 0.85,
+      height: 1.0,
+      color: theme.cellForeground,
+      fontWeight: FontWeight.w600,
+    );
+
+    final textWidget = theme.isSketchedStyle
+        ? WobblyText(
+            text: sd!.s_get(sdval),
+            style: textStyle,
+            seed: index * 17 + sdval,  // Unique seed per cell and value
+          )
+        : Text(sd!.s_get(sdval), style: textStyle);
+
+    // For sketched style, use Container with border instead of Card with elevation
+    if (theme.isSketchedStyle) {
+      return Container(
+        decoration: BoxDecoration(
+          color: theme.cellHintColor,
+          border: Border.all(
+            color: theme.cellHintBorder ?? theme.foreground!.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        // Extra padding to prevent wobbly text from clipping at borders
+        padding: const EdgeInsets.all(2.0),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: EdgeInsets.all(sz * 0.05),
+            child: textWidget,
+          ),
+        ),
+      );
+    }
+
+    // Modern style uses Card with elevation
     return Card(
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
@@ -429,15 +685,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         fit: BoxFit.scaleDown,
         child: Padding(
           padding: EdgeInsets.all(sz * 0.05),
-          child: Text(
-            sd!.s_get(sdval),
-            style: TextStyle(
-              fontSize: sz * 0.85,
-              height: 1.0,
-              color: isDark ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: textWidget,
         ),
       ),
     );
@@ -489,9 +737,27 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget _makeSudokuCellMutable(int index, double sz, BuildContext ctx) {
     final theme = this.widget.sudokuThemeFunc(ctx);
     int sdval = sd![index];
+
+    final textStyle = TextStyle(
+      fontSize: sz * 0.85,
+      height: 1.0,
+      color: this.getCellTextColor(index, ctx),
+    );
+
+    final textWidget = (theme.isSketchedStyle && sdval != 0)
+        ? WobblyText(
+            text: sd!.s_get_display(sdval),
+            style: textStyle,
+            seed: index * 17 + sdval,  // Unique seed per cell and value
+          )
+        : Text(sd!.s_get_display(sdval), style: textStyle);
+
+    // Extra padding for sketched style to prevent wobbly text clipping
+    final buttonPadding = theme.isSketchedStyle ? const EdgeInsets.all(2.0) : EdgeInsets.zero;
+
     return TextButton(
       style: ButtonStyle(
-        padding: WidgetStateProperty.all(EdgeInsets.zero),
+        padding: WidgetStateProperty.all(buttonPadding),
         minimumSize: WidgetStateProperty.all(Size.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: WidgetStateProperty.all(const RoundedRectangleBorder(
@@ -516,14 +782,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         fit: BoxFit.scaleDown,
         child: Padding(
           padding: EdgeInsets.all(sz * 0.05),
-          child: Text(
-            sd!.s_get_display(sdval),
-            style: TextStyle(
-              fontSize: sz * 0.85,
-              height: 1.0,
-              color: this.getCellTextColor(index, ctx),
-            ),
-          ),
+          child: textWidget,
         ),
       ),
     );
@@ -538,8 +797,11 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuGridContent(BuildContext ctx, double size) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    double sz = (size - 1.0) / sd!.ne2;
-    return CustomScrollView(
+    // For sketched style, reduce effective size to add margin for wobble
+    final effectiveSize = theme.isSketchedStyle ? size - 6.0 : size;
+    double sz = (effectiveSize - 1.0) / sd!.ne2;
+
+    final gridContent = CustomScrollView(
       primary: false,
       physics: const NeverScrollableScrollPhysics(),
       slivers: <Widget>[
@@ -550,7 +812,8 @@ class SudokuScreenState extends State<SudokuScreen> {
             return Container(
               margin: const EdgeInsets.all(0.0),
               decoration: BoxDecoration(
-                border: getBorder(i, j, ctx),
+                // Use regular borders for modern style, none for sketched
+                border: theme.isSketchedStyle ? null : getBorder(i, j, ctx),
               ),
               child: this._makeSudokuCell(index, sz, ctx),
             );
@@ -558,6 +821,31 @@ class SudokuScreenState extends State<SudokuScreen> {
         )
       ],
     );
+
+    // For sketched style, overlay hand-drawn grid lines with padding for wobble
+    if (theme.isSketchedStyle) {
+      return Padding(
+        padding: const EdgeInsets.all(3.0),
+        child: Stack(
+          children: [
+            gridContent,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: SketchedGridPainter(
+                    n: sd!.n,
+                    lineColor: theme.foreground ?? Colors.black,
+                    size: effectiveSize,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return gridContent;
   }
 
   var _scaffoldBodyContext = null;
@@ -596,13 +884,13 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -624,7 +912,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: theme.dialogTitleColor,
                   ),
                 ),
               ),
@@ -633,7 +921,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             message,
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
@@ -659,13 +947,13 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialOfferDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
       barrierDismissible: false,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -687,7 +975,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                   'Welcome!',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: theme.dialogTitleColor,
                   ),
                 ),
               ),
@@ -696,13 +984,13 @@ class SudokuScreenState extends State<SudokuScreen> {
           content: Text(
             'Would you like a quick tutorial on how to use the constraint assistant?',
             style: TextStyle(
-              color: isDark ? AppColors.darkDialogText : Colors.black54,
+              color: theme.dialogTextColor,
             ),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: isDark ? AppColors.darkCancelButton : AppColors.lightCancelButton,
+                foregroundColor: theme.cancelButtonColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -894,14 +1182,14 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   var _selectedConstraint = null;
   Widget _makeConstraintList(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     var constraints = sd!.assist.constraints.where((Constraint c) {
       return c.status != Constraint.SUCCESS;
     }).toList();
 
     // Theme-aware muted colors
-    final mutedPrimary = isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary;
-    final mutedSecondary = isDark ? AppColors.darkMutedSecondary : AppColors.lightMutedSecondary;
+    final mutedPrimary = theme.mutedPrimary;
+    final mutedSecondary = theme.mutedSecondary;
 
     if (constraints.isEmpty) {
       return Center(
@@ -1051,8 +1339,8 @@ class SudokuScreenState extends State<SudokuScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? AppColors.darkSurfaceLight : const Color(0xFFDDDDEE),
-              foregroundColor: isDark ? AppColors.darkDialogText : AppColors.lightCancelButton,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              foregroundColor: theme.cancelButtonColor,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1083,11 +1371,11 @@ class SudokuScreenState extends State<SudokuScreen> {
     bool isHighlighted = false,
   }) {
     final bool isEnabled = onTap != null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
 
     // Disabled colors that match the theme
-    final disabledBg = isDark ? AppColors.darkDisabledBg : AppColors.lightDisabledBg;
-    final disabledFg = isDark ? AppColors.darkDisabledFg : AppColors.lightDisabledFg;
+    final disabledBg = theme.disabledBg;
+    final disabledFg = theme.disabledFg;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1136,11 +1424,11 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Drawer _makeDrawer(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(context);
     final bool isTutorialHighlight = this._showTutorial && this._tutorialStage == 2;
 
     return Drawer(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           children: <Widget>[
@@ -1169,7 +1457,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: theme.dialogTitleColor,
                     ),
                   ),
                 ],
@@ -1230,7 +1518,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: Text(
                 'Long-press cells to select multiple',
                 style: TextStyle(
-                  color: isDark ? AppColors.darkMutedPrimary : AppColors.lightMutedPrimary,
+                  color: theme.mutedPrimary,
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
@@ -1263,14 +1551,15 @@ class SudokuScreenState extends State<SudokuScreen> {
       SudokuAssistScreen.routeName,
       arguments: SudokuAssistScreenArguments(
         sd: this.sd!,
+        sudokuThemeFunc: widget.sudokuThemeFunc,
       ),
     );
     this.runAssistant();
   }
 
   List<Widget> _makeToolBar(BuildContext ctx) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark ? Colors.white70 : Colors.black54;
+    final theme = widget.sudokuThemeFunc(context);
+    final iconColor = theme.iconColor;
 
     if(this._showTutorial && this._tutorialStage >= 1) {
       return <Widget>[];
@@ -1278,7 +1567,8 @@ class SudokuScreenState extends State<SudokuScreen> {
     const int
       TOOLBAR_ASSIST = 0,
       TOOLBAR_TUTOR = 1,
-      TOOLBAR_RESET = 2;
+      TOOLBAR_RESET = 2,
+      TOOLBAR_THEME = 3;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo_rounded, color: iconColor),
@@ -1307,19 +1597,6 @@ class SudokuScreenState extends State<SudokuScreen> {
           }
         },
       ),
-      IconButton(
-        icon: Icon(isDark ? Icons.wb_sunny : Icons.nights_stay, color: iconColor),
-        onPressed: () async {
-          final theme = this.widget.sudokuThemeFunc(ctx);
-          setState(() {
-            if (isDark) {
-              theme.onChange(ThemeMode.light);
-            } else {
-              theme.onChange(ThemeMode.dark);
-            }
-          });
-        },
-      ),
       PopupMenuButton<int>(
         icon: Icon(Icons.more_vert_rounded, color: iconColor),
         onSelected: (int opt) {
@@ -1332,6 +1609,9 @@ class SudokuScreenState extends State<SudokuScreen> {
             break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
+            break;
+            case TOOLBAR_THEME:
+              this._showThemeDialog(ctx);
             break;
           }
         },
@@ -1352,7 +1632,17 @@ class SudokuScreenState extends State<SudokuScreen> {
               children: [
                 Icon(Icons.school_rounded, size: 20),
                 SizedBox(width: 12),
-                Text('Tutor'),
+                Text('Tutorial'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: TOOLBAR_THEME,
+            child: Row(
+              children: [
+                Icon(Icons.palette_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('Theme'),
               ],
             ),
           ),
@@ -1372,6 +1662,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _buildResponsiveLayout(BuildContext ctx, BoxConstraints constraints) {
+    final theme = widget.sudokuThemeFunc(ctx);
     final bool isPortrait = constraints.maxHeight > constraints.maxWidth;
     final double availableWidth = constraints.maxWidth;
     final double availableHeight = constraints.maxHeight;
@@ -1400,8 +1691,6 @@ class SudokuScreenState extends State<SudokuScreen> {
     this.screenWidth = availableWidth;
     this.screenHeight = availableHeight;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     Widget gridWidget = Container(
       width: gridSize,
       height: gridSize,
@@ -1409,7 +1698,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : Colors.grey).withOpacity(0.3),
+            color: theme.shadowColor.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -1418,7 +1707,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: this._makeSudokuGridContent(ctx, gridSize),
         ),
       ),
@@ -1479,7 +1768,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   Widget build(BuildContext ctx) {
     var args = ModalRoute.of(ctx)!.settings.arguments! as SudokuScreenArguments;
     final int n = args.n;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
       sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
@@ -1506,7 +1795,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           fontWeight: FontWeight.w900,
           fontSize: 24,
           letterSpacing: 3,
-          color: isDark ? Colors.white : Colors.black87,
+          color: theme.dialogTitleColor,
         ),
       ),
       centerTitle: true,
@@ -1514,7 +1803,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         builder: (context) => IconButton(
           icon: Icon(
             Icons.menu_rounded,
-            color: isDark ? Colors.white70 : Colors.black54,
+            color: theme.iconColor,
           ),
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
@@ -1525,7 +1814,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: appBar,
         drawer: this._makeDrawer(ctx),
         body: Builder(
