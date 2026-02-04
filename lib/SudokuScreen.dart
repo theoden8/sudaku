@@ -1322,7 +1322,7 @@ class SudokuScreenState extends State<SudokuScreen> {
                         this._selectedConstraint = null;
                       }
                       sd!.assist.constraints.remove(constraint);
-                      this.runAssistant();
+                      this.runAssistant(reapply: true);
                     },
                   ),
                 ],

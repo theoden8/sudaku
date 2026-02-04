@@ -2148,4 +2148,387 @@ void main() {
       expect(successStreaks.length, equals(1)); // Still 1, no new streak
     });
   });
+
+  group('Constraint Cancellation Rollback', () {
+    test('adding and canceling bogus constraint restores original state', () {
+      // Simulate a solving session where:
+      // 1. User makes some manual moves
+      // 2. User adds a bogus constraint (e.g., Equal on cells that shouldn't be equal)
+      // 3. The constraint causes assistant changes
+      // 4. User cancels/removes the constraint
+      // 5. Assistant changes from the canceled constraint are erased
+
+      var buffer = SudokuBuffer(81);
+      var constraints = <Map<String, dynamic>>[];
+      var assistedChanges = <int, int>{}; // cell -> value (assisted assignments)
+      var manualChanges = <int, int>{}; // cell -> value (manual assignments)
+
+      // Track which constraint caused which changes
+      var changesByConstraint = <int, List<int>>{}; // constraintId -> [cells]
+      int nextConstraintId = 0;
+
+      void setManual(int cell, int value) {
+        buffer[cell] = value;
+        manualChanges[cell] = value;
+      }
+
+      void setAssisted(int cell, int value, int constraintId) {
+        buffer[cell] = value;
+        assistedChanges[cell] = value;
+        changesByConstraint[constraintId] ??= [];
+        changesByConstraint[constraintId]!.add(cell);
+      }
+
+      void reapplyConstraints() {
+        // Clear all assisted changes
+        for (var cell in assistedChanges.keys.toList()) {
+          if (!manualChanges.containsKey(cell)) {
+            buffer[cell] = 0;
+          }
+        }
+        assistedChanges.clear();
+        changesByConstraint.clear();
+
+        // Re-apply active constraints
+        for (var constr in constraints) {
+          if (constr['active'] as bool) {
+            var applyFunc = constr['apply'] as Function(int);
+            applyFunc(constr['id'] as int);
+          }
+        }
+      }
+
+      // Initial state: set some manual values
+      setManual(0, 5); // Cell 0 = 5
+      setManual(10, 3); // Cell 10 = 3
+
+      expect(buffer[0], equals(5));
+      expect(buffer[10], equals(3));
+
+      // Add a "bogus" Equal constraint on cells 1, 2, 3 in the same box
+      // This bogus rule forces them to have the same value
+      // Let's say the constraint infers they should all be 7
+      int bogusConstraintId = nextConstraintId++;
+      constraints.add({
+        'id': bogusConstraintId,
+        'type': 'EQUAL',
+        'cells': [1, 2, 3],
+        'active': true,
+        'apply': (int id) {
+          // Simulate Equal constraint making cells have value 7
+          setAssisted(1, 7, id);
+          setAssisted(2, 7, id);
+          setAssisted(3, 7, id);
+        },
+      });
+
+      // Apply constraints
+      reapplyConstraints();
+
+      // Verify bogus constraint caused assisted changes
+      expect(buffer[1], equals(7));
+      expect(buffer[2], equals(7));
+      expect(buffer[3], equals(7));
+      expect(assistedChanges.containsKey(1), isTrue);
+      expect(assistedChanges.containsKey(2), isTrue);
+      expect(assistedChanges.containsKey(3), isTrue);
+
+      // Manual values still intact
+      expect(buffer[0], equals(5));
+      expect(buffer[10], equals(3));
+
+      // Now cancel/remove the bogus constraint
+      constraints.removeWhere((c) => c['id'] == bogusConstraintId);
+
+      // Reapply remaining constraints (none in this case)
+      reapplyConstraints();
+
+      // Verify bogus constraint's changes are erased
+      expect(buffer[1], equals(0), reason: 'Cell 1 should be cleared after constraint removal');
+      expect(buffer[2], equals(0), reason: 'Cell 2 should be cleared after constraint removal');
+      expect(buffer[3], equals(0), reason: 'Cell 3 should be cleared after constraint removal');
+
+      // Manual values still intact
+      expect(buffer[0], equals(5), reason: 'Manual change should be preserved');
+      expect(buffer[10], equals(3), reason: 'Manual change should be preserved');
+    });
+
+    test('canceling one constraint preserves effects of other constraints', () {
+      var buffer = SudokuBuffer(81);
+      var constraints = <Map<String, dynamic>>[];
+      var assistedChanges = <int, int>{};
+      var manualChanges = <int, int>{};
+      int nextConstraintId = 0;
+
+      void setManual(int cell, int value) {
+        buffer[cell] = value;
+        manualChanges[cell] = value;
+      }
+
+      void setAssisted(int cell, int value) {
+        buffer[cell] = value;
+        assistedChanges[cell] = value;
+      }
+
+      void reapplyConstraints() {
+        // Clear all assisted changes
+        for (var cell in assistedChanges.keys.toList()) {
+          if (!manualChanges.containsKey(cell)) {
+            buffer[cell] = 0;
+          }
+        }
+        assistedChanges.clear();
+
+        // Re-apply active constraints
+        for (var constr in constraints) {
+          if (constr['active'] as bool) {
+            var applyFunc = constr['apply'] as Function();
+            applyFunc();
+          }
+        }
+      }
+
+      // Initial manual move
+      setManual(0, 5);
+
+      // Add legitimate constraint A (infers cell 1 = 8)
+      int constraintA = nextConstraintId++;
+      constraints.add({
+        'id': constraintA,
+        'type': 'ALLDIFF',
+        'active': true,
+        'apply': () {
+          setAssisted(1, 8);
+        },
+      });
+
+      // Add bogus constraint B (infers cell 2 = 9, cell 3 = 9)
+      int constraintB = nextConstraintId++;
+      constraints.add({
+        'id': constraintB,
+        'type': 'EQUAL',
+        'active': true,
+        'apply': () {
+          setAssisted(2, 9);
+          setAssisted(3, 9);
+        },
+      });
+
+      // Apply both constraints
+      reapplyConstraints();
+
+      expect(buffer[0], equals(5)); // Manual
+      expect(buffer[1], equals(8)); // From constraint A
+      expect(buffer[2], equals(9)); // From constraint B
+      expect(buffer[3], equals(9)); // From constraint B
+
+      // Cancel only constraint B
+      constraints.removeWhere((c) => c['id'] == constraintB);
+
+      // Reapply
+      reapplyConstraints();
+
+      // Constraint A's effect preserved
+      expect(buffer[1], equals(8), reason: 'Constraint A effect should be preserved');
+
+      // Constraint B's effects erased
+      expect(buffer[2], equals(0), reason: 'Constraint B effect should be erased');
+      expect(buffer[3], equals(0), reason: 'Constraint B effect should be erased');
+
+      // Manual value preserved
+      expect(buffer[0], equals(5));
+    });
+
+    test('constraint status resets when constraint is removed and re-added', () {
+      var constraints = <Map<String, dynamic>>[];
+      int nextConstraintId = 0;
+
+      // Add constraint with SUCCESS status
+      int constraintId = nextConstraintId++;
+      constraints.add({
+        'id': constraintId,
+        'status': Constraint.SUCCESS,
+        'statusHistory': [Constraint.INSUFFICIENT, Constraint.SUCCESS],
+      });
+
+      expect(constraints.first['status'], equals(Constraint.SUCCESS));
+      expect((constraints.first['statusHistory'] as List).length, equals(2));
+
+      // Remove constraint
+      var removedConstraint = constraints.removeAt(0);
+      expect(constraints.isEmpty, isTrue);
+
+      // Re-add as new constraint (simulating user adding same constraint again)
+      int newConstraintId = nextConstraintId++;
+      constraints.add({
+        'id': newConstraintId,
+        'status': Constraint.NOT_RUN,
+        'statusHistory': <int>[],
+      });
+
+      // New constraint starts fresh
+      expect(constraints.first['status'], equals(Constraint.NOT_RUN));
+      expect((constraints.first['statusHistory'] as List).isEmpty, isTrue);
+      expect(constraints.first['id'], isNot(equals(removedConstraint['id'])));
+    });
+
+    test('domain filtering is recalculated after constraint cancellation', () {
+      // Simulate domains being filtered by constraints
+      var domains = List.generate(9, (_) {
+        var d = BitArray(10);
+        d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        return d;
+      });
+      var constraints = <Map<String, dynamic>>[];
+
+      void applyConstraintFiltering() {
+        // Reset domains to full
+        for (var d in domains) {
+          d.clearAll();
+          d.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        }
+
+        // Apply active constraint filters
+        for (var constr in constraints) {
+          if (constr['active'] as bool) {
+            var filterFunc = constr['filter'] as Function(List<BitArray>);
+            filterFunc(domains);
+          }
+        }
+      }
+
+      // Add legitimate constraint (removes 5 from cells 0-2)
+      constraints.add({
+        'id': 0,
+        'active': true,
+        'filter': (List<BitArray> doms) {
+          for (int i = 0; i < 3; i++) {
+            doms[i].clearBit(5);
+          }
+        },
+      });
+
+      // Add bogus constraint (removes 1,2,3 from cells 3-5)
+      constraints.add({
+        'id': 1,
+        'active': true,
+        'filter': (List<BitArray> doms) {
+          for (int i = 3; i < 6; i++) {
+            doms[i].clearBits([1, 2, 3]);
+          }
+        },
+      });
+
+      applyConstraintFiltering();
+
+      // Verify both constraints affected domains
+      expect(domains[0][5], isFalse);
+      expect(domains[3][1], isFalse);
+      expect(domains[3][2], isFalse);
+      expect(domains[3][3], isFalse);
+
+      // Cancel bogus constraint
+      constraints.removeWhere((c) => c['id'] == 1);
+
+      // Reapply
+      applyConstraintFiltering();
+
+      // Legitimate constraint still applied
+      expect(domains[0][5], isFalse);
+      expect(domains[1][5], isFalse);
+      expect(domains[2][5], isFalse);
+
+      // Bogus constraint effects cleared
+      expect(domains[3][1], isTrue, reason: 'Canceled constraint filter should be undone');
+      expect(domains[3][2], isTrue, reason: 'Canceled constraint filter should be undone');
+      expect(domains[3][3], isTrue, reason: 'Canceled constraint filter should be undone');
+      expect(domains[3].cardinality, equals(9));
+    });
+
+    test('chained inferences are cleared when root constraint is canceled', () {
+      // Scenario: Constraint A infers cell 1 = 5
+      // This causes Constraint B (which depends on cell 1) to infer cell 2 = 3
+      // Canceling Constraint A should clear both inferences
+
+      var buffer = SudokuBuffer(9);
+      var assistedChanges = <int, int>{};
+      var constraintAActive = true;
+      var constraintBActive = true;
+
+      void reapply() {
+        // Clear assisted
+        for (var cell in assistedChanges.keys.toList()) {
+          buffer[cell] = 0;
+        }
+        assistedChanges.clear();
+
+        // Apply A first
+        if (constraintAActive) {
+          buffer[1] = 5;
+          assistedChanges[1] = 5;
+        }
+
+        // Apply B (depends on cell 1 having value 5)
+        if (constraintBActive && buffer[1] == 5) {
+          buffer[2] = 3;
+          assistedChanges[2] = 3;
+        }
+      }
+
+      // Both constraints active
+      reapply();
+      expect(buffer[1], equals(5));
+      expect(buffer[2], equals(3));
+
+      // Cancel constraint A (the root)
+      constraintAActive = false;
+
+      reapply();
+
+      // Cell 1 cleared (A was canceled)
+      expect(buffer[1], equals(0), reason: 'Root constraint inference should be cleared');
+
+      // Cell 2 also cleared (B depended on A's inference)
+      expect(buffer[2], equals(0), reason: 'Chained inference should be cleared when root is canceled');
+    });
+
+    test('eliminations from canceled constraint are reinstated', () {
+      // Simulate eliminator where constraint eliminated values from domain
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      var eliminationsByConstraint = <int, List<int>>{}; // constraintId -> eliminated values
+
+      void eliminate(int constraintId, List<int> values) {
+        eliminationsByConstraint[constraintId] = values;
+        domain.clearBits(values);
+      }
+
+      void reinstateForConstraint(int constraintId) {
+        var values = eliminationsByConstraint.remove(constraintId);
+        if (values != null) {
+          domain.setBits(values);
+        }
+      }
+
+      // Constraint 0 eliminates [1, 2, 3]
+      eliminate(0, [1, 2, 3]);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Constraint 1 (bogus) eliminates [7, 8, 9]
+      eliminate(1, [7, 8, 9]);
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6]));
+
+      // Cancel constraint 1
+      reinstateForConstraint(1);
+
+      // Values 7, 8, 9 reinstated
+      expect(domain.asIntIterable().toList(), equals([4, 5, 6, 7, 8, 9]));
+
+      // Values from constraint 0 still eliminated
+      expect(domain[1], isFalse);
+      expect(domain[2], isFalse);
+      expect(domain[3], isFalse);
+    });
+  });
 }
