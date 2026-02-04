@@ -133,7 +133,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             ? (Matrix4.identity()..scale(1.02))
             : Matrix4.identity(),
         child: Padding(
-          padding: EdgeInsets.all(cardSize * 0.08),
+          padding: EdgeInsets.all(cardSize * 0.06),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -141,44 +141,50 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               // Mini grid preview
               _buildMiniGrid(
                 n,
-                cardSize * 0.4,
+                cardSize * 0.35,
                 Colors.white,
                 Colors.white,
               ),
-              SizedBox(height: cardSize * 0.05),
-              // Size label
-              Text(
-                sizeLabel,
-                style: TextStyle(
-                  fontSize: cardSize * 0.11,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(1, 1),
-                      blurRadius: 2,
+              SizedBox(height: cardSize * 0.03),
+              // Size label with optional check icon
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    sizeLabel,
+                    style: TextStyle(
+                      fontSize: cardSize * 0.1,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black26,
+                          offset: Offset(1, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isSelected) ...[
+                    SizedBox(width: cardSize * 0.03),
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: cardSize * 0.08,
                     ),
                   ],
-                ),
+                ],
               ),
               // Difficulty label
               Text(
                 difficultyLabel,
                 style: TextStyle(
-                  fontSize: cardSize * 0.07,
+                  fontSize: cardSize * 0.065,
                   color: Colors.white.withOpacity(0.9),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (isSelected) ...[
-                SizedBox(height: cardSize * 0.02),
-                Icon(
-                  Icons.check_circle,
-                  color: Colors.white,
-                  size: cardSize * 0.08,
-                ),
-              ],
             ],
           ),
         ),
