@@ -1382,6 +1382,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
+      shrinkWrap: true,
+      physics: const ClampingScrollPhysics(),
       children: listTiles,
     );
   }
