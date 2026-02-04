@@ -306,7 +306,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                     ),
                                   ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: min(16, availableHeight * 0.02)),
                           // Play button
                           AnimatedOpacity(
                             opacity: _selectedSize == -1 ? 0.0 : 1.0,
@@ -316,9 +316,11 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                   ? const Offset(0, 0.5)
                                   : Offset.zero,
                               duration: const Duration(milliseconds: 200),
-                              child: SizedBox(
-                                width: min(availableWidth * 0.8, 300),
-                                height: 56,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: min(availableWidth * 0.8, 300),
+                                  maxHeight: min(56, availableHeight * 0.1),
+                                ),
                                 child: ElevatedButton(
                                   onPressed: _selectedSize == -1 ? null : () {
                                     Navigator.pushNamed(
@@ -331,7 +333,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                                     backgroundColor: _sizeColors[_selectedSize]?[0] ?? Colors.grey,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(28),
+                                      borderRadius: BorderRadius.circular(min(28, availableHeight * 0.05)),
                                     ),
                                     elevation: 8,
                                     shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
@@ -362,7 +364,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: min(16, availableHeight * 0.02)),
                         ],
                       ),
                     );
