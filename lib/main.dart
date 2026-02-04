@@ -248,6 +248,7 @@ class SudokuTheme {
   Function(ThemeMode themeMode) onThemeModeChange;
   Function(ThemeStyle themeStyle) onThemeStyleChange;
   ThemeStyle currentStyle;
+  ThemeMode currentMode;
 
   Color? blue, veryBlue, green, yellow, veryYellow, orange, red, veryRed, purple, cyan;
 
@@ -338,6 +339,7 @@ class SudokuTheme {
     required this.onThemeModeChange,
     required this.onThemeStyleChange,
     required this.currentStyle,
+    required this.currentMode,
     this.cellHintBorder,
     this.isSketchedStyle = false,
   })
@@ -410,6 +412,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    currentMode: _themeMode,
   );
 
   // Pen-and-Paper Light Theme - blue fountain pen ink on cream paper
@@ -455,6 +458,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    currentMode: _themeMode,
     cellHintBorder: AppColors.paperHintBorder,  // Visible blue border for hint cells
     isSketchedStyle: true,
   );
@@ -502,6 +506,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    currentMode: _themeMode,
   );
 
   // Pen-and-Paper Dark Theme - cool charcoal with neutral off-white ink
@@ -547,6 +552,7 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeModeChange: _setThemeMode,
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
+    currentMode: _themeMode,
     cellHintBorder: AppColors.paperDarkHintBorder,  // Blue-ish border for hint cells
     isSketchedStyle: true,
   );

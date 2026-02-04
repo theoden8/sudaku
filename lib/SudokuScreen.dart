@@ -421,87 +421,95 @@ class SudokuScreenState extends State<SudokuScreen> {
                   ),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BRIGHTNESS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: currentTheme.mutedPrimary,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BRIGHTNESS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: currentTheme.mutedPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _buildThemeChip(
-                        icon: Icons.wb_sunny,
-                        label: 'Light',
-                        onTap: () {
-                          currentTheme.onThemeModeChange(ThemeMode.light);
-                          setDialogState(() {});
-                          setState(() {});
-                        },
-                      ),
-                      _buildThemeChip(
-                        icon: Icons.nights_stay,
-                        label: 'Dark',
-                        onTap: () {
-                          currentTheme.onThemeModeChange(ThemeMode.dark);
-                          setDialogState(() {});
-                          setState(() {});
-                        },
-                      ),
-                      _buildThemeChip(
-                        icon: Icons.settings_brightness,
-                        label: 'System',
-                        onTap: () {
-                          currentTheme.onThemeModeChange(ThemeMode.system);
-                          setDialogState(() {});
-                          setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'STYLE',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: currentTheme.mutedPrimary,
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildThemeChip(
+                          icon: Icons.wb_sunny,
+                          label: 'Light',
+                          isSelected: currentTheme.currentMode == ThemeMode.light,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.light);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        _buildThemeChip(
+                          icon: Icons.nights_stay,
+                          label: 'Dark',
+                          isSelected: currentTheme.currentMode == ThemeMode.dark,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.dark);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        _buildThemeChip(
+                          icon: Icons.phone_android,
+                          label: 'Auto',
+                          isSelected: currentTheme.currentMode == ThemeMode.system,
+                          onTap: () {
+                            currentTheme.onThemeModeChange(ThemeMode.system);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _buildThemeChip(
-                        icon: Icons.auto_awesome,
-                        label: 'Modern',
-                        isSelected: currentTheme.currentStyle == ThemeStyle.modern,
-                        onTap: () {
-                          currentTheme.onThemeStyleChange(ThemeStyle.modern);
-                          setDialogState(() {});
-                          setState(() {});
-                        },
+                    const SizedBox(height: 16),
+                    Text(
+                      'STYLE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: currentTheme.mutedPrimary,
                       ),
-                      _buildThemeChip(
-                        icon: Icons.edit_note,
-                        label: 'Pen & Paper',
-                        isSelected: currentTheme.currentStyle == ThemeStyle.penAndPaper,
-                        onTap: () {
-                          currentTheme.onThemeStyleChange(ThemeStyle.penAndPaper);
-                          setDialogState(() {});
-                          setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildThemeChip(
+                          icon: Icons.auto_awesome,
+                          label: 'Modern',
+                          isSelected: currentTheme.currentStyle == ThemeStyle.modern,
+                          onTap: () {
+                            currentTheme.onThemeStyleChange(ThemeStyle.modern);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        _buildThemeChip(
+                          icon: Icons.edit_note,
+                          label: 'Paper',
+                          isSelected: currentTheme.currentStyle == ThemeStyle.penAndPaper,
+                          onTap: () {
+                            currentTheme.onThemeStyleChange(ThemeStyle.penAndPaper);
+                            setDialogState(() {});
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               actions: <Widget>[
                 TextButton(
@@ -532,26 +540,41 @@ class SudokuScreenState extends State<SudokuScreen> {
     bool isSelected = false,
   }) {
     final theme = widget.sudokuThemeFunc(context);
-    return ActionChip(
-      avatar: Icon(
-        icon,
-        size: 18,
-        color: isSelected ? AppColors.primaryPurple : theme.iconColor,
-      ),
-      label: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primaryPurple : theme.dialogTextColor,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: isSelected
+              ? AppColors.primaryPurple.withOpacity(0.15)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? AppColors.primaryPurple : theme.disabledFg,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? AppColors.primaryPurple : theme.iconColor,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? AppColors.primaryPurple : theme.dialogTextColor,
+              ),
+            ),
+          ],
         ),
       ),
-      backgroundColor: isSelected
-          ? AppColors.primaryPurple.withOpacity(0.1)
-          : Theme.of(context).colorScheme.surface,
-      side: BorderSide(
-        color: isSelected ? AppColors.primaryPurple : theme.disabledFg,
-      ),
-      onPressed: onTap,
     );
   }
 

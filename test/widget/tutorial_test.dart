@@ -62,6 +62,7 @@ SudokuTheme getTestTheme(BuildContext ctx) {
     onThemeModeChange: (_) {},
     onThemeStyleChange: (_) {},
     currentStyle: ThemeStyle.modern,
+    currentMode: ThemeMode.system,
   );
 }
 
