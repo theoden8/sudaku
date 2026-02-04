@@ -107,8 +107,8 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         width: cardSize,
-        height: cardSize * 0.9,
-        margin: EdgeInsets.all(cardSize * 0.05),
+        height: cardSize,
+        margin: EdgeInsets.all(cardSize * 0.04),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
@@ -133,7 +133,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
             ? (Matrix4.identity()..scale(1.02))
             : Matrix4.identity(),
         child: Padding(
-          padding: EdgeInsets.all(cardSize * 0.06),
+          padding: EdgeInsets.all(cardSize * 0.08),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -141,11 +141,11 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               // Mini grid preview
               _buildMiniGrid(
                 n,
-                cardSize * 0.35,
+                cardSize * 0.45,
                 Colors.white,
                 Colors.white,
               ),
-              SizedBox(height: cardSize * 0.03),
+              SizedBox(height: cardSize * 0.04),
               // Size label with optional check icon
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -154,7 +154,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   Text(
                     sizeLabel,
                     style: TextStyle(
-                      fontSize: cardSize * 0.1,
+                      fontSize: cardSize * 0.12,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       shadows: const [
@@ -167,11 +167,11 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     ),
                   ),
                   if (isSelected) ...[
-                    SizedBox(width: cardSize * 0.03),
+                    SizedBox(width: cardSize * 0.04),
                     Icon(
                       Icons.check_circle,
                       color: Colors.white,
-                      size: cardSize * 0.08,
+                      size: cardSize * 0.1,
                     ),
                   ],
                 ],
@@ -180,7 +180,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
               Text(
                 difficultyLabel,
                 style: TextStyle(
-                  fontSize: cardSize * 0.065,
+                  fontSize: cardSize * 0.08,
                   color: Colors.white.withOpacity(0.9),
                   fontWeight: FontWeight.w500,
                 ),
@@ -248,17 +248,22 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     final double availableWidth = constraints.maxWidth;
                     final double availableHeight = constraints.maxHeight;
 
-                    // Calculate card size to fit 3 cards + button + padding
+                    // Calculate card size with minimum sizes for usability
                     double cardSize;
+                    const double minCardSize = 120.0; // Minimum card size
+
                     if (isPortrait) {
-                      // Reserve space for button (56px) + padding (48px)
-                      final double availableForCards = availableHeight - 104;
-                      cardSize = min(
-                        availableWidth * 0.7,
-                        availableForCards / 3.3, // 3 cards with some spacing
-                      );
+                      // Reserve space for button (72px) + padding
+                      final double availableForCards = availableHeight - 88;
+                      cardSize = max(minCardSize, min(
+                        availableWidth * 0.65,
+                        availableForCards / 3.2,
+                      ));
                     } else {
-                      cardSize = min(availableHeight * 0.65, availableWidth / 4);
+                      cardSize = max(minCardSize, min(
+                        availableHeight * 0.7,
+                        (availableWidth - 48) / 3.5,
+                      ));
                     }
 
                     final cards = [
@@ -267,20 +272,31 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                       _makeSudokuSizeCard(ctx, setState, 4, cardSize),
                     ];
 
+                    // Check if cards will overflow and need scrolling
+                    final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6; // cards + margins
+                    final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
+
                     return Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
                         children: [
                           Expanded(
                             child: isPortrait
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: cards,
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: cards,
+                                ? (needsScroll
+                                    ? ListView(
+                                        children: cards,
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: cards,
+                                      ))
+                                : SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: cards,
+                                    ),
                                   ),
                           ),
                           const SizedBox(height: 16),
