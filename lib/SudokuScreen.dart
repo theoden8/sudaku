@@ -423,14 +423,18 @@ class SudokuScreenState extends State<SudokuScreen> {
       margin: const EdgeInsets.all(0.0),
       elevation: 1.0,
       color: theme.cellHintColor,
-      child: Center(
-        child: Text(
-          sd!.s_get(sdval),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: sz * 0.9,
-            color: isDark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: EdgeInsets.all(sz * 0.05),
+          child: Text(
+            sd!.s_get(sdval),
+            style: TextStyle(
+              fontSize: sz * 0.85,
+              height: 1.0,
+              color: isDark ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -503,13 +507,17 @@ class SudokuScreenState extends State<SudokuScreen> {
       onLongPress: () {
         this._handleLongPressCell(index);
       },
-      child: Center(
-        child: Text(
-          sd!.s_get_display(sdval),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: sz * 0.9,
-            color: this.getCellTextColor(index, ctx),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: EdgeInsets.all(sz * 0.05),
+          child: Text(
+            sd!.s_get_display(sdval),
+            style: TextStyle(
+              fontSize: sz * 0.85,
+              height: 1.0,
+              color: this.getCellTextColor(index, ctx),
+            ),
           ),
         ),
       ),
