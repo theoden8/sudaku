@@ -432,8 +432,8 @@ class _SudokuAppState extends State<SudokuApp> {
     cellSelectionColor: AppColors.paperSelection,
     numpadAvailable: AppColors.paperInk,          // Blue ink
     numpadAvailableActive: const Color(0xFF0A2A4C),
-    numpadForbidden: const Color(0xFFB8A8A8),     // Muted rose
-    numpadForbiddenActive: const Color(0xFF988888),
+    numpadForbidden: const Color(0xFFC04040),     // Red ink for elimination
+    numpadForbiddenActive: const Color(0xFFD85050),  // Brighter red ink
     numpadUnconstrained: const Color(0xFF8A9AAA), // Muted blue-gray
     numpadDisabledBg: AppColors.paperSurface,
     numpadDisabledFg: const Color(0xFFBBBBCC),
@@ -506,16 +506,16 @@ class _SudokuAppState extends State<SudokuApp> {
 
   // Pen-and-Paper Dark Theme - cool charcoal with neutral off-white ink
   SudokuTheme getDarkPenAndPaperTheme() => SudokuTheme(
-    blue: const Color(0xFF282830),      // Cool slate
-    veryBlue: const Color(0xFF383840),
-    green: const Color(0xFF283028),     // Slight green tint
-    yellow: const Color(0xFF303028),    // Neutral dark
-    veryYellow: const Color(0xFF404038),
-    orange: const Color(0xFF383030),    // Neutral with slight warmth
-    red: const Color(0xFF302828),       // Neutral dark
-    veryRed: const Color(0xFF403038),
-    purple: const Color(0xFF2C2838),    // Cool purple tint
-    cyan: const Color(0xFF283038),      // Cool teal
+    blue: const Color(0xFF4A6080),      // Brighter cool blue for visible constraints
+    veryBlue: const Color(0xFF5A7090),
+    green: const Color(0xFF4A7050),     // Brighter green for visible constraints
+    yellow: const Color(0xFF606050),    // Neutral dark
+    veryYellow: const Color(0xFF707060),
+    orange: const Color(0xFF706050),    // Neutral with slight warmth
+    red: const Color(0xFF704848),       // Red tint for constraints
+    veryRed: const Color(0xFF805050),
+    purple: const Color(0xFF5A4870),    // Brighter purple for visible constraints
+    cyan: const Color(0xFF486068),      // Cool teal
     foreground: AppColors.paperDarkInk,
     cellForeground: AppColors.paperDarkInk,
     cellInferColor: AppColors.paperDarkPencil,
@@ -524,14 +524,14 @@ class _SudokuAppState extends State<SudokuApp> {
     cellSelectionColor: AppColors.paperDarkSelection,
     numpadAvailable: AppColors.paperDarkInk,      // Cool off-white
     numpadAvailableActive: const Color(0xFFE8E8F0),
-    numpadForbidden: const Color(0xFF484048),     // Muted cool red
-    numpadForbiddenActive: const Color(0xFF403038),
+    numpadForbidden: const Color(0xFF8B3030),     // Red ink for elimination
+    numpadForbiddenActive: const Color(0xFFA04040),  // Brighter red ink
     numpadUnconstrained: const Color(0xFF505058), // Neutral gray
     numpadDisabledBg: AppColors.paperDarkSurface,
     numpadDisabledFg: const Color(0xFF383840),
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: AppColors.paperDarkBackground,
-    numpadSelected: const Color(0xFF24242C),      // Cool subtle highlight
+    numpadSelected: const Color(0xFF3A4A5A),      // Visible blue-gray selection
     dialogTitleColor: AppColors.paperDarkInk,
     dialogTextColor: AppColors.paperDarkPencil,
     mutedPrimary: AppColors.paperDarkPencil,

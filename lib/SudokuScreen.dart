@@ -615,7 +615,9 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Widget _makeSudokuGridContent(BuildContext ctx, double size) {
     final theme = this.widget.sudokuThemeFunc(ctx);
-    double sz = (size - 1.0) / sd!.ne2;
+    // For sketched style, reduce effective size to add margin for wobble
+    final effectiveSize = theme.isSketchedStyle ? size - 6.0 : size;
+    double sz = (effectiveSize - 1.0) / sd!.ne2;
 
     final gridContent = CustomScrollView(
       primary: false,
@@ -638,23 +640,26 @@ class SudokuScreenState extends State<SudokuScreen> {
       ],
     );
 
-    // For sketched style, overlay hand-drawn grid lines
+    // For sketched style, overlay hand-drawn grid lines with padding for wobble
     if (theme.isSketchedStyle) {
-      return Stack(
-        children: [
-          gridContent,
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: SketchedGridPainter(
-                  n: sd!.n,
-                  lineColor: theme.foreground ?? Colors.black,
-                  size: size,
+      return Padding(
+        padding: const EdgeInsets.all(3.0),
+        child: Stack(
+          children: [
+            gridContent,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: SketchedGridPainter(
+                    n: sd!.n,
+                    lineColor: theme.foreground ?? Colors.black,
+                    size: effectiveSize,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
