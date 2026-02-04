@@ -1532,6 +1532,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           );
         } else {
           buttonGrid = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: buttons,
           );
         }
