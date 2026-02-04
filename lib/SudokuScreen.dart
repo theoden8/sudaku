@@ -1086,7 +1086,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         } else {
           this._showTutorialMessage(
               title: 'Select cells',
-              message: 'Long-press on the highlighted cells to select them. These cells form a constraint group.',
+              message: 'Long-press a highlighted cell to start selecting, then tap to add more cells to the group.',
               nextFunc: () {}
           );
         }
