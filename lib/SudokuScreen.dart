@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/foundation.dart';
 import 'package:bit_array/bit_array.dart';
 
 
@@ -591,7 +592,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     if(this._tutorialCells == null) {
       this._tutorialCells = BitArray(sd!.ne4);
     }
-    print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
+    if (kDebugMode) print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {

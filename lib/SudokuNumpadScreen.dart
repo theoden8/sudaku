@@ -46,8 +46,8 @@ abstract class NumpadInteraction {
     final theme = numpad.widget.sudokuThemeFunc(ctx);
 
     if(numpad.multiselection[val]) {
-      // Selected values - use theme's selection color
-      return theme.cellSelectionColor;
+      // Selected values - use theme's numpad selection color
+      return theme.numpadSelected;
     } else if((numpad.forbidden ^ numpad.antiselection)[val]) {
       // Forbidden/eliminated values
       if(numpad.antiselectionChanges[val]) {

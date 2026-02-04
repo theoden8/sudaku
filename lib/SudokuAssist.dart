@@ -1,4 +1,5 @@
 import 'package:bit_array/bit_array.dart';
+import 'package:flutter/foundation.dart';
 
 import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
@@ -194,7 +195,7 @@ class ConstraintOneOf extends Constraint {
       var dom = sd.assist.getDomain(v);
       if(dom.cardinality == 1 && dom[this.value]) {
         if(remainingUnique == -1) {
-          print('remainingUnique $v');
+          if (kDebugMode) print('remainingUnique $v');
           remainingUnique = v;
         } else {
           return Constraint.VIOLATED;

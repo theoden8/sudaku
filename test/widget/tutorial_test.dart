@@ -39,6 +39,7 @@ Widget createTestApp({required Widget child}) {
           numpadDisabledFg: Colors.grey[500],
           numpadTextOnLight: Colors.black87,
           numpadTextOnColored: Colors.white,
+          numpadSelected: Colors.green[400],
           onChange: (_) {},
         ),
       ),
@@ -73,6 +74,7 @@ SudokuTheme getTestTheme(BuildContext ctx) {
     numpadDisabledFg: Colors.grey[500],
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
+    numpadSelected: Colors.green[400],
     onChange: (_) {},
   );
 }

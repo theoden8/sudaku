@@ -71,6 +71,10 @@ class AppColors {
   static const Color lightCellInferText = Color(0xFF6666aa); // Assistant-inferred text (light)
   static const Color darkCellSelection = Color(0xFF4a4a7e);  // Selected cell background (dark) - more blue
   static const Color lightCellSelection = Color(0xFFD8D8E8); // Selected cell background (light) - subtle gray
+
+  // Numpad selection colors (distinct from available)
+  static const Color numpadSelectedLight = Color(0xFF66BB6A);  // Bright green for selection
+  static const Color numpadSelectedDark = Color(0xFF4CAF50);   // Medium green for dark theme
 }
 
 void main() => runApp(SudokuApp());
@@ -108,6 +112,7 @@ class SudokuTheme {
   Color? numpadDisabledFg;
   Color? numpadTextOnLight;
   Color? numpadTextOnColored;
+  Color? numpadSelected;
 
   SudokuTheme({
     required this.blue,
@@ -135,6 +140,7 @@ class SudokuTheme {
     required this.numpadDisabledFg,
     required this.numpadTextOnLight,
     required this.numpadTextOnColored,
+    required this.numpadSelected,
     required this.onChange,
   })
   {
@@ -183,6 +189,7 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadDisabledFg: AppColors.lightDisabledFg,
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
+    numpadSelected: AppColors.numpadSelectedLight,
     onChange: _setThemeMode,
   );
 
@@ -213,6 +220,7 @@ class _SudokuAppState extends State<SudokuApp> {
     numpadDisabledFg: AppColors.darkDisabledFg,
     numpadTextOnLight: Colors.black87,
     numpadTextOnColored: Colors.white,
+    numpadSelected: AppColors.numpadSelectedDark,
     onChange: _setThemeMode,
   );
 
