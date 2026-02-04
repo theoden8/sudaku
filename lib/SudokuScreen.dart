@@ -1159,8 +1159,8 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Widget _makeTutorialButton(BuildContext ctx) {
-    final marginSize = min(32.0, min(screenWidth, screenHeight) * 0.05);
-    final buttonSize = min(120.0, min(screenWidth, screenHeight) * 0.25);
+    final marginSize = min(16.0, min(screenWidth, screenHeight) * 0.03);
+    final buttonSize = min(80.0, min(screenWidth, screenHeight) * 0.15);
     return Container(
       margin: EdgeInsets.all(marginSize),
       child: SizedBox(
@@ -1737,8 +1737,11 @@ class SudokuScreenState extends State<SudokuScreen> {
     if (showTutorialButton) {
       secondaryContent = Column(
         children: [
-          this._makeTutorialButton(ctx),
-          const SizedBox(height: 8),
+          Flexible(
+            flex: 0,
+            child: this._makeTutorialButton(ctx),
+          ),
+          const SizedBox(height: 4),
           Expanded(child: this._makeConstraintList(ctx)),
         ],
       );
