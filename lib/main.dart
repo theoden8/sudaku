@@ -15,6 +15,69 @@ import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 
 
+/// Consistent color palette for the app
+/// Used across all screens to maintain visual language
+class AppColors {
+  // Primary gradient colors
+  static const Color primaryPurple = Color(0xFF667eea);
+  static const Color secondaryPurple = Color(0xFF764ba2);
+
+  // Semantic colors
+  static const Color success = Color(0xFF4CAF50);
+  static const Color successLight = Color(0xFF81C784);
+  static const Color accent = Color(0xFF2196F3);
+  static const Color accentLight = Color(0xFF64B5F6);
+  static const Color warning = Color(0xFFFF9800);
+  static const Color warningLight = Color(0xFFFFB74D);
+  static const Color error = Color(0xFFE53935);
+  static const Color errorLight = Color(0xFFEF5350);
+
+  // Constraint-specific colors
+  static const Color constraintPurple = Color(0xFF9C27B0);
+  static const Color constraintPurpleLight = Color(0xFFBA68C8);
+  static const Color constraintOrange = Color(0xFFFF5722);
+  static const Color constraintOrangeLight = Color(0xFFFF8A65);
+
+  // Background colors
+  static const Color darkBackground = Color(0xFF1a1a2e);
+  static const Color lightBackground = Color(0xFFF5F5F5);
+  static const Color darkSurface = Color(0xFF2a2a4e);
+  static const Color darkSurfaceLight = Color(0xFF3a3a5e);
+
+  // Muted text colors
+  static const Color darkMutedPrimary = Color(0xFF5a5a8e);
+  static const Color darkMutedSecondary = Color(0xFF4a4a6e);
+  static const Color lightMutedPrimary = Color(0xFF9999AA);
+  static const Color lightMutedSecondary = Color(0xFFBBBBCC);
+
+  // Disabled state colors
+  static const Color darkDisabledBg = Color(0xFF2a2a4e);
+  static const Color darkDisabledFg = Color(0xFF5a5a7e);
+  static const Color lightDisabledBg = Color(0xFFE8E8E8);
+  static const Color lightDisabledFg = Color(0xFFAAAAAA);
+
+  // Dialog text colors
+  static const Color darkDialogText = Color(0xFFAAAACC);
+  static const Color darkCancelButton = Color(0xFF8888AA);
+  static const Color lightCancelButton = Color(0xFF666688);
+
+  // Special colors
+  static const Color gold = Color(0xFFFFD700);
+
+  // Cell colors for grid
+  static const Color darkCellHintBg = Color(0xFF3a3a5e);  // Immutable hint cell background (dark)
+  static const Color lightCellHintBg = Color(0xFFE0E0F0); // Immutable hint cell background (light)
+  static const Color darkCellInferText = Color(0xFF7a7aaa);  // Assistant-inferred text (dark)
+  static const Color lightCellInferText = Color(0xFF6666aa); // Assistant-inferred text (light)
+  static const Color darkCellSelection = Color(0xFF4a4a7e);  // Selected cell background (dark) - more blue
+  static const Color lightCellSelection = Color(0xFFD8D8E8); // Selected cell background (light) - subtle gray
+
+  // Numpad colors - darker blue for available, lighter blue for selected
+  static const Color numpadAvailableDark = Color(0xFF1976D2);   // Darker blue for available
+  static const Color numpadSelectedLight = Color(0xFF90CAF9);   // Light blue for selection
+  static const Color numpadSelectedDark = Color(0xFF64B5F6);    // Medium light blue for dark theme selection
+}
+
 void main() => runApp(SudokuApp());
 
 class SudokuApp extends StatefulWidget {
@@ -32,12 +95,25 @@ class SudokuTheme {
   Color? cellInferColor;
   Color? cellHintColor;
   Color? cellBackground;
+  Color? cellSelectionColor;
   Color? buttonForeground = Colors.black;
   Color? buttonBackground;
   Color? buttonSelectedBackground;
   Color? constraintOneOf;
   Color? constraintEqual;
   Color? constraintAllDiff;
+
+  // Numpad colors
+  Color? numpadAvailable;
+  Color? numpadAvailableActive;
+  Color? numpadForbidden;
+  Color? numpadForbiddenActive;
+  Color? numpadUnconstrained;
+  Color? numpadDisabledBg;
+  Color? numpadDisabledFg;
+  Color? numpadTextOnLight;
+  Color? numpadTextOnColored;
+  Color? numpadSelected;
 
   SudokuTheme({
     required this.blue,
@@ -55,15 +131,26 @@ class SudokuTheme {
     required this.cellInferColor,
     required this.cellHintColor,
     required this.cellBackground,
+    required this.cellSelectionColor,
+    required this.numpadAvailable,
+    required this.numpadAvailableActive,
+    required this.numpadForbidden,
+    required this.numpadForbiddenActive,
+    required this.numpadUnconstrained,
+    required this.numpadDisabledBg,
+    required this.numpadDisabledFg,
+    required this.numpadTextOnLight,
+    required this.numpadTextOnColored,
+    required this.numpadSelected,
     required this.onChange,
   })
   {
     this.buttonForeground = Colors.black;
     this.buttonBackground = this.blue;
     this.buttonSelectedBackground = this.green;
-    this.constraintOneOf = this.green;
-    this.constraintEqual = this.purple;
-    this.constraintAllDiff = this.cyan;
+    this.constraintOneOf = this.green?.withOpacity(0.4);
+    this.constraintEqual = this.purple?.withOpacity(0.4);
+    this.constraintAllDiff = this.blue?.withOpacity(0.4);
   }
 }
 
@@ -89,9 +176,21 @@ class _SudokuAppState extends State<SudokuApp> {
     cyan: Colors.cyan[100],
     foreground: Colors.black,
     cellForeground: Colors.black,
-    cellInferColor: Colors.grey[500],
-    cellHintColor: Colors.grey[300],
+    cellInferColor: AppColors.lightCellInferText,
+    cellHintColor: AppColors.lightCellHintBg,
     cellBackground: null,
+    cellSelectionColor: AppColors.lightCellSelection,
+    // Numpad colors for light theme - darker blue available, lighter blue selected
+    numpadAvailable: AppColors.numpadAvailableDark,
+    numpadAvailableActive: AppColors.accent,
+    numpadForbidden: AppColors.errorLight,
+    numpadForbiddenActive: AppColors.error,
+    numpadUnconstrained: AppColors.warning,
+    numpadDisabledBg: AppColors.lightDisabledBg,
+    numpadDisabledFg: AppColors.lightDisabledFg,
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: Colors.white,
+    numpadSelected: AppColors.numpadSelectedLight,
     onChange: _setThemeMode,
   );
 
@@ -108,9 +207,21 @@ class _SudokuAppState extends State<SudokuApp> {
     cyan: Color(0xFF449999),
     foreground: Colors.grey[200],
     cellForeground: Colors.grey[300],
-    cellInferColor: Colors.grey[500],
-    cellHintColor: Colors.grey[400],
+    cellInferColor: AppColors.darkCellInferText,
+    cellHintColor: AppColors.darkCellHintBg,
     cellBackground: null,
+    cellSelectionColor: AppColors.darkCellSelection,
+    // Numpad colors for dark theme - darker blue available, lighter blue selected
+    numpadAvailable: AppColors.numpadAvailableDark,
+    numpadAvailableActive: AppColors.accent,
+    numpadForbidden: AppColors.errorLight,
+    numpadForbiddenActive: AppColors.error,
+    numpadUnconstrained: AppColors.warningLight,
+    numpadDisabledBg: AppColors.darkDisabledBg,
+    numpadDisabledFg: AppColors.darkDisabledFg,
+    numpadTextOnLight: Colors.black87,
+    numpadTextOnColored: Colors.white,
+    numpadSelected: AppColors.numpadSelectedDark,
     onChange: _setThemeMode,
   );
 
@@ -126,11 +237,13 @@ class _SudokuAppState extends State<SudokuApp> {
   Widget build(BuildContext ctx) {
     return MaterialApp(
       title: 'Sudoku',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData.light().copyWith(
-        primaryColor: Colors.blue,
+        primaryColor: AppColors.primaryPurple,
         colorScheme: ColorScheme.light().copyWith(
-          secondary: Colors.orangeAccent[400],
-          background: Colors.blue[100],
+          primary: AppColors.primaryPurple,
+          secondary: AppColors.secondaryPurple,
+          surface: AppColors.lightBackground,
         ),
         textTheme: ThemeData.light().textTheme.copyWith(
         ),
@@ -139,13 +252,18 @@ class _SudokuAppState extends State<SudokuApp> {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           }
         ),
-        scaffoldBackgroundColor: Color(0xFFFFFFFF),
+        scaffoldBackgroundColor: AppColors.lightBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       ),
       darkTheme: ThemeData.dark().copyWith(
-        primaryColor: Colors.blue,
+        primaryColor: AppColors.primaryPurple,
         colorScheme: ColorScheme.dark().copyWith(
-          secondary: Colors.orangeAccent[400],
-          background: Color(0xFF449FCC),
+          primary: AppColors.primaryPurple,
+          secondary: AppColors.secondaryPurple,
+          surface: AppColors.darkSurface,
         ),
         textTheme: ThemeData.dark().textTheme.copyWith(
         ),
@@ -154,7 +272,11 @@ class _SudokuAppState extends State<SudokuApp> {
             TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           }
         ),
-        scaffoldBackgroundColor: Color(0xFF333333),
+        scaffoldBackgroundColor: AppColors.darkBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       ),
       themeMode: _themeMode,
       home: MenuScreen(sudokuThemeFunc: getSudokuTheme),

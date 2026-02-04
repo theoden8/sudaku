@@ -141,13 +141,25 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Assistant'),
+        title: const Text('Assistant'),
         elevation: 0.0,
         actions: this._makeToolbar(ctx),
       ),
-      body:ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        children: this._makeOptionList(ctx),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Constrain max width for better readability on large screens
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  children: this._makeOptionList(ctx),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

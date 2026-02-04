@@ -3,11 +3,27 @@
 ## Screens
 
 ### Menu Screen
-Entry point to the application with options:
-- Start new puzzle (9×9 or 16×16)
-- Resume previous session
-- Settings and preferences
-- Theme selection (light/dark mode)
+Entry point to the application featuring a playful, game-like design:
+
+**Main Screen**:
+- Animated 3×3 grid logo with subtle pulse effect
+- Gradient PLAY button (purple-blue) with play icon
+- "Tap to begin" hint text
+- Decorative background grids (rotated, semi-transparent)
+- Theme toggle button in app bar
+
+**Size Selection Dialog**:
+- Three colorful gradient cards for grid sizes:
+  - **4×4 (Easy)**: Green gradient - beginner friendly
+  - **9×9 (Classic)**: Blue gradient - standard sudoku
+  - **16×16 (Challenge)**: Purple gradient - advanced
+- Each card shows:
+  - Mini grid preview (white lines on gradient)
+  - Size label (e.g., "9×9")
+  - Difficulty label
+  - Check mark when selected
+- Animated selection effects (scale, border, shadow)
+- START button appears when a size is selected
 
 ### Sudoku Screen
 Main puzzle-solving interface displaying:
@@ -116,6 +132,73 @@ Eye-friendly dark interface with:
 - Smooth transitions between themes
 - Colors remain semantically consistent
 
+## Animations
+
+### Menu Screen Animations
+- **Pulse effect**: Logo and PLAY button gently pulse using `AnimationController` with `CurvedAnimation`
+- **Card selection**: `AnimatedContainer` for smooth scale, border, and shadow transitions (200ms)
+- **START button**: `AnimatedOpacity` and `AnimatedSlide` for fade-in and slide-up when visible
+
+### Transitions
+- **Navigation**: Standard Material page transitions
+- **Dialog**: `showDialog` with default Material animation
+- **Theme change**: Smooth color transitions via Flutter's theme animation
+
+## Responsive Layout System
+
+The interface adapts to all screen sizes and orientations using Flutter's `LayoutBuilder` and responsive techniques.
+
+### Layout Strategies
+
+**Portrait Mode**:
+- Content stacked vertically
+- Grid/cards take most of height
+- Controls below main content
+- Scrollable if content exceeds screen
+
+**Landscape Mode**:
+- Content arranged horizontally
+- Grid/cards on left, controls on right
+- `FittedBox` scales content to fit width
+- Centered with automatic scaling
+
+### Overflow Prevention
+
+Multiple techniques ensure no content overflows:
+
+1. **FittedBox with scaleDown**: Cards and buttons scale down proportionally when space is limited
+2. **ConstrainedBox**: Maximum dimensions prevent elements from growing too large
+3. **Responsive sizing**: Dimensions calculated as percentages of available space with min/max bounds
+4. **ListView fallback**: Portrait mode switches to scrollable list when cards don't fit
+
+### Screen-Specific Adaptations
+
+**Menu Screen**:
+- Logo and button sizes scale with `shortestSide`
+- Maximum sizes prevent oversized elements on tablets
+- Decoration grids scale and stay partially off-screen
+
+**Size Selection**:
+- Card size: `max(120, min(availableHeight * 0.7, availableWidth / 3.5))`
+- Portrait: Vertical column or scrollable ListView
+- Landscape: Horizontal row wrapped in `FittedBox`
+- START button: Responsive height and width with scaling content
+
+**Sudoku Screen**:
+- Portrait: `min(availableWidth, availableHeight * 0.7)` - full width since constraint list is below
+- Landscape: `min(availableHeight, availableWidth - 200)` - reserves 200px minimum for constraint list
+- Secondary content fills remaining space via `Expanded`
+- Grid centered in both orientations
+
+**Numpad Screen**:
+- Grid size adapts to leave room for action button
+- Both orientations: Grid centered horizontally, button below
+- Colors routed through `SudokuTheme` for customization
+
+**Assistant Screen**:
+- `ConstrainedBox` limits width to 600px for readability
+- Centered on wide screens, full width on narrow screens
+
 ## Accessibility
 
 - High contrast modes
@@ -123,6 +206,7 @@ Eye-friendly dark interface with:
 - Large touch targets for cell selection
 - Color-blind friendly palette options
 - Responsive layout for different screen sizes
+- Minimum touch target sizes maintained even on small screens
 
 ## Performance
 
@@ -133,18 +217,37 @@ Eye-friendly dark interface with:
 
 ## Test Coverage
 
-The interface layer requires Flutter widget tests which are not yet implemented. Future test coverage should include:
+The interface layer has widget tests in `test/widget/tutorial_test.dart` and integration tests in `integration_test/interaction_flow_test.dart`.
 
-### Widget Tests (planned)
-- Menu screen navigation
-- Sudoku grid rendering and cell selection
-- Numpad input handling
-- Constraint creation workflow
-- Theme switching
-- Undo/redo functionality
+### Widget Tests (implemented)
+- Menu screen displays Play button
+- Menu screen Play button is tappable and shows size selection
+- Size selection shows 2, 3, 4 options
+- Selecting size shows play FAB
+- Theme toggle button exists on menu
 
-### Integration Tests (planned)
-- Full puzzle solving workflow
-- Constraint propagation visual feedback
-- Multi-cell selection
-- State persistence
+### Responsive Layout Tests (implemented)
+- Menu screen adapts to portrait orientation
+- Menu screen adapts to landscape orientation
+- Size selection adapts to small screen
+- Size selection adapts to tablet size
+
+### Integration Tests (implemented)
+- Full flow: Menu -> Size Selection -> Sudoku Screen
+- Skip tutorial and view constraint list
+- Cell selection and numpad interaction
+- Undo button functionality
+- Theme toggle works on Sudoku screen
+- Drawer opens with constraint options
+- Menu button in toolbar shows options
+- Assistant settings screen accessible
+- App works in portrait and landscape orientations
+
+### Tutorial Flow
+The tutorial is a multi-stage guided workflow:
+- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial
+- **Stage 1**: Multi-selection mode - user selects highlighted cells
+- **Stage 2**: Open drawer and select "All different" constraint
+- **Stage 3**: Tutorial completion with explanation
+
+The tutorial can be restarted anytime from the toolbar menu. Tutorial tests require the full app with assets loaded and are covered in integration tests.

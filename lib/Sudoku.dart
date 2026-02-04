@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:bit_array/bit_array.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
@@ -24,7 +25,7 @@ Future<List<int>> loadFrom1465(AssetBundle a) async {
       // }
       int index = (ne4 + 1) * r + i;
       var c = s[index];
-      if(c == '\n')print('$i');
+      if(c == '\n' && kDebugMode) print('$i');
       assert(c != '\n');
       return (c == '.') ? 0 : int.parse(c);
     }
