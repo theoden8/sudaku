@@ -32,6 +32,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
     with SingleTickerProviderStateMixin {
   late AnimationController _selectionPulseController;
   int _selectedSize = -1;
+  bool _isDemoMode = false;
 
   @override
   void initState() {
@@ -41,15 +42,19 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       vsync: this,
     )..repeat(); // Run continuously for smooth animation
 
-    // Check for demo pre-selected grid size
-    _loadDemoSelectedSize();
+    // Check for demo mode and pre-selected grid size
+    _loadDemoSettings();
   }
 
-  Future<void> _loadDemoSelectedSize() async {
+  Future<void> _loadDemoSettings() async {
+    final isDemo = await isDemoMode();
     final demoSize = await getDemoSelectedGridSize();
-    if (demoSize != null && mounted) {
+    if (mounted) {
       setState(() {
-        _selectedSize = demoSize;
+        _isDemoMode = isDemo;
+        if (demoSize != null) {
+          _selectedSize = demoSize;
+        }
       });
     }
   }
@@ -561,7 +566,13 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                             Navigator.pushNamed(
                               widget.parentContext,
                               SudokuScreen.routeName,
-                              arguments: SudokuScreenArguments(n: _selectedSize),
+                              arguments: SudokuScreenArguments(
+                                n: _selectedSize,
+                                isDemoMode: _isDemoMode,
+                                demoPuzzle: _isDemoMode && _selectedSize == 3
+                                    ? parseDemoPuzzle(demoPuzzle9x9)
+                                    : null,
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
