@@ -57,6 +57,19 @@ Future<void> _takeScreenshot(
   await tester.pump();
 }
 
+/// Debug helper to print what text widgets are visible
+void _debugPrintTextWidgets(WidgetTester tester) {
+  final textWidgets = find.byType(Text);
+  print('--- Visible Text widgets (${textWidgets.evaluate().length}): ---');
+  for (final element in textWidgets.evaluate().take(20)) {
+    final widget = element.widget as Text;
+    if (widget.data != null) {
+      print('  "${widget.data}"');
+    }
+  }
+  print('--- End Text widgets ---');
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -76,41 +89,59 @@ void main() {
         // Launch the app
         print('Launching app...');
         await tester.pumpWidget(SudokuApp());
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        // Use pump with duration instead of pumpAndSettle since menu has continuous animations
+        await tester.pump(const Duration(seconds: 3));
 
         // Set orientation
         await _setDeviceOrientation(tester);
 
         // Convert Flutter surface to image for screenshots
         await binding.convertFlutterSurfaceToImage();
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
 
         final themeSuffix = theme == 'light' ? '-light' : '-dark';
+
+        // Debug: show what widgets are visible
+        _debugPrintTextWidgets(tester);
 
         // =========================================
         // Screenshot 1: Grid Selection Screen
         // =========================================
         print('--- Screenshot 1: Grid Selection ---');
 
-        // Tap PLAY button to show size selection dialog
-        // The button contains "PLAY" text
-        final playFinder = find.textContaining('PLAY');
-        if (playFinder.evaluate().isNotEmpty) {
-          await tester.tap(playFinder.first);
-        }
-        await tester.pumpAndSettle();
+        // Find and tap PLAY button - it's a Text widget inside a GestureDetector
+        final playText = find.text('PLAY');
+        print('PLAY button found: ${playText.evaluate().isNotEmpty}');
 
-        // Select 9x9 grid - look for the "9×9" label or "Classic" text
+        if (playText.evaluate().isNotEmpty) {
+          await tester.tap(playText);
+          await tester.pump(const Duration(seconds: 1));
+        } else {
+          // Try finding by icon if text doesn't work
+          final playIcon = find.byIcon(Icons.play_arrow_rounded);
+          if (playIcon.evaluate().isNotEmpty) {
+            await tester.tap(playIcon.first);
+            await tester.pump(const Duration(seconds: 1));
+          }
+        }
+
+        // Debug after tapping
+        _debugPrintTextWidgets(tester);
+
+        // Select 9x9 grid - look for the "9×9" label
         final classicCard = find.text('9×9');
+        print('9×9 card found: ${classicCard.evaluate().isNotEmpty}');
+
         if (classicCard.evaluate().isNotEmpty) {
           await tester.tap(classicCard);
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 500));
         } else {
           // Try finding Classic label
           final classicLabel = find.text('Classic');
           if (classicLabel.evaluate().isNotEmpty) {
             await tester.tap(classicLabel);
-            await tester.pumpAndSettle();
+            await tester.pump(const Duration(milliseconds: 500));
           }
         }
 
@@ -126,26 +157,32 @@ void main() {
         // =========================================
         print('--- Screenshot 2: Sudoku Screen ---');
 
-        // Start the game - look for START button
-        final startFinder = find.textContaining('START');
-        if (startFinder.evaluate().isNotEmpty) {
-          await tester.tap(startFinder.first);
+        // Start the game - look for START button or play icon
+        final startText = find.text('START');
+        print('START button found: ${startText.evaluate().isNotEmpty}');
+
+        if (startText.evaluate().isNotEmpty) {
+          await tester.tap(startText);
         } else {
           // Fallback: look for play_arrow icon
           final playArrow = find.byIcon(Icons.play_arrow_rounded);
           if (playArrow.evaluate().isNotEmpty) {
             await tester.tap(playArrow.first);
           } else {
-            await tester.tap(find.byIcon(Icons.play_arrow).first);
+            final playArrow2 = find.byIcon(Icons.play_arrow);
+            if (playArrow2.evaluate().isNotEmpty) {
+              await tester.tap(playArrow2.first);
+            }
           }
         }
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+        await tester.pump(const Duration(seconds: 2));
 
         // Dismiss tutorial dialog if it appears
         final skipButton = find.text('Skip');
         if (skipButton.evaluate().isNotEmpty) {
+          print('Dismissing tutorial dialog...');
           await tester.tap(skipButton);
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 500));
         }
 
         // Take screenshot of sudoku screen
@@ -162,16 +199,18 @@ void main() {
 
         // Find mutable cells (TextButtons) and long-press to start multi-select
         final textButtons = find.byType(TextButton);
+        print('TextButtons found: ${textButtons.evaluate().length}');
+
         if (textButtons.evaluate().length >= 3) {
           // Long press first cell to start multi-select
           await tester.longPress(textButtons.first);
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 500));
 
           // Tap two more cells to select them
           await tester.tap(textButtons.at(1));
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 300));
           await tester.tap(textButtons.at(2));
-          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 300));
 
           // Take screenshot showing cell selection with constraint options
           await _takeScreenshot(
@@ -187,9 +226,11 @@ void main() {
 
           // Apply "All different" constraint
           final allDiffButton = find.text('All different');
+          print('All different button found: ${allDiffButton.evaluate().isNotEmpty}');
+
           if (allDiffButton.evaluate().isNotEmpty) {
             await tester.tap(allDiffButton);
-            await tester.pumpAndSettle();
+            await tester.pump(const Duration(seconds: 1));
 
             // The numpad should appear for value selection
             // Select values matching the cell count (e.g., 1, 2, 3)
@@ -197,7 +238,7 @@ void main() {
               final valueButton = find.text('$i');
               if (valueButton.evaluate().isNotEmpty) {
                 await tester.tap(valueButton.first);
-                await tester.pumpAndSettle();
+                await tester.pump(const Duration(milliseconds: 300));
               }
             }
 
@@ -205,14 +246,18 @@ void main() {
             final confirmButton = find.byIcon(Icons.check);
             if (confirmButton.evaluate().isNotEmpty) {
               await tester.tap(confirmButton);
-              await tester.pumpAndSettle();
+              await tester.pump(const Duration(milliseconds: 500));
             }
 
             // Close any dialogs that might have appeared
-            final gotItButton = find.text('Got it');
-            while (gotItButton.evaluate().isNotEmpty) {
-              await tester.tap(gotItButton.first);
-              await tester.pumpAndSettle();
+            for (int i = 0; i < 3; i++) {
+              final gotItButton = find.text('Got it');
+              if (gotItButton.evaluate().isNotEmpty) {
+                await tester.tap(gotItButton.first);
+                await tester.pump(const Duration(milliseconds: 500));
+              } else {
+                break;
+              }
             }
 
             // Take screenshot showing constraint in list
