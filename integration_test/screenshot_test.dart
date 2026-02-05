@@ -61,6 +61,11 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
+  // Clear any leftover demo data before all tests
+  setUpAll(() async {
+    await clearDemoData();
+  });
+
   group('Screenshot Tour', () {
     for (final theme in ['light', 'dark']) {
       testWidgets('Screenshot tour ($theme theme)',
@@ -68,6 +73,9 @@ void main() {
         print('========================================');
         print('Starting screenshot tour ($theme theme)');
         print('========================================');
+
+        // Clear any previous demo data first
+        await clearDemoData();
 
         // Seed demo data with theme AND pre-selected grid size
         print('Seeding demo data with $theme theme and pre-selected 9x9...');
@@ -98,11 +106,9 @@ void main() {
         final playText = find.text('PLAY');
         if (playText.evaluate().isNotEmpty) {
           await tester.tap(playText);
-          await tester.pump(const Duration(seconds: 1));
+          // Wait longer for demo settings to load via async _loadDemoSettings()
+          await tester.pump(const Duration(seconds: 2));
         }
-
-        // Wait for demo size to be loaded (9x9 should already be selected)
-        await tester.pump(const Duration(milliseconds: 500));
 
         // Take screenshot of grid selection with 9×9 pre-selected
         await _takeScreenshot(

@@ -42,10 +42,11 @@ Future<int?> getDemoSelectedGridSize() async {
   return prefs.getInt('demoSelectedGridSize');
 }
 
-/// Clears demo mode flag.
+/// Clears all demo mode settings.
 Future<void> clearDemoData() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('demoMode', false);
+  await prefs.remove('demoSelectedGridSize');
 }
 
 /// Checks if demo mode is active.
