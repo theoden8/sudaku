@@ -174,7 +174,8 @@ void main() {
         if (allDiffText.evaluate().isNotEmpty) {
           print('Found AllDiff constraint, tapping to highlight cells...');
           await tester.tap(allDiffText);
-          await tester.pump(const Duration(milliseconds: 500));
+          // Wait longer for tap indicator to disappear before screenshot
+          await tester.pump(const Duration(seconds: 2));
         } else {
           print('Warning: AllDiff constraint not found');
         }
@@ -185,45 +186,6 @@ void main() {
           tester,
           '03-constraint-list$suffix',
         );
-
-        // =========================================
-        // Screenshot 4: Cell Selection with Constraint Options
-        // =========================================
-        print('--- Screenshot 4: Cell Selection ---');
-
-        // Find mutable cells (TextButtons) and long-press to start multi-select
-        final textButtons = find.byType(TextButton);
-        print('TextButtons found: ${textButtons.evaluate().length}');
-
-        if (textButtons.evaluate().length >= 57) {
-          // =========================================
-          // Select cells across DIFFERENT BOXES spanning the ENTIRE GRID
-          // TextButton indices map to grid positions (only empty cells are TextButtons):
-          //   TB 14 → grid 18 (2,0) box 3 - row 2
-          //   TB 40 → grid 51 (5,6) box 5 - row 5
-          //   TB 56 → grid 74 (8,2) box 6 - row 8
-          // This demonstrates user-defined constraints spanning rows 2, 5, and 8
-          // =========================================
-
-          // Long press cell in row 2 (box 3) to start multi-select
-          await tester.longPress(textButtons.at(14));
-          await tester.pump(const Duration(milliseconds: 500));
-
-          // Tap cell in row 5 (box 5)
-          await tester.tap(textButtons.at(40));
-          await tester.pump(const Duration(milliseconds: 300));
-
-          // Tap cell in row 8 (box 6)
-          await tester.tap(textButtons.at(56));
-          await tester.pump(const Duration(milliseconds: 300));
-
-          // Take screenshot showing cell selection with constraint options
-          await _takeScreenshot(
-            binding,
-            tester,
-            '04-selecting-constraint$suffix',
-          );
-        }
 
         print('========================================');
         print('Screenshot tour completed ($theme $style)');
