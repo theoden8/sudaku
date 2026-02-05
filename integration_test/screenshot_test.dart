@@ -194,83 +194,86 @@ void main() {
           );
 
           // =========================================
-          // Screenshot 4: Apply OneOf Constraint
+          // Screenshot 4: Constraint List with Multiple Constraints
           // =========================================
-          print('--- Screenshot 4: OneOf Constraint ---');
+          print('--- Screenshot 4: Adding multiple constraints ---');
 
-          // Apply "One of" constraint - valid because cell 0 contains 6
+          // --- Add Constraint 1: AllDiff on cells 0,1,2 ---
+          // (cells have solutions 6,8,9 - all different, so valid)
+          final allDiffButton = find.text('All different');
+          if (allDiffButton.evaluate().isNotEmpty) {
+            await tester.tap(allDiffButton);
+            await tester.pump(const Duration(seconds: 1));
+          }
+
+          // --- Add Constraint 2: OneOf on cells 3,4,5 with value 1 ---
+          // (cell 3 has solution 1, so valid)
+          await tester.longPress(textButtons.at(3), warnIfMissed: false);
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.tap(textButtons.at(4), warnIfMissed: false);
+          await tester.pump(const Duration(milliseconds: 300));
+          await tester.tap(textButtons.at(5), warnIfMissed: false);
+          await tester.pump(const Duration(milliseconds: 300));
+
           final oneOfButton = find.text('One of');
-          print('One of button found: ${oneOfButton.evaluate().isNotEmpty}');
-
           if (oneOfButton.evaluate().isNotEmpty) {
             await tester.tap(oneOfButton);
             await tester.pump(const Duration(seconds: 1));
 
-            // Take screenshot showing numpad for OneOf value selection
-            await _takeScreenshot(
-              binding,
-              tester,
-              '04-oneof-constraint$suffix',
-            );
-
-            // Find numpad buttons by looking for ElevatedButton children with text
-            // The numpad uses ElevatedButtons, grid cells use TextButtons
-            final numpadButtons = find.ancestor(
-              of: find.text('6'),
+            // Select value 1 on numpad (cell 3 = 1)
+            final numpadOne = find.ancestor(
+              of: find.text('1'),
               matching: find.byType(ElevatedButton),
             );
-            if (numpadButtons.evaluate().isNotEmpty) {
-              await tester.tap(numpadButtons.first);
+            if (numpadOne.evaluate().isNotEmpty) {
+              await tester.tap(numpadOne.first, warnIfMissed: false);
               await tester.pump(const Duration(seconds: 1));
-            } else {
-              // Fallback: just go back to dismiss numpad
-              final navigator = find.byType(Navigator);
-              if (navigator.evaluate().isNotEmpty) {
-                // Simulate back button by tapping outside or finding back button
-                final backButton = find.byIcon(Icons.arrow_back);
-                if (backButton.evaluate().isNotEmpty) {
-                  await tester.tap(backButton.first);
-                  await tester.pump(const Duration(seconds: 1));
-                }
-              }
             }
           }
 
-          // Wait for any navigation/animation to complete
-          await tester.pump(const Duration(seconds: 1));
-
-          // Re-find textButtons after potential navigation
+          // --- Add Constraint 3: Equivalent on cells 6,7 ---
+          // (both have solution 7, so valid)
           final gridButtons = find.byType(TextButton);
-          print('TextButtons after OneOf: ${gridButtons.evaluate().length}');
-
-          // =========================================
-          // Screenshot 5: Apply Equivalent Constraint
-          // =========================================
-          print('--- Screenshot 5: Equivalent Constraint ---');
-
           if (gridButtons.evaluate().length >= 8) {
-            // Select cells at(6) and at(7) - both have solution value 7, so Equivalent is valid
             await tester.longPress(gridButtons.at(6), warnIfMissed: false);
             await tester.pump(const Duration(milliseconds: 500));
             await tester.tap(gridButtons.at(7), warnIfMissed: false);
             await tester.pump(const Duration(milliseconds: 300));
 
-            // Apply "Equivalent" constraint - valid because both cells = 7
             final equivButton = find.text('Equivalent');
-            print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
-
             if (equivButton.evaluate().isNotEmpty) {
               await tester.tap(equivButton);
               await tester.pump(const Duration(seconds: 1));
-
-              // Take screenshot showing the constraint applied
-              await _takeScreenshot(
-                binding,
-                tester,
-                '05-equivalent-constraint$suffix',
-              );
             }
           }
+
+          // Tap somewhere neutral to deselect cells and show constraint list
+          // Tap on a hint cell (non-TextButton) or empty area
+          final gridButtons2 = find.byType(TextButton);
+          if (gridButtons2.evaluate().isNotEmpty) {
+            // Single tap on a cell to deselect multi-select mode
+            await tester.tap(gridButtons2.first);
+            await tester.pump(const Duration(milliseconds: 500));
+            // Tap again to deselect
+            await tester.tap(gridButtons2.first);
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+
+          // Now tap on one of the constraints in the list to highlight it
+          // Look for constraint list items - they typically show constraint type text
+          final constraintItems = find.textContaining('OneOf');
+          print('Constraint items found: ${constraintItems.evaluate().length}');
+          if (constraintItems.evaluate().isNotEmpty) {
+            await tester.tap(constraintItems.first);
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+
+          // Take screenshot showing constraint list with one selected
+          await _takeScreenshot(
+            binding,
+            tester,
+            '04-constraint-list$suffix',
+          );
         }
 
         print('========================================');
