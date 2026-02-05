@@ -187,6 +187,45 @@ void main() {
           '03-constraint-list$suffix',
         );
 
+        // =========================================
+        // Screenshot 4: Fill in a cell from AllDiff constraint
+        // =========================================
+        print('--- Screenshot 4: Filling AllDiff cell ---');
+
+        // Find mutable cells (TextButtons)
+        final textButtons = find.byType(TextButton);
+        print('TextButtons found: ${textButtons.evaluate().length}');
+
+        if (textButtons.evaluate().length >= 25) {
+          // Cell 29 (row 3, col 2) is TextButton index 24
+          // Its solution value is 4
+          // TB index mapping for cell 29:
+          //   TB 0-6: row 0 (7 cells), TB 7-13: row 1 (7 cells), TB 14-22: row 2 (9 cells)
+          //   TB 23-28: row 3 -> TB 24 = cell 29
+
+          // Tap cell 29 to select it
+          print('Tapping cell 29 (TB index 24)...');
+          await tester.tap(textButtons.at(24));
+          await tester.pump(const Duration(milliseconds: 500));
+
+          // Find and tap the digit 4 button
+          final digit4 = find.text('4');
+          if (digit4.evaluate().length > 1) {
+            // There may be multiple '4' texts - tap the one in the number pad
+            // The number pad buttons are usually the last ones found
+            print('Found digit 4, tapping to enter value...');
+            await tester.tap(digit4.last);
+            await tester.pump(const Duration(seconds: 2));
+          }
+
+          // Take screenshot showing the filled cell
+          await _takeScreenshot(
+            binding,
+            tester,
+            '04-cell-filled$suffix',
+          );
+        }
+
         print('========================================');
         print('Screenshot tour completed ($theme $style)');
         print('========================================');
