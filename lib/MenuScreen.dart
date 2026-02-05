@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart';
 import 'SudokuScreen.dart';
+import 'demo_data.dart';
 
 class MenuScreen extends StatefulWidget {
   Function(BuildContext) sudokuThemeFunc;
@@ -39,6 +40,18 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(); // Run continuously for smooth animation
+
+    // Check for demo pre-selected grid size
+    _loadDemoSelectedSize();
+  }
+
+  Future<void> _loadDemoSelectedSize() async {
+    final demoSize = await getDemoSelectedGridSize();
+    if (demoSize != null && mounted) {
+      setState(() {
+        _selectedSize = demoSize;
+      });
+    }
   }
 
   @override

@@ -12,7 +12,11 @@ const String demoPuzzle4x4 = '1...' '..2.' '3..2' '...1';
 /// Seeds demo data for screenshot tests.
 ///
 /// [theme] - 'light' or 'dark'
-Future<void> seedDemoData({String theme = 'light'}) async {
+/// [selectedGridSize] - Pre-select a grid size (2, 3, or 4) for the selection screen
+Future<void> seedDemoData({
+  String theme = 'light',
+  int? selectedGridSize,
+}) async {
   final prefs = await SharedPreferences.getInstance();
 
   // Set theme mode (0 = system, 1 = light, 2 = dark)
@@ -24,6 +28,19 @@ Future<void> seedDemoData({String theme = 'light'}) async {
 
   // Set demo mode flag
   await prefs.setBool('demoMode', true);
+
+  // Pre-select grid size if specified
+  if (selectedGridSize != null) {
+    await prefs.setInt('demoSelectedGridSize', selectedGridSize);
+  } else {
+    await prefs.remove('demoSelectedGridSize');
+  }
+}
+
+/// Gets the pre-selected grid size for demo mode.
+Future<int?> getDemoSelectedGridSize() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt('demoSelectedGridSize');
 }
 
 /// Clears demo mode flag.

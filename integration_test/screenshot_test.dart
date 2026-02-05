@@ -57,19 +57,6 @@ Future<void> _takeScreenshot(
   await tester.pump();
 }
 
-/// Debug helper to print what text widgets are visible
-void _debugPrintTextWidgets(WidgetTester tester) {
-  final textWidgets = find.byType(Text);
-  print('--- Visible Text widgets (${textWidgets.evaluate().length}): ---');
-  for (final element in textWidgets.evaluate().take(20)) {
-    final widget = element.widget as Text;
-    if (widget.data != null) {
-      print('  "${widget.data}"');
-    }
-  }
-  print('--- End Text widgets ---');
-}
-
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -82,9 +69,9 @@ void main() {
         print('Starting screenshot tour ($theme theme)');
         print('========================================');
 
-        // Seed demo data with theme
-        print('Seeding demo data with $theme theme...');
-        await seedDemoData(theme: theme);
+        // Seed demo data with theme AND pre-selected grid size
+        print('Seeding demo data with $theme theme and pre-selected 9x9...');
+        await seedDemoData(theme: theme, selectedGridSize: 3);
 
         // Launch the app
         print('Launching app...');
@@ -102,50 +89,22 @@ void main() {
 
         final themeSuffix = theme == 'light' ? '-light' : '-dark';
 
-        // Debug: show what widgets are visible
-        _debugPrintTextWidgets(tester);
-
         // =========================================
         // Screenshot 1: Grid Selection Screen
         // =========================================
         print('--- Screenshot 1: Grid Selection ---');
 
-        // Find and tap PLAY button - it's a Text widget inside a GestureDetector
+        // Tap PLAY button to show size selection dialog
         final playText = find.text('PLAY');
-        print('PLAY button found: ${playText.evaluate().isNotEmpty}');
-
         if (playText.evaluate().isNotEmpty) {
           await tester.tap(playText);
           await tester.pump(const Duration(seconds: 1));
-        } else {
-          // Try finding by icon if text doesn't work
-          final playIcon = find.byIcon(Icons.play_arrow_rounded);
-          if (playIcon.evaluate().isNotEmpty) {
-            await tester.tap(playIcon.first);
-            await tester.pump(const Duration(seconds: 1));
-          }
         }
 
-        // Debug after tapping
-        _debugPrintTextWidgets(tester);
+        // Wait for demo size to be loaded (9x9 should already be selected)
+        await tester.pump(const Duration(milliseconds: 500));
 
-        // Select 9x9 grid - look for the "9×9" label
-        final classicCard = find.text('9×9');
-        print('9×9 card found: ${classicCard.evaluate().isNotEmpty}');
-
-        if (classicCard.evaluate().isNotEmpty) {
-          await tester.tap(classicCard);
-          await tester.pump(const Duration(milliseconds: 500));
-        } else {
-          // Try finding Classic label
-          final classicLabel = find.text('Classic');
-          if (classicLabel.evaluate().isNotEmpty) {
-            await tester.tap(classicLabel);
-            await tester.pump(const Duration(milliseconds: 500));
-          }
-        }
-
-        // Take screenshot of grid selection with 9×9 selected
+        // Take screenshot of grid selection with 9×9 pre-selected
         await _takeScreenshot(
           binding,
           tester,
@@ -157,10 +116,8 @@ void main() {
         // =========================================
         print('--- Screenshot 2: Sudoku Screen ---');
 
-        // Start the game - look for START button or play icon
+        // Start the game - START button should be visible since 9x9 is pre-selected
         final startText = find.text('START');
-        print('START button found: ${startText.evaluate().isNotEmpty}');
-
         if (startText.evaluate().isNotEmpty) {
           await tester.tap(startText);
         } else {
@@ -168,11 +125,6 @@ void main() {
           final playArrow = find.byIcon(Icons.play_arrow_rounded);
           if (playArrow.evaluate().isNotEmpty) {
             await tester.tap(playArrow.first);
-          } else {
-            final playArrow2 = find.byIcon(Icons.play_arrow);
-            if (playArrow2.evaluate().isNotEmpty) {
-              await tester.tap(playArrow2.first);
-            }
           }
         }
         await tester.pump(const Duration(seconds: 2));
@@ -238,17 +190,6 @@ void main() {
               tester,
               '04-value-selection$themeSuffix',
             );
-
-            // Go back to main screen by tapping back or outside
-            final backButton = find.byIcon(Icons.arrow_back);
-            if (backButton.evaluate().isNotEmpty) {
-              await tester.tap(backButton);
-              await tester.pump(const Duration(milliseconds: 500));
-            } else {
-              // Try pressing back key
-              await tester.pageBack();
-              await tester.pump(const Duration(milliseconds: 500));
-            }
           }
         }
 
