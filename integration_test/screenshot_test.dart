@@ -153,17 +153,10 @@ void main() {
           await tester.pump(const Duration(milliseconds: 500));
         }
 
-        // Take screenshot of sudoku screen
-        await _takeScreenshot(
-          binding,
-          tester,
-          '02-sudoku-puzzle$suffix',
-        );
-
         // =========================================
-        // Screenshot 3: Constraint List with AllDiff Highlighted
+        // Screenshot 2: Constraint List with AllDiff Highlighted
         // =========================================
-        print('--- Screenshot 3: Constraint list with AllDiff highlighted ---');
+        print('--- Screenshot 2: Constraint list with AllDiff highlighted ---');
 
         // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
         // Wait a bit longer for constraints to be fully rendered
@@ -184,13 +177,13 @@ void main() {
         await _takeScreenshot(
           binding,
           tester,
-          '03-constraint-list$suffix',
+          '02-constraint-list$suffix',
         );
 
         // =========================================
-        // Screenshot 4: Fill in a cell from AllDiff constraint
+        // Screenshot 3: Fill in a cell from AllDiff constraint
         // =========================================
-        print('--- Screenshot 4: Filling AllDiff cell ---');
+        print('--- Screenshot 3: Filling AllDiff cell ---');
 
         // Find mutable cells (TextButtons)
         final textButtons = find.byType(TextButton);
@@ -222,7 +215,7 @@ void main() {
           await _takeScreenshot(
             binding,
             tester,
-            '04-cell-filled$suffix',
+            '03-cell-filled$suffix',
           );
         }
 

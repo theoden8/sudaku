@@ -33,16 +33,13 @@ The tour runs 4 times, once for each combination:
 ### 1. Grid Selection (`01-grid-selection-*.png`)
 The size selection screen with 9x9 pre-selected, showing the three grid size options (4x4, 9x9, 16x16).
 
-### 2. Sudoku Puzzle (`02-sudoku-puzzle-*.png`)
-The main sudoku screen with the demo puzzle loaded and three user-defined constraints visible in the constraint list.
-
-### 3. Constraint List (`03-constraint-list-*.png`)
+### 2. Constraint List (`02-constraint-list-*.png`)
 The constraint list with the AllDiff constraint selected, highlighting its cells on the grid. Shows all three demo constraints:
 - OneOf (green)
 - Equal (purple)
 - AllDiff (orange) - selected
 
-### 4. Cell Filled (`04-cell-filled-*.png`)
+### 3. Cell Filled (`03-cell-filled-*.png`)
 One of the AllDiff constraint cells (cell 29 at row 3, col 2) filled with its correct value (4), demonstrating constraint interaction.
 
 ## Demo Puzzle
