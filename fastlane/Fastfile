@@ -26,7 +26,7 @@ lane :test_all do
   desc "Run tests for both platforms"
   # This Fastfile is at fastlane/Fastfile, so project root is one level up
   project_root = File.expand_path("..", __dir__)
-  sh("cd '#{project_root}' && flutter test")
+  sh("cd '#{project_root}' && fvm flutter test")
 end
 
 lane :deploy_all do
@@ -102,7 +102,7 @@ lane :ios_frame do
 end
 
 # Helper function to check Flutter version
-def check_flutter
+def check_fvm flutter
   UI.message("Checking Flutter installation...")
-  sh("flutter --version")
+  sh("fvm flutter --version")
 end

@@ -5,6 +5,8 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # Allow manual trigger for screenshot generation
+  workflow_dispatch:
 
 env:
   FVM_VERSION: '3.2.1'
@@ -170,12 +172,73 @@ jobs:
           name: ios-release
           path: build/ios/iphoneos/Runner.app
 
+      # iOS Screenshots (conditional - only on workflow_dispatch)
+      - name: Install ImageMagick and Fastlane
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          brew install imagemagick fastlane
+          brew link --force imagemagick
+          brew link --force fastlane
+
+      - name: List available simulators
+        if: github.event_name == 'workflow_dispatch'
+        run: xcrun simctl list devices available
+
+      - name: Boot iOS Simulator
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Find and boot an iPhone 15 Pro simulator
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 15 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+          if [ -z "$DEVICE_ID" ]; then
+            # Fallback to iPhone 14 Pro if iPhone 15 Pro not available
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 14 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+          fi
+          if [ -z "$DEVICE_ID" ]; then
+            # Fallback to any available iPhone
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+          fi
+          echo "Booting simulator: $DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID" || true
+          echo "SIMULATOR_ID=$DEVICE_ID" >> $GITHUB_ENV
+
+      - name: Wait for simulator to boot
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          sleep 10
+
+      - name: Create screenshots directory
+        if: github.event_name == 'workflow_dispatch'
+        run: mkdir -p screenshots/ios
+
+      - name: Generate iOS screenshots
+        if: github.event_name == 'workflow_dispatch'
+        run: fastlane ios screenshots
+
+      - name: Add device frames to iOS screenshots
+        if: github.event_name == 'workflow_dispatch'
+        run: fastlane ios add_device_frames
+
+      - name: Upload iOS screenshots
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: screenshots/ios/*.png
+          if-no-files-found: warn
+
   build-android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: dart-lang/setup-dart@v1
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
 
       - name: Cache FVM
         uses: actions/cache@v4
@@ -229,3 +292,56 @@ jobs:
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-fdroid-release.apk
+
+      # Android Screenshots (conditional - only on workflow_dispatch)
+      - name: Install ImageMagick
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          curl -L https://imagemagick.org/archive/binaries/magick -o magick
+          chmod +x magick
+          sudo mv magick /usr/local/bin/magick
+
+      - name: Enable KVM for emulator acceleration
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Android SDK
+        if: github.event_name == 'workflow_dispatch'
+        uses: android-actions/setup-android@v3
+
+      - name: Create AVD and generate screenshots
+        if: github.event_name == 'workflow_dispatch'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disk-size: 4096M
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            # Wait for emulator to be fully booted
+            adb wait-for-device
+            adb shell input keyevent 82
+
+            # Create screenshots directory
+            mkdir -p screenshots/android
+
+            # Run fastlane android screenshots using bundle
+            bundle exec fastlane android screenshots
+
+      - name: Add device frames to screenshots
+        if: github.event_name == 'workflow_dispatch'
+        run: bundle exec fastlane android add_device_frames
+
+      - name: Upload Android screenshots
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-screenshots
+          path: screenshots/android/*.png
+          if-no-files-found: warn
