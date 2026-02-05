@@ -196,72 +196,20 @@ void main() {
           // =========================================
           // Screenshot 4: Constraint List with Multiple Constraints
           // =========================================
-          print('--- Screenshot 4: Adding multiple constraints ---');
+          print('--- Screenshot 4: Constraint list ---');
 
-          // --- Add Constraint 1: AllDiff on cells 0,1,2 ---
-          // (cells have solutions 6,8,9 - all different, so valid)
-          final allDiffButton = find.text('All different');
-          if (allDiffButton.evaluate().isNotEmpty) {
-            await tester.tap(allDiffButton);
-            await tester.pump(const Duration(seconds: 1));
-          }
+          // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
+          // Just need to deselect cells to show the constraint list
 
-          // --- Add Constraint 2: OneOf on cells 3,4,5 with value 1 ---
-          // (cell 3 has solution 1, so valid)
-          await tester.longPress(textButtons.at(3), warnIfMissed: false);
+          // Tap a cell to exit multi-select mode, then tap again to deselect
+          await tester.tap(textButtons.first);
           await tester.pump(const Duration(milliseconds: 500));
-          await tester.tap(textButtons.at(4), warnIfMissed: false);
-          await tester.pump(const Duration(milliseconds: 300));
-          await tester.tap(textButtons.at(5), warnIfMissed: false);
-          await tester.pump(const Duration(milliseconds: 300));
+          await tester.tap(textButtons.first);
+          await tester.pump(const Duration(milliseconds: 500));
 
-          final oneOfButton = find.text('One of');
-          if (oneOfButton.evaluate().isNotEmpty) {
-            await tester.tap(oneOfButton);
-            await tester.pump(const Duration(seconds: 1));
-
-            // Select value 1 on numpad (cell 3 = 1)
-            final numpadOne = find.ancestor(
-              of: find.text('1'),
-              matching: find.byType(ElevatedButton),
-            );
-            if (numpadOne.evaluate().isNotEmpty) {
-              await tester.tap(numpadOne.first, warnIfMissed: false);
-              await tester.pump(const Duration(seconds: 1));
-            }
-          }
-
-          // --- Add Constraint 3: Equivalent on cells 6,7 ---
-          // (both have solution 7, so valid)
-          final gridButtons = find.byType(TextButton);
-          if (gridButtons.evaluate().length >= 8) {
-            await tester.longPress(gridButtons.at(6), warnIfMissed: false);
-            await tester.pump(const Duration(milliseconds: 500));
-            await tester.tap(gridButtons.at(7), warnIfMissed: false);
-            await tester.pump(const Duration(milliseconds: 300));
-
-            final equivButton = find.text('Equivalent');
-            if (equivButton.evaluate().isNotEmpty) {
-              await tester.tap(equivButton);
-              await tester.pump(const Duration(seconds: 1));
-            }
-          }
-
-          // Tap somewhere neutral to deselect cells and show constraint list
-          // Tap on a hint cell (non-TextButton) or empty area
-          final gridButtons2 = find.byType(TextButton);
-          if (gridButtons2.evaluate().isNotEmpty) {
-            // Single tap on a cell to deselect multi-select mode
-            await tester.tap(gridButtons2.first);
-            await tester.pump(const Duration(milliseconds: 500));
-            // Tap again to deselect
-            await tester.tap(gridButtons2.first);
-            await tester.pump(const Duration(milliseconds: 500));
-          }
-
-          // Now tap on one of the constraints in the list to highlight it
-          // Look for constraint list items - they typically show constraint type text
-          final constraintItems = find.textContaining('OneOf');
+          // Tap on one of the constraints to highlight it
+          // Constraints show their type in the list (e.g., "oneOf", "equal", "allDiff")
+          final constraintItems = find.textContaining('oneOf');
           print('Constraint items found: ${constraintItems.evaluate().length}');
           if (constraintItems.evaluate().isNotEmpty) {
             await tester.tap(constraintItems.first);

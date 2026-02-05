@@ -572,6 +572,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                                 demoPuzzle: _isDemoMode && _selectedSize == 3
                                     ? parseDemoPuzzle(demoPuzzle9x9)
                                     : null,
+                                addDemoConstraints: _isDemoMode && _selectedSize == 3,
                               ),
                             );
                           },

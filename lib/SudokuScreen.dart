@@ -14,6 +14,7 @@ import 'Sudoku.dart';
 import 'SudokuAssist.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
+import 'demo_data.dart';
 
 
 /// Helper widget that renders text with a slight random wobble for pen-and-paper style
@@ -66,11 +67,13 @@ class SudokuScreenArguments {
   final int n;
   final bool isDemoMode;
   final List<int>? demoPuzzle;
+  final bool addDemoConstraints;
 
   SudokuScreenArguments({
     required this.n,
     this.isDemoMode = false,
     this.demoPuzzle,
+    this.addDemoConstraints = false,
   });
 }
 
@@ -1923,6 +1926,10 @@ class SudokuScreenState extends State<SudokuScreen> {
         sd = Sudoku.demo(n, args.demoPuzzle!, () {
           this.runSetState();
         });
+        // Add demo constraints if requested
+        if (args.addDemoConstraints) {
+          setupDemoConstraints(sd!);
+        }
       } else {
         // Normal mode: load random puzzle
         sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {

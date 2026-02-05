@@ -1,4 +1,8 @@
+import 'package:bit_array/bit_array.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'Sudoku.dart';
+import 'SudokuAssist.dart';
 
 /// Demo puzzle for screenshots - first puzzle from top1465 (fixed, not shuffled).
 /// Format: dots (.) for empty cells, digits 1-9 for filled cells.
@@ -65,4 +69,45 @@ List<int> parseDemoPuzzle(String puzzle) {
     if (c == '.') return 0;
     return int.parse(c);
   }).toList();
+}
+
+/// Sets up demo constraints for the screenshot tour.
+///
+/// For the demo puzzle '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........'
+/// Solution row 0: 4 6 8 9 3 1 5 2 7
+/// Solution row 1: 7 5 1 6 2 4 8 3 9
+///
+/// This adds 3 valid constraints:
+/// 1. AllDiff on cells [1,2,3] (solutions 6,8,9 - all different)
+/// 2. OneOf(1) on cells [5,6,7] (cell 5 has solution 1)
+/// 3. Equal on cells [8,9] (both have solution 7)
+void setupDemoConstraints(Sudoku sd) {
+  final ne4 = sd.ne4;
+
+  // Constraint 1: AllDiff on row 0, columns 1-3 (indices 1, 2, 3)
+  // These cells have solutions 6, 8, 9 - all different
+  final allDiffVars = BitArray(ne4);
+  allDiffVars.setBit(1);
+  allDiffVars.setBit(2);
+  allDiffVars.setBit(3);
+  final allDiffDomain = BitArray(sd.ne2 + 1);
+  allDiffDomain.setBit(6);
+  allDiffDomain.setBit(8);
+  allDiffDomain.setBit(9);
+  sd.assist.addConstraint(ConstraintAllDiff(sd, allDiffVars, allDiffDomain));
+
+  // Constraint 2: OneOf(1) on row 0, columns 5-7 (indices 5, 6, 7)
+  // Cell 5 has solution 1
+  final oneOfVars = BitArray(ne4);
+  oneOfVars.setBit(5);
+  oneOfVars.setBit(6);
+  oneOfVars.setBit(7);
+  sd.assist.addConstraint(ConstraintOneOf(sd, oneOfVars, 1));
+
+  // Constraint 3: Equal on cells 8 and 9 (row 0 col 8, row 1 col 0)
+  // Both have solution 7
+  final equalVars = BitArray(ne4);
+  equalVars.setBit(8);
+  equalVars.setBit(9);
+  sd.assist.addConstraint(ConstraintEqual(sd, equalVars));
 }
