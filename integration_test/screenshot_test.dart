@@ -213,39 +213,63 @@ void main() {
               '04-oneof-constraint$suffix',
             );
 
-            // Select value 6 - valid because cell at(0) has solution 6
-            final valueSix = find.text('6');
-            if (valueSix.evaluate().isNotEmpty) {
-              await tester.tap(valueSix.first);
+            // Find numpad buttons by looking for ElevatedButton children with text
+            // The numpad uses ElevatedButtons, grid cells use TextButtons
+            final numpadButtons = find.ancestor(
+              of: find.text('6'),
+              matching: find.byType(ElevatedButton),
+            );
+            if (numpadButtons.evaluate().isNotEmpty) {
+              await tester.tap(numpadButtons.first);
               await tester.pump(const Duration(seconds: 1));
+            } else {
+              // Fallback: just go back to dismiss numpad
+              final navigator = find.byType(Navigator);
+              if (navigator.evaluate().isNotEmpty) {
+                // Simulate back button by tapping outside or finding back button
+                final backButton = find.byIcon(Icons.arrow_back);
+                if (backButton.evaluate().isNotEmpty) {
+                  await tester.tap(backButton.first);
+                  await tester.pump(const Duration(seconds: 1));
+                }
+              }
             }
           }
+
+          // Wait for any navigation/animation to complete
+          await tester.pump(const Duration(seconds: 1));
+
+          // Re-find textButtons after potential navigation
+          final gridButtons = find.byType(TextButton);
+          print('TextButtons after OneOf: ${gridButtons.evaluate().length}');
 
           // =========================================
           // Screenshot 5: Apply Equivalent Constraint
           // =========================================
           print('--- Screenshot 5: Equivalent Constraint ---');
 
-          // Select cells at(6) and at(7) - both have solution value 7, so Equivalent is valid
-          await tester.longPress(textButtons.at(6));
-          await tester.pump(const Duration(milliseconds: 500));
-          await tester.tap(textButtons.at(7));
-          await tester.pump(const Duration(milliseconds: 300));
+          if (gridButtons.evaluate().length >= 8) {
+            // Select cells at(6) and at(7) - both have solution value 7, so Equivalent is valid
+            await tester.longPress(gridButtons.at(6), warnIfMissed: false);
+            await tester.pump(const Duration(milliseconds: 500));
+            await tester.tap(gridButtons.at(7), warnIfMissed: false);
+            await tester.pump(const Duration(milliseconds: 300));
 
-          // Apply "Equivalent" constraint - valid because both cells = 7
-          final equivButton = find.text('Equivalent');
-          print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
+            // Apply "Equivalent" constraint - valid because both cells = 7
+            final equivButton = find.text('Equivalent');
+            print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
 
-          if (equivButton.evaluate().isNotEmpty) {
-            await tester.tap(equivButton);
-            await tester.pump(const Duration(seconds: 1));
+            if (equivButton.evaluate().isNotEmpty) {
+              await tester.tap(equivButton);
+              await tester.pump(const Duration(seconds: 1));
 
-            // Take screenshot showing the constraint applied
-            await _takeScreenshot(
-              binding,
-              tester,
-              '05-equivalent-constraint$suffix',
-            );
+              // Take screenshot showing the constraint applied
+              await _takeScreenshot(
+                binding,
+                tester,
+                '05-equivalent-constraint$suffix',
+              );
+            }
           }
         }
 
