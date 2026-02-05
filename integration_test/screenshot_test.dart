@@ -199,24 +199,11 @@ void main() {
           print('--- Screenshot 4: Constraint list ---');
 
           // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
-          // Just need to deselect cells to show the constraint list
-
-          // Tap a cell to exit multi-select mode, then tap again to deselect
+          // Tap anywhere to deselect cells and show the constraint list
           await tester.tap(textButtons.first);
-          await tester.pump(const Duration(milliseconds: 500));
-          await tester.tap(textButtons.first);
-          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(milliseconds: 300));
 
-          // Tap on one of the constraints to highlight it
-          // Constraints show their type in the list (e.g., "oneOf", "equal", "allDiff")
-          final constraintItems = find.textContaining('oneOf');
-          print('Constraint items found: ${constraintItems.evaluate().length}');
-          if (constraintItems.evaluate().isNotEmpty) {
-            await tester.tap(constraintItems.first);
-            await tester.pump(const Duration(milliseconds: 500));
-          }
-
-          // Take screenshot showing constraint list with one selected
+          // Take screenshot showing constraint list
           await _takeScreenshot(
             binding,
             tester,

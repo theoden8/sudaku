@@ -110,4 +110,7 @@ void setupDemoConstraints(Sudoku sd) {
   equalVars.setBit(8);
   equalVars.setBit(9);
   sd.assist.addConstraint(ConstraintEqual(sd, equalVars));
+
+  // Run the assistant to process the constraints
+  sd.assist.run();
 }
