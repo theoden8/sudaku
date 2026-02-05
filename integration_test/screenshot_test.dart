@@ -169,21 +169,25 @@ void main() {
         final textButtons = find.byType(TextButton);
         print('TextButtons found: ${textButtons.evaluate().length}');
 
-        if (textButtons.evaluate().length >= 8) {
+        if (textButtons.evaluate().length >= 21) {
           // =========================================
-          // For the demo puzzle '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........'
-          // The first empty cells (TextButtons) have these solution values:
-          //   at(0)=6, at(1)=8, at(2)=9, at(3)=1, at(4)=5, at(5)=2, at(6)=7, at(7)=7
+          // Select cells across DIFFERENT BOXES to show user-defined constraints
+          // TextButton indices map to grid indices:
+          //   TB 0  → grid 1  (0,1) box 0
+          //   TB 10 → grid 13 (1,4) box 1
+          //   TB 20 → grid 24 (2,6) box 2
           // =========================================
 
-          // Long press first cell to start multi-select
-          await tester.longPress(textButtons.first);
+          // Long press cell in box 0 to start multi-select
+          await tester.longPress(textButtons.at(0));
           await tester.pump(const Duration(milliseconds: 500));
 
-          // Tap two more cells to select them (cells 0,1,2 have solutions 6,8,9)
-          await tester.tap(textButtons.at(1));
+          // Tap cell in box 1
+          await tester.tap(textButtons.at(10));
           await tester.pump(const Duration(milliseconds: 300));
-          await tester.tap(textButtons.at(2));
+
+          // Tap cell in box 2
+          await tester.tap(textButtons.at(20));
           await tester.pump(const Duration(milliseconds: 300));
 
           // Take screenshot showing cell selection with constraint options

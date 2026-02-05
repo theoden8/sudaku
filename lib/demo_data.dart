@@ -74,42 +74,49 @@ List<int> parseDemoPuzzle(String puzzle) {
 /// Sets up demo constraints for the screenshot tour.
 ///
 /// For the demo puzzle '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........'
-/// Solution row 0: 4 6 8 9 3 1 5 2 7
-/// Solution row 1: 7 5 1 6 2 4 8 3 9
+/// Solution:
+///   Row 0: 4 6 8 9 3 1 5 2 7
+///   Row 1: 7 5 1 6 2 4 8 3 9
+///   Row 2: 3 9 2 5 7 8 4 6 1
 ///
-/// This adds 3 valid constraints:
-/// 1. AllDiff on cells [1,2,3] (solutions 6,8,9 - all different)
-/// 2. OneOf(1) on cells [5,6,7] (cell 5 has solution 1)
-/// 3. Equal on cells [8,9] (both have solution 7)
+/// These constraints span DIFFERENT boxes to show user-defined constraints
+/// (not just the default row/col/box constraints):
+///
+/// 1. OneOf(6) on cells [1, 13, 24] - across boxes 0, 1, 2 - cell 1 has 6
+/// 2. Equal on cells [8, 9] - boxes 2 and 0 - both have solution 7
+/// 3. AllDiff on cells [2, 14, 25] - boxes 0, 1, 2 - solutions 8, 4, 6
 void setupDemoConstraints(Sudoku sd) {
   final ne4 = sd.ne4;
 
-  // Constraint 1: AllDiff on row 0, columns 1-3 (indices 1, 2, 3)
-  // These cells have solutions 6, 8, 9 - all different
-  final allDiffVars = BitArray(ne4);
-  allDiffVars.setBit(1);
-  allDiffVars.setBit(2);
-  allDiffVars.setBit(3);
-  final allDiffDomain = BitArray(sd.ne2 + 1);
-  allDiffDomain.setBit(6);
-  allDiffDomain.setBit(8);
-  allDiffDomain.setBit(9);
-  sd.assist.addConstraint(ConstraintAllDiff(sd, allDiffVars, allDiffDomain));
-
-  // Constraint 2: OneOf(1) on row 0, columns 5-7 (indices 5, 6, 7)
-  // Cell 5 has solution 1
+  // Constraint 1: OneOf(6) across different boxes
+  // Cell 1 (0,1) box 0 = 6, Cell 13 (1,4) box 1 = 2, Cell 24 (2,6) box 2 = 4
+  // Exactly one cell (cell 1) has value 6
   final oneOfVars = BitArray(ne4);
-  oneOfVars.setBit(5);
-  oneOfVars.setBit(6);
-  oneOfVars.setBit(7);
-  sd.assist.addConstraint(ConstraintOneOf(sd, oneOfVars, 1));
+  oneOfVars.setBit(1);   // (0,1) = 6
+  oneOfVars.setBit(13);  // (1,4) = 2
+  oneOfVars.setBit(24);  // (2,6) = 4
+  sd.assist.addConstraint(ConstraintOneOf(sd, oneOfVars, 6));
 
-  // Constraint 3: Equal on cells 8 and 9 (row 0 col 8, row 1 col 0)
-  // Both have solution 7
+  // Constraint 2: Equal on cells from different boxes
+  // Cell 8 (0,8) box 2 = 7, Cell 9 (1,0) box 0 = 7
+  // Both have the same solution value 7
   final equalVars = BitArray(ne4);
-  equalVars.setBit(8);
-  equalVars.setBit(9);
+  equalVars.setBit(8);   // (0,8) = 7
+  equalVars.setBit(9);   // (1,0) = 7
   sd.assist.addConstraint(ConstraintEqual(sd, equalVars));
+
+  // Constraint 3: AllDiff across different boxes
+  // Cell 2 (0,2) box 0 = 8, Cell 14 (1,5) box 1 = 4, Cell 25 (2,7) box 2 = 6
+  // All different values
+  final allDiffVars = BitArray(ne4);
+  allDiffVars.setBit(2);   // (0,2) = 8
+  allDiffVars.setBit(14);  // (1,5) = 4
+  allDiffVars.setBit(25);  // (2,7) = 6
+  final allDiffDomain = BitArray(sd.ne2 + 1);
+  allDiffDomain.setBit(8);
+  allDiffDomain.setBit(4);
+  allDiffDomain.setBit(6);
+  sd.assist.addConstraint(ConstraintAllDiff(sd, allDiffVars, allDiffDomain));
 
   // Apply the constraints
   sd.assist.apply();
