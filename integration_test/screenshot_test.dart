@@ -161,9 +161,25 @@ void main() {
         );
 
         // =========================================
-        // Screenshot 3: Cell Selection with Constraint Options
+        // Screenshot 3: Constraint List with Multiple Constraints
         // =========================================
-        print('--- Screenshot 3: Cell Selection ---');
+        print('--- Screenshot 3: Constraint list ---');
+
+        // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
+        // Wait a bit longer for constraints to be fully rendered
+        await tester.pump(const Duration(seconds: 1));
+
+        // Take screenshot showing constraint list (no cell selection)
+        await _takeScreenshot(
+          binding,
+          tester,
+          '03-constraint-list$suffix',
+        );
+
+        // =========================================
+        // Screenshot 4: Cell Selection with Constraint Options
+        // =========================================
+        print('--- Screenshot 4: Cell Selection ---');
 
         // Find mutable cells (TextButtons) and long-press to start multi-select
         final textButtons = find.byType(TextButton);
@@ -195,24 +211,7 @@ void main() {
           await _takeScreenshot(
             binding,
             tester,
-            '03-selecting-constraint$suffix',
-          );
-
-          // =========================================
-          // Screenshot 4: Constraint List with Multiple Constraints
-          // =========================================
-          print('--- Screenshot 4: Constraint list ---');
-
-          // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
-          // Tap anywhere to deselect cells and show the constraint list
-          await tester.tap(textButtons.first);
-          await tester.pump(const Duration(milliseconds: 300));
-
-          // Take screenshot showing constraint list
-          await _takeScreenshot(
-            binding,
-            tester,
-            '04-constraint-list$suffix',
+            '04-selecting-constraint$suffix',
           );
         }
 
