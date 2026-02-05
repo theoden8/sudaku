@@ -471,19 +471,25 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             final double availableWidth = constraints.maxWidth;
             final double availableHeight = constraints.maxHeight;
 
+            // Reserve space for START button area (button height + padding)
+            const double buttonAreaHeight = 90.0; // 56px button + padding
+            final double availableForCards = availableHeight - buttonAreaHeight;
+
             // Calculate card size with minimum sizes for usability
             double cardSize;
-            const double minCardSize = 120.0;
+            const double minCardSize = 100.0;
 
             if (isPortrait) {
-              final double availableForCards = availableHeight - 88;
+              // In portrait, cards are stacked vertically
+              // Account for margins between cards (cardSize * 0.08 = 8% margin on each side)
               cardSize = max(minCardSize, min(
-                availableWidth * 0.65,
-                availableForCards / 3.2,
+                availableWidth * 0.55,  // Max 55% of width
+                availableForCards / 3.5, // Divide available height by 3.5 for 3 cards + spacing
               ));
             } else {
+              // In landscape, cards are in a row
               cardSize = max(minCardSize, min(
-                availableHeight * 0.7,
+                availableHeight * 0.65,
                 (availableWidth - 48) / 3.5,
               ));
             }
@@ -500,17 +506,22 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   sketchedLineColor: theme.foreground),
             ];
 
-            final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6;
-            final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
+            // Calculate total height needed for cards including margins
+            final double cardMargin = cardSize * 0.04;
+            final double totalCardsHeight = (cardSize + cardMargin * 2) * 3;
+            final bool needsScroll = isPortrait && totalCardsHeight > availableForCards;
 
             return Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               child: Column(
                 children: [
                   Expanded(
                     child: isPortrait
                         ? (needsScroll
-                            ? ListView(children: cards)
+                            ? ListView(
+                                children: cards,
+                                shrinkWrap: true,
+                              )
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: cards,
@@ -527,57 +538,59 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                             ),
                           ),
                   ),
-                  SizedBox(height: min(16, availableHeight * 0.02)),
-                  // Play button
-                  AnimatedOpacity(
-                    opacity: _selectedSize == -1 ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: AnimatedSlide(
-                      offset: _selectedSize == -1
-                          ? const Offset(0, 0.5)
-                          : Offset.zero,
+                  const SizedBox(height: 12),
+                  // Play button - always visible area reserved
+                  SizedBox(
+                    height: 56,
+                    child: AnimatedOpacity(
+                      opacity: _selectedSize == -1 ? 0.0 : 1.0,
                       duration: const Duration(milliseconds: 200),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: min(availableWidth * 0.8, 300),
-                          maxHeight: min(56, availableHeight * 0.1),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _selectedSize == -1 ? null : () {
-                            Navigator.pushNamed(
-                              widget.parentContext,
-                              SudokuScreen.routeName,
-                              arguments: SudokuScreenArguments(n: _selectedSize),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _sizeColors[_selectedSize]?[0] ?? Colors.grey,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(min(28, availableHeight * 0.05)),
-                            ),
-                            elevation: 8,
-                            shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
+                      child: AnimatedSlide(
+                        offset: _selectedSize == -1
+                            ? const Offset(0, 0.5)
+                            : Offset.zero,
+                        duration: const Duration(milliseconds: 200),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: min(availableWidth * 0.8, 300),
                           ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.play_arrow_rounded, size: 32),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'START',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 2,
+                          child: ElevatedButton(
+                            onPressed: _selectedSize == -1 ? null : () {
+                              Navigator.pushNamed(
+                                widget.parentContext,
+                                SudokuScreen.routeName,
+                                arguments: SudokuScreenArguments(n: _selectedSize),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _sizeColors[_selectedSize]?[0] ?? Colors.grey,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                              elevation: 8,
+                              shadowColor: _sizeColors[_selectedSize]?[0]?.withOpacity(0.5),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.play_arrow_rounded, size: 32),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'START',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 2,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -585,7 +598,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                       ),
                     ),
                   ),
-                  SizedBox(height: min(16, availableHeight * 0.02)),
+                  const SizedBox(height: 12),
                 ],
               ),
             );
