@@ -169,12 +169,18 @@ void main() {
         final textButtons = find.byType(TextButton);
         print('TextButtons found: ${textButtons.evaluate().length}');
 
-        if (textButtons.evaluate().length >= 3) {
+        if (textButtons.evaluate().length >= 8) {
+          // =========================================
+          // For the demo puzzle '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........'
+          // The first empty cells (TextButtons) have these solution values:
+          //   at(0)=6, at(1)=8, at(2)=9, at(3)=1, at(4)=5, at(5)=2, at(6)=7, at(7)=7
+          // =========================================
+
           // Long press first cell to start multi-select
           await tester.longPress(textButtons.first);
           await tester.pump(const Duration(milliseconds: 500));
 
-          // Tap two more cells to select them
+          // Tap two more cells to select them (cells 0,1,2 have solutions 6,8,9)
           await tester.tap(textButtons.at(1));
           await tester.pump(const Duration(milliseconds: 300));
           await tester.tap(textButtons.at(2));
@@ -192,7 +198,7 @@ void main() {
           // =========================================
           print('--- Screenshot 4: OneOf Constraint ---');
 
-          // Apply "One of" constraint - this requires specifying which value
+          // Apply "One of" constraint - valid because cell 0 contains 6
           final oneOfButton = find.text('One of');
           print('One of button found: ${oneOfButton.evaluate().isNotEmpty}');
 
@@ -207,10 +213,10 @@ void main() {
               '04-oneof-constraint$suffix',
             );
 
-            // Select a value (e.g., "4") for the OneOf constraint
-            final valueFour = find.text('4');
-            if (valueFour.evaluate().isNotEmpty) {
-              await tester.tap(valueFour.first);
+            // Select value 6 - valid because cell at(0) has solution 6
+            final valueSix = find.text('6');
+            if (valueSix.evaluate().isNotEmpty) {
+              await tester.tap(valueSix.first);
               await tester.pump(const Duration(seconds: 1));
             }
           }
@@ -220,28 +226,26 @@ void main() {
           // =========================================
           print('--- Screenshot 5: Equivalent Constraint ---');
 
-          // Select two more cells for Equivalent constraint
-          if (textButtons.evaluate().length >= 5) {
-            await tester.longPress(textButtons.at(3));
-            await tester.pump(const Duration(milliseconds: 500));
-            await tester.tap(textButtons.at(4));
-            await tester.pump(const Duration(milliseconds: 300));
+          // Select cells at(6) and at(7) - both have solution value 7, so Equivalent is valid
+          await tester.longPress(textButtons.at(6));
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.tap(textButtons.at(7));
+          await tester.pump(const Duration(milliseconds: 300));
 
-            // Apply "Equivalent" constraint
-            final equivButton = find.text('Equivalent');
-            print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
+          // Apply "Equivalent" constraint - valid because both cells = 7
+          final equivButton = find.text('Equivalent');
+          print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
 
-            if (equivButton.evaluate().isNotEmpty) {
-              await tester.tap(equivButton);
-              await tester.pump(const Duration(seconds: 1));
+          if (equivButton.evaluate().isNotEmpty) {
+            await tester.tap(equivButton);
+            await tester.pump(const Duration(seconds: 1));
 
-              // Take screenshot showing the constraint applied
-              await _takeScreenshot(
-                binding,
-                tester,
-                '05-equivalent-constraint$suffix',
-              );
-            }
+            // Take screenshot showing the constraint applied
+            await _takeScreenshot(
+              binding,
+              tester,
+              '05-equivalent-constraint$suffix',
+            );
           }
         }
 
