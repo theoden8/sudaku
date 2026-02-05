@@ -220,11 +220,11 @@ void main() {
           );
 
           // =========================================
-          // Screenshot 4: Constraint Applied (showing deductions)
+          // Screenshot 4: Value Selection (Numpad)
           // =========================================
-          print('--- Screenshot 4: Constraint Applied ---');
+          print('--- Screenshot 4: Value Selection ---');
 
-          // Apply "All different" constraint
+          // Apply "All different" constraint to show numpad
           final allDiffButton = find.text('All different');
           print('All different button found: ${allDiffButton.evaluate().isNotEmpty}');
 
@@ -232,40 +232,23 @@ void main() {
             await tester.tap(allDiffButton);
             await tester.pump(const Duration(seconds: 1));
 
-            // The numpad should appear for value selection
-            // Select values matching the cell count (e.g., 1, 2, 3)
-            for (int i = 1; i <= 3; i++) {
-              final valueButton = find.text('$i');
-              if (valueButton.evaluate().isNotEmpty) {
-                await tester.tap(valueButton.first);
-                await tester.pump(const Duration(milliseconds: 300));
-              }
-            }
-
-            // Confirm selection if there's a confirm button
-            final confirmButton = find.byIcon(Icons.check);
-            if (confirmButton.evaluate().isNotEmpty) {
-              await tester.tap(confirmButton);
-              await tester.pump(const Duration(milliseconds: 500));
-            }
-
-            // Close any dialogs that might have appeared
-            for (int i = 0; i < 3; i++) {
-              final gotItButton = find.text('Got it');
-              if (gotItButton.evaluate().isNotEmpty) {
-                await tester.tap(gotItButton.first);
-                await tester.pump(const Duration(milliseconds: 500));
-              } else {
-                break;
-              }
-            }
-
-            // Take screenshot showing constraint in list
+            // Take screenshot of numpad/value selection screen
             await _takeScreenshot(
               binding,
               tester,
-              '04-constraint-applied$themeSuffix',
+              '04-value-selection$themeSuffix',
             );
+
+            // Go back to main screen by tapping back or outside
+            final backButton = find.byIcon(Icons.arrow_back);
+            if (backButton.evaluate().isNotEmpty) {
+              await tester.tap(backButton);
+              await tester.pump(const Duration(milliseconds: 500));
+            } else {
+              // Try pressing back key
+              await tester.pageBack();
+              await tester.pump(const Duration(milliseconds: 500));
+            }
           }
         }
 
