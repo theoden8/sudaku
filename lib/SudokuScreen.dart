@@ -64,8 +64,14 @@ class SudokuScreen extends StatefulWidget {
 
 class SudokuScreenArguments {
   final int n;
+  final bool isDemoMode;
+  final List<int>? demoPuzzle;
 
-  SudokuScreenArguments({required this.n});
+  SudokuScreenArguments({
+    required this.n,
+    this.isDemoMode = false,
+    this.demoPuzzle,
+  });
 }
 
 abstract class ConstraintInteraction {
@@ -1912,9 +1918,17 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
-      sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
-        this.runSetState();
-      });
+      if (args.isDemoMode && args.demoPuzzle != null) {
+        // Demo mode: use fixed puzzle
+        sd = Sudoku.demo(n, args.demoPuzzle!, () {
+          this.runSetState();
+        });
+      } else {
+        // Normal mode: load random puzzle
+        sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
+          this.runSetState();
+        });
+      }
       this._multiSelect = BitArray(sd!.ne4);
     }
 
