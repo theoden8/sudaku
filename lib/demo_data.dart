@@ -123,6 +123,7 @@ void setupDemoConstraints(Sudoku sd) {
   allDiffDomain.setBit(6);
   sd.assist.addConstraint(ConstraintAllDiff(sd, allDiffVars, allDiffDomain));
 
-  // Apply the constraints
-  sd.assist.apply();
+  // NOTE: We intentionally do NOT call sd.assist.apply() here.
+  // If we did, the solver would deduce values and satisfy constraints,
+  // causing them to disappear from the constraint list before screenshots.
 }

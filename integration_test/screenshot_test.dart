@@ -161,15 +161,25 @@ void main() {
         );
 
         // =========================================
-        // Screenshot 3: Constraint List with Multiple Constraints
+        // Screenshot 3: Constraint List with AllDiff Highlighted
         // =========================================
-        print('--- Screenshot 3: Constraint list ---');
+        print('--- Screenshot 3: Constraint list with AllDiff highlighted ---');
 
         // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
         // Wait a bit longer for constraints to be fully rendered
         await tester.pump(const Duration(seconds: 1));
 
-        // Take screenshot showing constraint list (no cell selection)
+        // Find and tap the AllDiff constraint to highlight its cells
+        final allDiffText = find.text('allDiff');
+        if (allDiffText.evaluate().isNotEmpty) {
+          print('Found AllDiff constraint, tapping to highlight cells...');
+          await tester.tap(allDiffText);
+          await tester.pump(const Duration(milliseconds: 500));
+        } else {
+          print('Warning: AllDiff constraint not found');
+        }
+
+        // Take screenshot showing constraint list with AllDiff cells highlighted
         await _takeScreenshot(
           binding,
           tester,
