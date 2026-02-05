@@ -169,25 +169,26 @@ void main() {
         final textButtons = find.byType(TextButton);
         print('TextButtons found: ${textButtons.evaluate().length}');
 
-        if (textButtons.evaluate().length >= 21) {
+        if (textButtons.evaluate().length >= 57) {
           // =========================================
-          // Select cells across DIFFERENT BOXES to show user-defined constraints
-          // TextButton indices map to grid indices:
-          //   TB 0  → grid 1  (0,1) box 0
-          //   TB 10 → grid 13 (1,4) box 1
-          //   TB 20 → grid 24 (2,6) box 2
+          // Select cells across DIFFERENT BOXES spanning the ENTIRE GRID
+          // TextButton indices map to grid positions (only empty cells are TextButtons):
+          //   TB 14 → grid 18 (2,0) box 3 - row 2
+          //   TB 40 → grid 51 (5,6) box 5 - row 5
+          //   TB 56 → grid 74 (8,2) box 6 - row 8
+          // This demonstrates user-defined constraints spanning rows 2, 5, and 8
           // =========================================
 
-          // Long press cell in box 0 to start multi-select
-          await tester.longPress(textButtons.at(0));
+          // Long press cell in row 2 (box 3) to start multi-select
+          await tester.longPress(textButtons.at(14));
           await tester.pump(const Duration(milliseconds: 500));
 
-          // Tap cell in box 1
-          await tester.tap(textButtons.at(10));
+          // Tap cell in row 5 (box 5)
+          await tester.tap(textButtons.at(40));
           await tester.pump(const Duration(milliseconds: 300));
 
-          // Tap cell in box 2
-          await tester.tap(textButtons.at(20));
+          // Tap cell in row 8 (box 6)
+          await tester.tap(textButtons.at(56));
           await tester.pump(const Duration(milliseconds: 300));
 
           // Take screenshot showing cell selection with constraint options
