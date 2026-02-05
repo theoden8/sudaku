@@ -1,0 +1,216 @@
+# iOS Fastfile
+# This file contains the fastlane.tools configuration for iOS
+
+opt_out_usage
+
+default_platform(:ios)
+
+platform :ios do
+  # Helper to get consistent paths regardless of where fastlane is run from
+  # This Fastfile is always at ios/fastlane/Fastfile
+  def ios_dir
+    File.expand_path("..", __dir__)
+  end
+
+  def project_root
+    File.expand_path("../..", __dir__)
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      workspace: File.join(ios_dir, "Runner.xcworkspace"),
+      scheme: "Runner"
+    )
+  end
+
+  desc "Build debug version"
+  lane :build_debug do
+    sh("cd '#{project_root}' && flutter build ios --debug")
+  end
+
+  desc "Build release version"
+  lane :build_release do
+    sh("cd '#{project_root}' && flutter build ipa --release")
+  end
+
+  desc "Build iOS app (alias for build_release)"
+  lane :build_ios do
+    build_release
+  end
+
+  desc "Build for Ad Hoc distribution"
+  lane :build_adhoc do
+    sh("cd '#{project_root}' && flutter build ipa --release --export-method ad-hoc")
+  end
+
+  desc "Update code signing and provisioning profiles"
+  lane :sync_certificates do
+    match(
+      type: "appstore",
+      readonly: true
+    )
+  end
+
+  desc "Deploy to TestFlight"
+  lane :deploy_beta do
+    build_release
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Deploy to App Store"
+  lane :deploy_production do
+    build_release
+    upload_to_app_store(
+      submit_for_review: false,
+      automatic_release: false,
+      skip_screenshots: true,
+      skip_metadata: false
+    )
+  end
+
+  desc "Deploy iOS app (alias for deploy_beta)"
+  lane :deploy_ios do
+    deploy_beta
+  end
+
+  desc "Update metadata only on App Store"
+  lane :update_metadata do
+    upload_to_app_store(
+      skip_binary_upload: true,
+      skip_screenshots: true
+    )
+  end
+
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(
+      xcodeproj: File.join(ios_dir, "Runner.xcodeproj")
+    )
+  end
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    increment_version_number(
+      xcodeproj: File.join(ios_dir, "Runner.xcodeproj"),
+      bump_type: options[:type] || "patch" # major, minor, or patch
+    )
+  end
+
+  desc "Generate screenshots using Flutter integration test"
+  lane :screenshots do
+    UI.message("Generating screenshots with Flutter integration test...")
+    UI.message("Project root: #{project_root}")
+
+    # Get connected iOS simulator or device
+    device_list = sh("flutter devices | grep -E '(ios|iPhone|iPad)' | head -1", log: false).strip rescue ""
+
+    if device_list.empty?
+      UI.user_error!("No iOS simulator or device found. Please start a simulator or connect a device.")
+    end
+
+    # Extract device ID from flutter devices output
+    device_id = device_list.match(/• ([\w-]+) •/)[1] rescue ""
+
+    if device_id.empty?
+      UI.user_error!("Could not parse device ID. Please ensure an iOS simulator or device is available.")
+    end
+
+    UI.success("Found iOS device: #{device_id}")
+    UI.message("Demo data will be seeded by Flutter integration test")
+
+    # Raw screenshots go to screenshots/ios/ at project root
+    screenshots_dir = File.join(project_root, "screenshots", "ios")
+
+    # Clear previous screenshots
+    if Dir.exist?(screenshots_dir)
+      UI.message("Clearing previous screenshots from #{screenshots_dir}")
+      FileUtils.rm_rf(Dir.glob(File.join(screenshots_dir, "*.png")))
+    else
+      FileUtils.mkdir_p(screenshots_dir)
+    end
+
+    # Run Flutter integration test with screenshot capture
+    # SCREENSHOT_DIR is passed to the test driver to specify where to save screenshots
+    sh("cd '#{project_root}' && SCREENSHOT_DIR='#{screenshots_dir}' flutter drive \
+      --driver=test_driver/integration_test.dart \
+      --target=integration_test/screenshot_test.dart \
+      -d #{device_id}")
+
+    UI.success("Screenshots saved to: #{screenshots_dir}")
+  end
+
+  desc "Resize screenshots to supported resolution (iPhone 13 Pro: 1170x2532)"
+  lane :resize_screenshots do
+    screenshots_dir = File.join(project_root, "screenshots", "ios")
+
+    Dir.glob(File.join(screenshots_dir, "*.png")).each do |screenshot|
+      next if File.basename(screenshot) == "background.png"
+
+      # Get image dimensions to detect orientation
+      dimensions = `magick identify -format '%wx%h' '#{screenshot}'`.strip.split('x')
+      width = dimensions[0].to_i
+      height = dimensions[1].to_i
+
+      if width > height
+        # Landscape orientation - use iPad Pro 12.9" resolution for frameit compatibility
+        UI.message("Resizing #{File.basename(screenshot)} to 2732x2048 (landscape/iPad)...")
+        sh("magick '#{screenshot}' -resize 2732x2048! '#{screenshot}'")
+      else
+        # Portrait orientation - use iPhone 13 Pro resolution
+        UI.message("Resizing #{File.basename(screenshot)} to 1170x2532 (portrait/iPhone)...")
+        sh("magick '#{screenshot}' -resize 1170x2532! '#{screenshot}'")
+      end
+    end
+
+    UI.success("All screenshots resized (portrait: iPhone 13 Pro, landscape: iPad Pro 12.9\")")
+  end
+
+  desc "Frame screenshots with device frames and marketing titles"
+  lane :add_device_frames do
+    screenshots_dir = File.join(project_root, "screenshots", "ios")
+    output_dir = File.join(project_root, "fastlane", "screenshots", "en-US")
+
+    # Download font if not present
+    font_path = File.join(project_root, "screenshots", "Righteous-Regular.ttf")
+    unless File.exist?(font_path)
+      UI.message("Downloading Righteous font...")
+      sh("curl -L 'https://github.com/google/fonts/raw/main/ofl/righteous/Righteous-Regular.ttf' -o '#{font_path}'")
+    end
+
+    # Resize screenshots to supported resolution first
+    resize_screenshots
+
+    # Remove existing framed screenshots
+    UI.message("Removing old framed screenshots...")
+    FileUtils.rm_rf(Dir.glob(File.join(screenshots_dir, "*_framed.png")))
+
+    frame_screenshots(
+      path: screenshots_dir,
+      white: true
+    )
+
+    # Copy framed screenshots to store metadata directory, removing _framed suffix
+    FileUtils.mkdir_p(output_dir)
+    Dir.glob(File.join(screenshots_dir, "*_framed.png")).each do |framed|
+      output_name = File.basename(framed).gsub("_framed", "")
+      FileUtils.cp(framed, File.join(output_dir, output_name))
+      UI.message("Copied #{output_name} to #{output_dir}")
+    end
+
+    UI.success("Framed screenshots copied to: #{output_dir}")
+  end
+
+  desc "Generate and frame screenshots in one step"
+  lane :screenshots_framed do
+    screenshots
+    add_device_frames
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    clear_derived_data
+  end
+end

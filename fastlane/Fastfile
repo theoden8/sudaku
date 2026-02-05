@@ -1,0 +1,108 @@
+# This is the main Fastfile that routes to platform-specific lanes
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+opt_out_usage
+
+default_platform(:android)
+
+# Import platform-specific Fastfiles
+import "../android/fastlane/Fastfile" if File.exist?("../android/fastlane/Fastfile")
+import "../ios/fastlane/Fastfile" if File.exist?("../ios/fastlane/Fastfile")
+
+# Root-level lanes that can target both platforms
+lane :build_all do
+  desc "Build both Android and iOS apps"
+  android do
+    build_android
+  end
+
+  ios do
+    build_ios
+  end
+end
+
+lane :test_all do
+  desc "Run tests for both platforms"
+  # This Fastfile is at fastlane/Fastfile, so project root is one level up
+  project_root = File.expand_path("..", __dir__)
+  sh("cd '#{project_root}' && flutter test")
+end
+
+lane :deploy_all do
+  desc "Deploy both Android and iOS apps"
+  android do
+    deploy_android
+  end
+
+  ios do
+    deploy_ios
+  end
+end
+
+lane :screenshots_all do
+  desc "Generate screenshots for both Android and iOS"
+  android do
+    screenshots
+  end
+
+  ios do
+    screenshots
+  end
+end
+
+lane :screenshots_framed_all do
+  desc "Generate and frame screenshots for both Android and iOS"
+  android do
+    screenshots_framed
+  end
+
+  ios do
+    screenshots_framed
+  end
+end
+
+lane :android_screenshots_framed do
+  desc "Generate and frame screenshots for Android only"
+  android do
+    screenshots_framed
+  end
+end
+
+lane :ios_screenshots_framed do
+  desc "Generate and frame screenshots for iOS only"
+  ios do
+    screenshots_framed
+  end
+end
+
+lane :frame_all do
+  desc "Add device frames to existing screenshots for both platforms"
+  android do
+    add_device_frames
+  end
+
+  ios do
+    add_device_frames
+  end
+end
+
+lane :android_frame do
+  desc "Add device frames to Android screenshots only"
+  android do
+    add_device_frames
+  end
+end
+
+lane :ios_frame do
+  desc "Add device frames to iOS screenshots only"
+  ios do
+    add_device_frames
+  end
+end
+
+# Helper function to check Flutter version
+def check_flutter
+  UI.message("Checking Flutter installation...")
+  sh("flutter --version")
+end

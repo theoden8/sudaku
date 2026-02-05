@@ -8,9 +8,36 @@ The screenshot tour uses Flutter integration tests to capture consistent screens
 
 ## Running the Screenshot Tour
 
+### Using Fastlane (Recommended)
+
+```bash
+# Install dependencies (first time only)
+bundle install
+
+# Generate and frame screenshots for Android
+bundle exec fastlane android_screenshots_framed
+
+# Generate and frame screenshots for iOS
+bundle exec fastlane ios_screenshots_framed
+
+# Generate screenshots for both platforms
+bundle exec fastlane screenshots_framed_all
+
+# Just add device frames to existing screenshots
+bundle exec fastlane android_frame
+bundle exec fastlane ios_frame
+```
+
+### Manual Run
+
 ```bash
 # Run on a connected device or emulator
 flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/screenshot_test.dart
+
+# With custom output directory
+SCREENSHOT_DIR=screenshots/android flutter drive \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/screenshot_test.dart
 ```
@@ -98,6 +125,22 @@ Demo mode is activated via `SharedPreferences`:
 - `lib/demo_data.dart` - Demo puzzle, constraint setup, and preference helpers
 - `integration_test/screenshot_test.dart` - Screenshot tour test
 - `test_driver/integration_test.dart` - Test driver that saves screenshots to disk
+
+### Fastlane Files
+- `Gemfile` / `Gemfile.lock` - Ruby dependencies for fastlane
+- `fastlane/Fastfile` - Main fastlane configuration (routes to platform-specific files)
+- `fastlane/Appfile` - App identifier configuration
+- `android/fastlane/Fastfile` - Android-specific lanes (screenshots, build, deploy)
+- `android/fastlane/Appfile` - Android app package name
+- `ios/fastlane/Fastfile` - iOS-specific lanes (screenshots, build, deploy)
+- `ios/fastlane/Appfile` - iOS app bundle identifier
+
+### Screenshot Output Directories
+- `screenshots/` - Default output for manual runs
+- `screenshots/android/` - Raw Android screenshots (via fastlane)
+- `screenshots/ios/` - Raw iOS screenshots (via fastlane)
+- `fastlane/metadata/android/en-US/images/phoneScreenshots/` - Framed Android screenshots
+- `fastlane/screenshots/en-US/` - Framed iOS screenshots
 
 ### Notes
 - Constraints are added without calling `apply()` to prevent the solver from satisfying them before screenshots
