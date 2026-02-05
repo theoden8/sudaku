@@ -1,10 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Demo puzzle for screenshots - a known solvable puzzle.
+/// Demo puzzle for screenshots - first puzzle from top1465 (fixed, not shuffled).
 /// Format: dots (.) for empty cells, digits 1-9 for filled cells.
-/// This is a well-known puzzle that demonstrates constraint solving nicely.
 const String demoPuzzle9x9 =
-    '53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79';
+    '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........';
 
 /// A simpler 4x4 demo puzzle
 const String demoPuzzle4x4 = '1...' '..2.' '3..2' '...1';
