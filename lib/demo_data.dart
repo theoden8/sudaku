@@ -1,9 +1,10 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Demo puzzle for screenshots - first puzzle from top1465 (fixed, not shuffled).
+/// Demo puzzle for screenshots - a known solvable puzzle.
 /// Format: dots (.) for empty cells, digits 1-9 for filled cells.
+/// This is a well-known puzzle that demonstrates constraint solving nicely.
 const String demoPuzzle9x9 =
-    '4...3.......6..8..........1....5..9..8....6...7.2........1.27..5.3....4.9........';
+    '53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79';
 
 /// A simpler 4x4 demo puzzle
 const String demoPuzzle4x4 = '1...' '..2.' '3..2' '...1';
@@ -11,9 +12,11 @@ const String demoPuzzle4x4 = '1...' '..2.' '3..2' '...1';
 /// Seeds demo data for screenshot tests.
 ///
 /// [theme] - 'light' or 'dark'
+/// [style] - 'modern' or 'paper'
 /// [selectedGridSize] - Pre-select a grid size (2, 3, or 4) for the selection screen
 Future<void> seedDemoData({
   String theme = 'light',
+  String style = 'modern',
   int? selectedGridSize,
 }) async {
   final prefs = await SharedPreferences.getInstance();
@@ -23,7 +26,8 @@ Future<void> seedDemoData({
   await prefs.setInt('themeMode', themeModeIndex);
 
   // Set theme style (0 = modern, 1 = penAndPaper)
-  await prefs.setInt('themeStyle', 0); // Modern style for screenshots
+  final styleIndex = style == 'modern' ? 0 : 1;
+  await prefs.setInt('themeStyle', styleIndex);
 
   // Set demo mode flag
   await prefs.setBool('demoMode', true);

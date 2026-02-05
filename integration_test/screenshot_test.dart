@@ -67,19 +67,31 @@ void main() {
   });
 
   group('Screenshot Tour', () {
-    for (final theme in ['light', 'dark']) {
-      testWidgets('Screenshot tour ($theme theme)',
+    // All theme/style combinations
+    final combinations = [
+      {'theme': 'light', 'style': 'modern'},
+      {'theme': 'dark', 'style': 'modern'},
+      {'theme': 'light', 'style': 'paper'},
+      {'theme': 'dark', 'style': 'paper'},
+    ];
+
+    for (final combo in combinations) {
+      final theme = combo['theme']!;
+      final style = combo['style']!;
+      final suffix = '-$theme-$style';
+
+      testWidgets('Screenshot tour ($theme $style)',
           (WidgetTester tester) async {
         print('========================================');
-        print('Starting screenshot tour ($theme theme)');
+        print('Starting screenshot tour ($theme $style)');
         print('========================================');
 
         // Clear any previous demo data first
         await clearDemoData();
 
-        // Seed demo data with theme AND pre-selected grid size
-        print('Seeding demo data with $theme theme and pre-selected 9x9...');
-        await seedDemoData(theme: theme, selectedGridSize: 3);
+        // Seed demo data with theme, style AND pre-selected grid size
+        print('Seeding demo data: theme=$theme, style=$style, gridSize=3...');
+        await seedDemoData(theme: theme, style: style, selectedGridSize: 3);
 
         // Launch the app
         print('Launching app...');
@@ -94,8 +106,6 @@ void main() {
         // Convert Flutter surface to image for screenshots
         await binding.convertFlutterSurfaceToImage();
         await tester.pump(const Duration(seconds: 1));
-
-        final themeSuffix = theme == 'light' ? '-light' : '-dark';
 
         // =========================================
         // Screenshot 1: Grid Selection Screen
@@ -114,7 +124,7 @@ void main() {
         await _takeScreenshot(
           binding,
           tester,
-          '01-grid-selection$themeSuffix',
+          '01-grid-selection$suffix',
         );
 
         // =========================================
@@ -147,11 +157,11 @@ void main() {
         await _takeScreenshot(
           binding,
           tester,
-          '02-sudoku-puzzle$themeSuffix',
+          '02-sudoku-puzzle$suffix',
         );
 
         // =========================================
-        // Screenshot 3: Selecting Cells for Constraint
+        // Screenshot 3: Cell Selection with Constraint Options
         // =========================================
         print('--- Screenshot 3: Cell Selection ---');
 
@@ -174,33 +184,69 @@ void main() {
           await _takeScreenshot(
             binding,
             tester,
-            '03-selecting-constraint$themeSuffix',
+            '03-selecting-constraint$suffix',
           );
 
           // =========================================
-          // Screenshot 4: Value Selection (Numpad)
+          // Screenshot 4: Apply OneOf Constraint
           // =========================================
-          print('--- Screenshot 4: Value Selection ---');
+          print('--- Screenshot 4: OneOf Constraint ---');
 
-          // Apply "All different" constraint to show numpad
-          final allDiffButton = find.text('All different');
-          print('All different button found: ${allDiffButton.evaluate().isNotEmpty}');
+          // Apply "One of" constraint - this requires specifying which value
+          final oneOfButton = find.text('One of');
+          print('One of button found: ${oneOfButton.evaluate().isNotEmpty}');
 
-          if (allDiffButton.evaluate().isNotEmpty) {
-            await tester.tap(allDiffButton);
+          if (oneOfButton.evaluate().isNotEmpty) {
+            await tester.tap(oneOfButton);
             await tester.pump(const Duration(seconds: 1));
 
-            // Take screenshot of numpad/value selection screen
+            // Take screenshot showing numpad for OneOf value selection
             await _takeScreenshot(
               binding,
               tester,
-              '04-value-selection$themeSuffix',
+              '04-oneof-constraint$suffix',
             );
+
+            // Select a value (e.g., "4") for the OneOf constraint
+            final valueFour = find.text('4');
+            if (valueFour.evaluate().isNotEmpty) {
+              await tester.tap(valueFour.first);
+              await tester.pump(const Duration(seconds: 1));
+            }
+          }
+
+          // =========================================
+          // Screenshot 5: Apply Equivalent Constraint
+          // =========================================
+          print('--- Screenshot 5: Equivalent Constraint ---');
+
+          // Select two more cells for Equivalent constraint
+          if (textButtons.evaluate().length >= 5) {
+            await tester.longPress(textButtons.at(3));
+            await tester.pump(const Duration(milliseconds: 500));
+            await tester.tap(textButtons.at(4));
+            await tester.pump(const Duration(milliseconds: 300));
+
+            // Apply "Equivalent" constraint
+            final equivButton = find.text('Equivalent');
+            print('Equivalent button found: ${equivButton.evaluate().isNotEmpty}');
+
+            if (equivButton.evaluate().isNotEmpty) {
+              await tester.tap(equivButton);
+              await tester.pump(const Duration(seconds: 1));
+
+              // Take screenshot showing the constraint applied
+              await _takeScreenshot(
+                binding,
+                tester,
+                '05-equivalent-constraint$suffix',
+              );
+            }
           }
         }
 
         print('========================================');
-        print('Screenshot tour completed ($theme theme)');
+        print('Screenshot tour completed ($theme $style)');
         print('========================================');
 
         // Clean up demo mode
