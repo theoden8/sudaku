@@ -9,9 +9,9 @@ The app automatically saves the current puzzle state so users can continue where
    - A constraint is added, removed, or toggled
    - Any assistant-related change occurs
 
-2. **Save on exit**: When the user taps "Exit" from the puzzle screen, the state is explicitly saved before navigating back to the menu.
+2. **Clear on explicit exit**: When the user taps "Exit" from the puzzle screen, the saved state is cleared. This is intentional - explicit exit means the user is done with the puzzle.
 
-3. **Resume on launch**: When returning to the menu screen, if a saved puzzle exists, a "CONTINUE" button appears above the "NEW" button.
+3. **Resume after crash/force-quit**: If the app is force-quit or crashes, the auto-saved state is preserved. When returning to the menu screen, a "CONTINUE" button appears above the "PLAY" button.
 
 ## Data stored
 

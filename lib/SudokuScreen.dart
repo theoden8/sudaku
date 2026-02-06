@@ -509,7 +509,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             ],
           ),
           content: Text(
-            'Your progress will be saved.',
+            'Your progress will be discarded.',
             style: TextStyle(
               color: theme.dialogTextColor,
             ),
@@ -539,7 +539,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               ),
               child: const Text('Exit'),
               onPressed: () async {
-                await this._savePuzzleState();
+                await SudokuScreenState.clearSavedPuzzle();
                 Navigator.of(ctx).pop();
                 Navigator.of(context).pop();
               }
