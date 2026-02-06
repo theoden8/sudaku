@@ -305,52 +305,17 @@ void main() {
       expect(json, isNot(contains('"0":{'))); // not index-based key
     });
 
-    test('achievements load from old index-based format', () async {
-      // Simulate old format: index-based keys
-      final oldFormatData = {
-        '0': {'type': 0, 'unlockedAt': '2024-01-15T10:30:00.000', 'progress': null}, // firstSolve
-      };
-
-      SharedPreferences.setMockInitialValues({
-        'trophyRoom_achievements': jsonEncode(oldFormatData),
-      });
-
-      final achievements = await TrophyRoomStorage.loadAchievements();
-
-      // Should still load correctly
-      expect(achievements[AchievementType.firstSolve]!.isUnlocked, isTrue);
-    });
-
-    test('achievements load from new name-based format', () async {
-      // New format: name-based keys
-      final newFormatData = {
+    test('achievements load from name-based format', () async {
+      final data = {
         'firstSolve': {'type': 'firstSolve', 'unlockedAt': '2024-01-15T10:30:00.000', 'progress': null},
       };
 
       SharedPreferences.setMockInitialValues({
-        'trophyRoom_achievements': jsonEncode(newFormatData),
+        'trophyRoom_achievements': jsonEncode(data),
       });
 
       final achievements = await TrophyRoomStorage.loadAchievements();
 
-      // Should load correctly
-      expect(achievements[AchievementType.firstSolve]!.isUnlocked, isTrue);
-    });
-
-    test('name-based format preferred over index-based when both exist', () async {
-      // Both formats present - name should take precedence
-      final mixedFormatData = {
-        '0': {'type': 0, 'unlockedAt': null, 'progress': null}, // old: NOT unlocked
-        'firstSolve': {'type': 'firstSolve', 'unlockedAt': '2024-01-15T10:30:00.000', 'progress': null}, // new: unlocked
-      };
-
-      SharedPreferences.setMockInitialValues({
-        'trophyRoom_achievements': jsonEncode(mixedFormatData),
-      });
-
-      final achievements = await TrophyRoomStorage.loadAchievements();
-
-      // Name-based (unlocked) should take precedence
       expect(achievements[AchievementType.firstSolve]!.isUnlocked, isTrue);
     });
   });

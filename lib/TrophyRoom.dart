@@ -373,10 +373,7 @@ class TrophyRoomStorage {
 
       for (final type in AchievementType.values) {
         final template = defaults[type]!;
-        // Try name-based key first (new format), fall back to index (old format)
-        final nameKey = type.name;
-        final indexKey = type.index.toString();
-        final key = savedMap.containsKey(nameKey) ? nameKey : indexKey;
+        final key = type.name;
         if (savedMap.containsKey(key)) {
           result[type] = Achievement.fromJson(
             savedMap[key] as Map<String, dynamic>,
