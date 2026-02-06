@@ -192,7 +192,7 @@ class Achievement {
   );
 
   Map<String, dynamic> toJson() => {
-    'type': type.index,
+    'type': type.name, // Use name for migration safety
     'unlockedAt': unlockedAt?.toIso8601String(),
     'progress': progress,
   };
@@ -373,7 +373,10 @@ class TrophyRoomStorage {
 
       for (final type in AchievementType.values) {
         final template = defaults[type]!;
-        final key = type.index.toString();
+        // Try name-based key first (new format), fall back to index (old format)
+        final nameKey = type.name;
+        final indexKey = type.index.toString();
+        final key = savedMap.containsKey(nameKey) ? nameKey : indexKey;
         if (savedMap.containsKey(key)) {
           result[type] = Achievement.fromJson(
             savedMap[key] as Map<String, dynamic>,
@@ -393,7 +396,8 @@ class TrophyRoomStorage {
     final prefs = await SharedPreferences.getInstance();
     final map = <String, dynamic>{};
     for (final entry in achievements.entries) {
-      map[entry.key.index.toString()] = entry.value.toJson();
+      // Use enum name for migration safety (not index)
+      map[entry.key.name] = entry.value.toJson();
     }
     await prefs.setString(_achievementsKey, jsonEncode(map));
   }
