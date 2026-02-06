@@ -1,0 +1,171 @@
+# Android Fastfile
+# This file contains the fastlane.tools configuration for Android
+
+opt_out_usage
+
+default_platform(:android)
+
+platform :android do
+  # Helper to get consistent paths regardless of where fastlane is run from
+  # This Fastfile is always at android/fastlane/Fastfile
+  def android_dir
+    File.expand_path("..", __dir__)
+  end
+
+  def project_root
+    File.expand_path("../..", __dir__)
+  end
+
+  desc "Runs all the tests"
+  lane :test do
+    sh("cd '#{android_dir}' && ./gradlew test")
+  end
+
+  desc "Build debug APK"
+  lane :build_debug do
+    sh("cd '#{project_root}' && fvm flutter build apk --debug")
+  end
+
+  desc "Build release APK"
+  lane :build_release do
+    sh("cd '#{project_root}' && fvm flutter build apk --release")
+  end
+
+  desc "Build release AAB (Android App Bundle)"
+  lane :build_bundle do
+    sh("cd '#{project_root}' && fvm flutter build appbundle --release")
+  end
+
+  desc "Build Android app (alias for build_release)"
+  lane :build_android do
+    build_release
+  end
+
+  desc "Increment version in pubspec.yaml"
+  lane :bump_version do
+    # Version is managed in pubspec.yaml for Flutter projects
+    sh("cd '#{project_root}' && fvm flutter pub version")
+  end
+
+  desc "Generate screenshots using Flutter integration test"
+  lane :screenshots do
+    UI.message("Generating screenshots with Flutter integration test...")
+    UI.message("Project root: #{project_root}")
+
+    # Get connected device ID using Android SDK's adb
+    adb_path = ENV['ANDROID_SDK'] ? "#{ENV['ANDROID_SDK']}/platform-tools/adb" : "adb"
+    device_id = sh("#{adb_path} devices | grep -w 'device' | head -1 | awk '{print $1}'", log: false).strip
+
+    if device_id.empty?
+      UI.user_error!("No Android device connected. Please connect a device or start an emulator.")
+    end
+
+    UI.success("Found device: #{device_id}")
+    UI.message("Demo data will be seeded by Flutter integration test")
+
+    # Raw screenshots go to screenshots/android/ at project root
+    screenshots_dir = File.join(project_root, "screenshots", "android")
+
+    # Clear previous screenshots
+    if Dir.exist?(screenshots_dir)
+      UI.message("Clearing previous screenshots from #{screenshots_dir}")
+      FileUtils.rm_rf(Dir.glob(File.join(screenshots_dir, "*.png")))
+    else
+      FileUtils.mkdir_p(screenshots_dir)
+    end
+
+    # Run Flutter integration test with screenshot capture
+    # SCREENSHOT_DIR is passed to the test driver to specify where to save screenshots
+    # --flavor fdroid is required because the app uses product flavors
+    sh("cd '#{project_root}' && SCREENSHOT_DIR='#{screenshots_dir}' fvm flutter drive \
+      --driver=test_driver/integration_test.dart \
+      --target=integration_test/screenshot_test.dart \
+      --flavor fdroid \
+      -d #{device_id}")
+
+    UI.success("Screenshots saved to: #{screenshots_dir}")
+  end
+
+  desc "Resize screenshots to supported resolution (Pixel 5: 1080x2340 portrait, 2340x1080 landscape)"
+  lane :resize_screenshots do
+    screenshots_dir = File.join(project_root, "screenshots", "android")
+
+    Dir.glob(File.join(screenshots_dir, "*.png")).each do |screenshot|
+      next if File.basename(screenshot) == "background.png"
+
+      # Get image dimensions to detect orientation
+      dimensions = `magick identify -format '%wx%h' '#{screenshot}'`.strip.split('x')
+      width = dimensions[0].to_i
+      height = dimensions[1].to_i
+
+      if width > height
+        # Landscape orientation
+        UI.message("Resizing #{File.basename(screenshot)} to 2340x1080 (landscape)...")
+        sh("magick '#{screenshot}' -resize 2340x1080! '#{screenshot}'")
+      else
+        # Portrait orientation
+        UI.message("Resizing #{File.basename(screenshot)} to 1080x2340 (portrait)...")
+        sh("magick '#{screenshot}' -resize 1080x2340! '#{screenshot}'")
+      end
+    end
+
+    UI.success("All screenshots resized to Pixel 5 resolution (orientation-aware)")
+  end
+
+  desc "Frame screenshots with device frames and marketing titles"
+  lane :add_device_frames do
+    screenshots_dir = File.join(project_root, "screenshots", "android")
+    output_dir = File.join(project_root, "fastlane", "metadata", "android", "en-US", "images", "phoneScreenshots")
+
+    begin
+      # Download font if not present
+      font_path = File.join(project_root, "screenshots", "Righteous-Regular.ttf")
+      unless File.exist?(font_path)
+        UI.message("Downloading Righteous font...")
+        sh("curl -L 'https://github.com/google/fonts/raw/main/ofl/righteous/Righteous-Regular.ttf' -o '#{font_path}'")
+      end
+
+      # Resize screenshots to supported resolution first
+      resize_screenshots
+
+      # Remove existing framed screenshots
+      UI.message("Removing old framed screenshots...")
+      FileUtils.rm_rf(Dir.glob(File.join(screenshots_dir, "*_framed.png")))
+
+      frame_screenshots(
+        path: screenshots_dir,
+        white: true
+      )
+
+      # Copy framed screenshots to store metadata directory, removing _framed suffix
+      FileUtils.mkdir_p(output_dir)
+      Dir.glob(File.join(screenshots_dir, "*_framed.png")).each do |framed|
+        output_name = File.basename(framed).gsub("_framed", "")
+        FileUtils.cp(framed, File.join(output_dir, output_name))
+        UI.message("Copied #{output_name} to #{output_dir}")
+      end
+
+      UI.success("Framed screenshots copied to: #{output_dir}")
+    rescue => ex
+      UI.error("Failed to frame screenshots: #{ex.message}")
+      if ex.message.include?("Unsupported screen size")
+        UI.important("Frameit requires screenshots from devices with standard resolutions.")
+        UI.important("Supported devices include: Pixel 2-8, Nexus 5-6P, Galaxy S8-S21, etc.")
+        UI.important("Current screenshots will remain unframed but are still usable.")
+      end
+      raise ex unless ex.message.include?("Unsupported screen size")
+    end
+  end
+
+  desc "Generate and frame screenshots in one step"
+  lane :screenshots_framed do
+    screenshots
+    add_device_frames
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    sh("cd '#{android_dir}' && ./gradlew clean")
+    sh("cd '#{project_root}' && fvm flutter clean")
+  end
+end

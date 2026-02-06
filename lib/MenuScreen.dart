@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart';
 import 'SudokuScreen.dart';
+import 'demo_data.dart';
 
 class MenuScreen extends StatefulWidget {
   Function(BuildContext) sudokuThemeFunc;
@@ -31,6 +32,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
     with SingleTickerProviderStateMixin {
   late AnimationController _selectionPulseController;
   int _selectedSize = -1;
+  bool _isDemoMode = false;
 
   @override
   void initState() {
@@ -39,6 +41,22 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(); // Run continuously for smooth animation
+
+    // Check for demo mode and pre-selected grid size
+    _loadDemoSettings();
+  }
+
+  Future<void> _loadDemoSettings() async {
+    final isDemo = await isDemoMode();
+    final demoSize = await getDemoSelectedGridSize();
+    if (mounted) {
+      setState(() {
+        _isDemoMode = isDemo;
+        if (demoSize != null) {
+          _selectedSize = demoSize;
+        }
+      });
+    }
   }
 
   @override
@@ -476,10 +494,11 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             const double minCardSize = 120.0;
 
             if (isPortrait) {
+              // Reserve space for START button (88px) and use slightly larger divisor to prevent trimming
               final double availableForCards = availableHeight - 88;
               cardSize = max(minCardSize, min(
                 availableWidth * 0.65,
-                availableForCards / 3.2,
+                availableForCards / 3.4,
               ));
             } else {
               cardSize = max(minCardSize, min(
@@ -547,7 +566,14 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                             Navigator.pushNamed(
                               widget.parentContext,
                               SudokuScreen.routeName,
-                              arguments: SudokuScreenArguments(n: _selectedSize),
+                              arguments: SudokuScreenArguments(
+                                n: _selectedSize,
+                                isDemoMode: _isDemoMode,
+                                demoPuzzle: _isDemoMode && _selectedSize == 3
+                                    ? parseDemoPuzzle(demoPuzzle9x9)
+                                    : null,
+                                addDemoConstraints: _isDemoMode && _selectedSize == 3,
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -557,7 +583,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                               borderRadius: BorderRadius.circular(min(28, availableHeight * 0.05)),
                             ),
                             elevation: 8,
-                            shadowColor: _sizeColors[_selectedSize]?[0].withOpacity(0.5),
+                            shadowColor: _sizeColors[_selectedSize]?[0]?.withOpacity(0.5),
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,

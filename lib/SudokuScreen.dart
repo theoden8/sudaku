@@ -14,6 +14,7 @@ import 'Sudoku.dart';
 import 'SudokuAssist.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
+import 'demo_data.dart';
 
 
 /// Helper widget that renders text with a slight random wobble for pen-and-paper style
@@ -64,8 +65,16 @@ class SudokuScreen extends StatefulWidget {
 
 class SudokuScreenArguments {
   final int n;
+  final bool isDemoMode;
+  final List<int>? demoPuzzle;
+  final bool addDemoConstraints;
 
-  SudokuScreenArguments({required this.n});
+  SudokuScreenArguments({
+    required this.n,
+    this.isDemoMode = false,
+    this.demoPuzzle,
+    this.addDemoConstraints = false,
+  });
 }
 
 abstract class ConstraintInteraction {
@@ -1912,9 +1921,21 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
-      sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
-        this.runSetState();
-      });
+      if (args.isDemoMode && args.demoPuzzle != null) {
+        // Demo mode: use fixed puzzle
+        sd = Sudoku.demo(n, args.demoPuzzle!, () {
+          this.runSetState();
+        });
+        // Add demo constraints if requested
+        if (args.addDemoConstraints) {
+          setupDemoConstraints(sd!);
+        }
+      } else {
+        // Normal mode: load random puzzle
+        sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
+          this.runSetState();
+        });
+      }
       this._multiSelect = BitArray(sd!.ne4);
     }
 
