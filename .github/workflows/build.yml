@@ -258,6 +258,11 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           sleep 10
 
+      - name: Clean build artifacts before screenshots
+        run: |
+          fvm flutter clean
+          fvm flutter pub get --enforce-lockfile
+
       - name: Create screenshots directory
         run: mkdir -p screenshots/ios
 
