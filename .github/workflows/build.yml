@@ -232,6 +232,9 @@ jobs:
           path: sudaku-macos.zip
 
       # iOS Screenshots
+      - name: Clean build artifacts before screenshots
+        run: fvm flutter clean && fvm flutter pub get --enforce-lockfile
+
       - name: List available simulators
         run: xcrun simctl list devices available
 
