@@ -1080,7 +1080,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         return theme.cellSelectionColor;
       }
     }
-    if(this._tutorialCells != null && this._tutorialCells![index]) {
+    if(this._tutorialCells != null && this._tutorialCells![index] && sd![index] == 0) {
       return theme.orange;
     }
     return null;
