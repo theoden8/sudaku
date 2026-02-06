@@ -209,7 +209,7 @@ jobs:
       - name: Create macOS ZIP archive
         run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../sudaku-macos.zip Runner.app
+          zip -r ../../../../../sudaku-macos.zip sudaku.app
 
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
