@@ -241,6 +241,7 @@ void main() {
         completedPuzzle: record,
         timeSpent: null,
         constraintTypesUsed: 0,
+        manualMoves: 10,
       );
 
       expect(newAchievements.any((a) => a.type == AchievementType.firstSolve), isTrue);
@@ -263,6 +264,7 @@ void main() {
         completedPuzzle: record,
         timeSpent: null,
         constraintTypesUsed: 0,
+        manualMoves: 10,
       );
 
       expect(newAchievements.any((a) => a.type == AchievementType.size4x4Master), isTrue);
@@ -285,6 +287,7 @@ void main() {
         completedPuzzle: record,
         timeSpent: const Duration(seconds: 90), // Under 2 minutes
         constraintTypesUsed: 0,
+        manualMoves: 10,
       );
 
       expect(newAchievements.any((a) => a.type == AchievementType.speedDemon), isTrue);
@@ -307,6 +310,7 @@ void main() {
         completedPuzzle: record,
         timeSpent: const Duration(minutes: 5), // Over 2 minutes
         constraintTypesUsed: 0,
+        manualMoves: 10,
       );
 
       expect(newAchievements.any((a) => a.type == AchievementType.speedDemon), isFalse);
@@ -329,6 +333,7 @@ void main() {
         completedPuzzle: record,
         timeSpent: null,
         constraintTypesUsed: 3,
+        manualMoves: 10,
       );
 
       expect(newAchievements.any((a) => a.type == AchievementType.constraintMaster), isTrue);
@@ -351,10 +356,80 @@ void main() {
         ),
         timeSpent: null,
         constraintTypesUsed: 0,
+        manualMoves: 10,
       );
 
       final achievements = await TrophyRoomStorage.loadAchievements();
       expect(achievements[AchievementType.tenPuzzles]!.progress, equals(1));
+    });
+
+    test('unlocks constraintOnly4x4 for 4x4 with zero manual moves', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record = PuzzleRecord(
+        id: 'constraint_only_4x4',
+        n: 2,
+        hints: [0],
+        hintValues: [1],
+        completedAt: DateTime.now(),
+        moveCount: 0,
+      );
+
+      final tracker = AchievementTracker();
+      final newAchievements = await tracker.checkAchievements(
+        completedPuzzle: record,
+        timeSpent: null,
+        constraintTypesUsed: 1,
+        manualMoves: 0,
+      );
+
+      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly4x4), isTrue);
+    });
+
+    test('does not unlock constraintOnly4x4 for 4x4 with manual moves', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record = PuzzleRecord(
+        id: 'manual_4x4',
+        n: 2,
+        hints: [0],
+        hintValues: [1],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final tracker = AchievementTracker();
+      final newAchievements = await tracker.checkAchievements(
+        completedPuzzle: record,
+        timeSpent: null,
+        constraintTypesUsed: 1,
+        manualMoves: 5,
+      );
+
+      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly4x4), isFalse);
+    });
+
+    test('does not unlock constraintOnly4x4 for 9x9 with zero manual moves', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record = PuzzleRecord(
+        id: 'constraint_only_9x9',
+        n: 3,
+        hints: [0],
+        hintValues: [1],
+        completedAt: DateTime.now(),
+        moveCount: 0,
+      );
+
+      final tracker = AchievementTracker();
+      final newAchievements = await tracker.checkAchievements(
+        completedPuzzle: record,
+        timeSpent: null,
+        constraintTypesUsed: 1,
+        manualMoves: 0,
+      );
+
+      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly4x4), isFalse);
     });
   });
 

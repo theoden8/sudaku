@@ -131,6 +131,7 @@ enum AchievementType {
   allSizesMaster,
   speedDemon,
   constraintMaster,
+  constraintOnly4x4,
 }
 
 class Achievement {
@@ -270,6 +271,13 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.rule_rounded,
       gradientColors: [AppColors.primaryPurple, AppColors.secondaryPurple],
     ),
+    AchievementType.constraintOnly4x4: Achievement(
+      type: AchievementType.constraintOnly4x4,
+      title: 'Pure Logic',
+      description: 'Complete a 4x4 puzzle using only constraints',
+      icon: Icons.auto_fix_high_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.gold],
+    ),
   };
 }
 
@@ -392,6 +400,7 @@ class AchievementTracker {
     required PuzzleRecord completedPuzzle,
     required Duration? timeSpent,
     required int constraintTypesUsed,
+    required int manualMoves,
   }) async {
     final newlyUnlocked = <Achievement>[];
     final achievements = await TrophyRoomStorage.loadAchievements();
@@ -454,6 +463,11 @@ class AchievementTracker {
     // Check constraint master (all 3 types used)
     if (constraintTypesUsed >= 3) {
       unlock(AchievementType.constraintMaster);
+    }
+
+    // Check constraint-only 4x4 (solved without manual cell entries)
+    if (completedPuzzle.n == 2 && manualMoves == 0) {
+      unlock(AchievementType.constraintOnly4x4);
     }
 
     // Save updates

@@ -275,6 +275,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       completedPuzzle: record,
       timeSpent: null, // TODO: Track time in future
       constraintTypesUsed: constraintTypes,
+      manualMoves: sd!.age,
     );
 
     // Clear saved puzzle state
