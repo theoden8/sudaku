@@ -1137,13 +1137,13 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.add_rounded,
+                                _savedPuzzle != null ? Icons.add_rounded : Icons.play_arrow_rounded,
                                 color: Colors.white,
                                 size: (_savedPuzzle != null ? buttonHeight * 0.7 : buttonHeight) * 0.5,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'NEW',
+                                _savedPuzzle != null ? 'NEW' : 'PLAY',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: (_savedPuzzle != null ? buttonHeight * 0.7 : buttonHeight) * 0.35,
