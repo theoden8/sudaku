@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bit_array/bit_array.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'main.dart';
@@ -68,12 +70,16 @@ class SudokuScreenArguments {
   final bool isDemoMode;
   final List<int>? demoPuzzle;
   final bool addDemoConstraints;
+  final List<int>? savedBuffer;
+  final List<int>? savedHints;
 
   SudokuScreenArguments({
     required this.n,
     this.isDemoMode = false,
     this.demoPuzzle,
     this.addDemoConstraints = false,
+    this.savedBuffer,
+    this.savedHints,
   });
 }
 
@@ -193,6 +199,48 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   void runSetState() {
     setState((){});
+    _autoSavePuzzleState();
+  }
+
+  // Auto-save with debouncing to avoid excessive writes
+  DateTime? _lastAutoSave;
+  void _autoSavePuzzleState() {
+    final now = DateTime.now();
+    if (_lastAutoSave != null && now.difference(_lastAutoSave!).inMilliseconds < 500) {
+      return; // Debounce: skip if last save was less than 500ms ago
+    }
+    _lastAutoSave = now;
+    _savePuzzleState();
+  }
+
+  // Persistence keys
+  static const String _savedPuzzleKey = 'savedPuzzle';
+
+  Future<void> _savePuzzleState() async {
+    if (sd == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final state = {
+      'n': sd!.n,
+      'buffer': sd!.buf.getBuffer(),
+      'hints': sd!.hints.asIntIterable().toList(),
+    };
+    await prefs.setString(_savedPuzzleKey, jsonEncode(state));
+  }
+
+  static Future<Map<String, dynamic>?> loadSavedPuzzle() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_savedPuzzleKey);
+    if (saved == null) return null;
+    try {
+      return jsonDecode(saved) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> clearSavedPuzzle() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_savedPuzzleKey);
   }
 
   void _handleVictory() {
@@ -435,6 +483,71 @@ class SudokuScreenState extends State<SudokuScreen> {
     setState(() {
       this.sd = null;
     });
+  }
+
+  Future<void> _showExitDialog(BuildContext ctx) async {
+    final theme = widget.sudokuThemeFunc(context);
+    return showDialog<void>(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.exit_to_app_rounded, color: AppColors.primaryPurple, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Exit Puzzle',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.dialogTitleColor,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Your progress will be saved.',
+            style: TextStyle(
+              color: theme.dialogTextColor,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: theme.cancelButtonColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              }
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Exit'),
+              onPressed: () async {
+                await this._savePuzzleState();
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              }
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _showThemeDialog(BuildContext ctx) async {
@@ -1700,7 +1813,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         onSelected: (int opt) {
           switch(opt) {
             case TOOLBAR_RESET:
-              this._showResetDialog(ctx);
+              this._showExitDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
               this._showTutorialOfferDialog();
@@ -1754,9 +1867,9 @@ class SudokuScreenState extends State<SudokuScreen> {
             value: TOOLBAR_RESET,
             child: Row(
               children: [
-                Icon(Icons.refresh_rounded, size: 20),
+                Icon(Icons.exit_to_app_rounded, size: 20),
                 SizedBox(width: 12),
-                Text('Reset / Menu'),
+                Text('Exit'),
               ],
             ),
           ),
@@ -1921,7 +2034,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
-      if (args.isDemoMode && args.demoPuzzle != null) {
+      if (args.savedBuffer != null && args.savedHints != null) {
+        // Restore from saved state
+        sd = Sudoku.fromSaved(n, args.savedBuffer!, args.savedHints!, () {
+          this.runSetState();
+        });
+      } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
         sd = Sudoku.demo(n, args.demoPuzzle!, () {
           this.runSetState();
