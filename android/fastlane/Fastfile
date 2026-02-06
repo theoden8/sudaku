@@ -76,9 +76,11 @@ platform :android do
 
     # Run Flutter integration test with screenshot capture
     # SCREENSHOT_DIR is passed to the test driver to specify where to save screenshots
+    # --flavor fdroid is required because the app uses product flavors
     sh("cd '#{project_root}' && SCREENSHOT_DIR='#{screenshots_dir}' fvm flutter drive \
       --driver=test_driver/integration_test.dart \
       --target=integration_test/screenshot_test.dart \
+      --flavor fdroid \
       -d #{device_id}")
 
     UI.success("Screenshots saved to: #{screenshots_dir}")
