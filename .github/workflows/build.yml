@@ -240,21 +240,26 @@ jobs:
 
       - name: Boot iOS Simulator
         run: |
-          # Find and boot an iPhone 15 Pro simulator
-          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 15 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+          # Find and boot an iPhone 15 Pro simulator (UUID can have lowercase)
+          DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 15 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-Fa-f0-9-]+\)' | tr -d '()')
           if [ -z "$DEVICE_ID" ]; then
             # Fallback to iPhone 14 Pro if iPhone 15 Pro not available
-            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 14 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone 14 Pro" | grep -v "Max" | head -1 | grep -oE '\([A-Fa-f0-9-]+\)' | tr -d '()')
           fi
           if [ -z "$DEVICE_ID" ]; then
             # Fallback to any available iPhone
-            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -oE '\([A-F0-9-]+\)' | tr -d '()')
+            DEVICE_ID=$(xcrun simctl list devices available | grep "iPhone" | head -1 | grep -oE '\([A-Fa-f0-9-]+\)' | tr -d '()')
+          fi
+          if [ -z "$DEVICE_ID" ]; then
+            echo "ERROR: No iOS simulator found!"
+            exit 1
           fi
           echo "Booting simulator: $DEVICE_ID"
           xcrun simctl boot "$DEVICE_ID" || true
           echo "SIMULATOR_ID=$DEVICE_ID" >> $GITHUB_ENV
 
       - name: Wait for simulator to boot
+        timeout-minutes: 5
         run: |
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           sleep 10
