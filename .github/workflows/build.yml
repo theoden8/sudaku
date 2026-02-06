@@ -7,32 +7,65 @@ on:
     branches: [master]
   workflow_dispatch:
 
-env:
-  FVM_VERSION: '3.2.1'
-
 jobs:
   validate-metadata:
+    name: Validate Fastlane Metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate Fastlane metadata
+      - name: Validate metadata
         run: ./scripts/validate_fastlane_metadata.sh
 
-  build-linux:
+  build-android-linux:
+    name: Build Android & Linux
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: -Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
 
-      - name: Cache FVM
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+      - name: Setup Flutter (for Dart SDK)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.6'
+          channel: 'stable'
+
+      - name: Cache fvm Flutter SDK
         uses: actions/cache@v4
         with:
-          path: |
-            ~/fvm/versions
-            ~/.fvm
-          key: fvm-${{ runner.os }}-${{ hashFiles('.fvmrc') }}
+          path: ~/.fvm/versions
+          key: fvm-${{ runner.os }}-${{ hashFiles('**/.fvmrc') }}
+          restore-keys: |
+            fvm-${{ runner.os }}-
+
+      - name: Install fvm
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Setup Flutter with fvm
+        run: |
+          fvm install
+          fvm use --force
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -40,23 +73,9 @@ jobs:
           path: |
             ~/.pub-cache
             .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      - name: Install FVM
-        run: |
-          dart pub global activate fvm ${{ env.FVM_VERSION }}
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Install Flutter via FVM
-        run: |
-          fvm install
-          fvm flutter --version
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build clang pkg-config libgtk-3-dev
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
 
       - name: Get dependencies
         run: fvm flutter pub get --enforce-lockfile
@@ -64,8 +83,17 @@ jobs:
       - name: Run tests
         run: fvm flutter test
 
+      - name: Build APK
+        run: fvm flutter build apk --release --flavor fdroid
+
       - name: Build Linux
         run: fvm flutter build linux --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-fdroid-release.apk
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -73,69 +101,88 @@ jobs:
           name: linux-release
           path: build/linux/x64/release/bundle/
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-
-      - name: Cache FVM
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/fvm/versions
-            ~/.fvm
-          key: fvm-${{ runner.os }}-${{ hashFiles('.fvmrc') }}
-
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      - name: Install FVM
+      # Android Screenshots
+      - name: Install ImageMagick
         run: |
-          dart pub global activate fvm ${{ env.FVM_VERSION }}
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+          curl -L https://imagemagick.org/archive/binaries/magick -o magick
+          chmod +x magick
+          sudo mv magick /usr/local/bin/magick
 
-      - name: Install Flutter via FVM
+      - name: Enable KVM for emulator acceleration
         run: |
-          fvm install
-          fvm flutter --version
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
-      - name: Get dependencies
-        run: fvm flutter pub get --enforce-lockfile
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Run tests
-        run: fvm flutter test
+      - name: Clean build artifacts before screenshots
+        run: fvm flutter clean && fvm flutter pub get --enforce-lockfile
 
-      - name: Build macOS
-        run: fvm flutter build macos --release
+      - name: Create AVD and generate screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disk-size: 4096M
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            # Wait for emulator to be fully booted
+            adb wait-for-device
+            adb shell input keyevent 82
 
-      - name: Upload macOS artifact
+            # Create screenshots directory
+            mkdir -p screenshots/android
+
+            # Run fastlane android screenshots using bundle
+            bundle exec fastlane android screenshots
+
+      - name: Add device frames to screenshots
+        run: bundle exec fastlane android add_device_frames
+
+      - name: Upload Android screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: macos-release
-          path: build/macos/Build/Products/Release/
+          name: android-screenshots
+          path: screenshots/android/*.png
+          if-no-files-found: warn
 
-  build-ios:
+  build-apple:
+    name: Build iOS & macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - name: Install Dart SDK, CocoaPods, ImageMagick, and Fastlane
+        run: |
+          brew install dart-sdk cocoapods imagemagick fastlane
+          brew link --force dart-sdk
+          brew link --force cocoapods
+          brew link --force imagemagick
+          brew link --force fastlane
 
-      - name: Cache FVM
+      - name: Cache fvm Flutter SDK
         uses: actions/cache@v4
         with:
-          path: |
-            ~/fvm/versions
-            ~/.fvm
-          key: fvm-${{ runner.os }}-${{ hashFiles('.fvmrc') }}
+          path: ~/.fvm/versions
+          key: fvm-${{ runner.os }}-${{ hashFiles('**/.fvmrc') }}
+          restore-keys: |
+            fvm-${{ runner.os }}-
+
+      - name: Install fvm
+        run: |
+          dart pub global activate fvm
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Setup Flutter with fvm
+        run: |
+          fvm install
+          fvm use --force
 
       - name: Cache pub dependencies
         uses: actions/cache@v4
@@ -143,18 +190,9 @@ jobs:
           path: |
             ~/.pub-cache
             .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      - name: Install FVM
-        run: |
-          dart pub global activate fvm ${{ env.FVM_VERSION }}
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Install Flutter via FVM
-        run: |
-          fvm install
-          fvm flutter --version
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
 
       - name: Get dependencies
         run: fvm flutter pub get --enforce-lockfile
@@ -165,19 +203,27 @@ jobs:
       - name: Build iOS
         run: fvm flutter build ios --release --no-codesign
 
+      - name: Build macOS
+        run: fvm flutter build macos --release
+
+      - name: Create macOS ZIP archive
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../sudaku-macos.zip Runner.app
+
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-release
           path: build/ios/iphoneos/Runner.app
 
-      # iOS Screenshots
-      - name: Install ImageMagick and Fastlane
-        run: |
-          brew install imagemagick fastlane
-          brew link --force imagemagick
-          brew link --force fastlane
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: sudaku-macos.zip
 
+      # iOS Screenshots
       - name: List available simulators
         run: xcrun simctl list devices available
 
@@ -216,117 +262,4 @@ jobs:
         with:
           name: ios-screenshots
           path: screenshots/ios/*.png
-          if-no-files-found: warn
-
-  build-android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '2.7'
-          bundler-cache: true
-
-      - name: Cache FVM
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/fvm/versions
-            ~/.fvm
-          key: fvm-${{ runner.os }}-${{ hashFiles('.fvmrc') }}
-
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: pub-${{ runner.os }}-
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install FVM
-        run: |
-          dart pub global activate fvm ${{ env.FVM_VERSION }}
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Install Flutter via FVM
-        run: |
-          fvm install
-          fvm flutter --version
-
-      - name: Get dependencies
-        run: fvm flutter pub get --enforce-lockfile
-
-      - name: Build APK
-        run: fvm flutter build apk --release --flavor fdroid
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/app-fdroid-release.apk
-
-      # Android Screenshots
-      - name: Install ImageMagick
-        run: |
-          curl -L https://imagemagick.org/archive/binaries/magick -o magick
-          chmod +x magick
-          sudo mv magick /usr/local/bin/magick
-
-      - name: Enable KVM for emulator acceleration
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Create AVD and generate screenshots
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_5
-          disk-size: 4096M
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          disable-animations: true
-          script: |
-            # Wait for emulator to be fully booted
-            adb wait-for-device
-            adb shell input keyevent 82
-
-            # Create screenshots directory
-            mkdir -p screenshots/android
-
-            # Run fastlane android screenshots using bundle
-            bundle exec fastlane android screenshots
-
-      - name: Add device frames to screenshots
-        run: bundle exec fastlane android add_device_frames
-
-      - name: Upload Android screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-screenshots
-          path: screenshots/android/*.png
           if-no-files-found: warn
