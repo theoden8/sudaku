@@ -431,6 +431,163 @@ void main() {
 
       expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly4x4), isFalse);
     });
+
+    test('unlocks constraintOnly9x9 for 9x9 with zero manual moves', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record = PuzzleRecord(
+        id: 'constraint_only_9x9_success',
+        n: 3,
+        hints: [0],
+        hintValues: [1],
+        completedAt: DateTime.now(),
+        moveCount: 0,
+      );
+
+      final tracker = AchievementTracker();
+      final newAchievements = await tracker.checkAchievements(
+        completedPuzzle: record,
+        timeSpent: null,
+        constraintTypesUsed: 1,
+        manualMoves: 0,
+      );
+
+      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly9x9), isTrue);
+    });
+
+    test('does not double-count same puzzle for achievements', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record = PuzzleRecord(
+        id: 'duplicate_test',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final tracker = AchievementTracker();
+
+      // Complete the puzzle first time
+      await tracker.checkAchievements(
+        completedPuzzle: record,
+        timeSpent: null,
+        constraintTypesUsed: 0,
+        manualMoves: 5,
+      );
+
+      var stats = await TrophyRoomStorage.loadStats();
+      expect(stats['totalCompleted'], equals(1));
+
+      // Complete the same puzzle again (same hints/values)
+      final duplicateRecord = PuzzleRecord(
+        id: 'duplicate_test_2', // Different ID but same content
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      await tracker.checkAchievements(
+        completedPuzzle: duplicateRecord,
+        timeSpent: null,
+        constraintTypesUsed: 0,
+        manualMoves: 5,
+      );
+
+      stats = await TrophyRoomStorage.loadStats();
+      // Should still be 1 because it's the same puzzle
+      expect(stats['totalCompleted'], equals(1));
+    });
+
+    test('counts different puzzles separately', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record1 = PuzzleRecord(
+        id: 'puzzle_1',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final record2 = PuzzleRecord(
+        id: 'puzzle_2',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 4], // Different value
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final tracker = AchievementTracker();
+
+      await tracker.checkAchievements(
+        completedPuzzle: record1,
+        timeSpent: null,
+        constraintTypesUsed: 0,
+        manualMoves: 5,
+      );
+
+      await tracker.checkAchievements(
+        completedPuzzle: record2,
+        timeSpent: null,
+        constraintTypesUsed: 0,
+        manualMoves: 5,
+      );
+
+      final stats = await TrophyRoomStorage.loadStats();
+      expect(stats['totalCompleted'], equals(2));
+    });
+  });
+
+  group('PuzzleRecord Content ID Tests', () {
+    test('contentId is consistent for same puzzle', () {
+      final record1 = PuzzleRecord(
+        id: 'test_1',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final record2 = PuzzleRecord(
+        id: 'test_2',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 10,
+      );
+
+      expect(record1.contentId, equals(record2.contentId));
+    });
+
+    test('contentId differs for different puzzles', () {
+      final record1 = PuzzleRecord(
+        id: 'test_1',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      final record2 = PuzzleRecord(
+        id: 'test_2',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 4], // Different value
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      expect(record1.contentId, isNot(equals(record2.contentId)));
+    });
   });
 
   group('Achievement Model Tests', () {

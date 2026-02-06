@@ -86,6 +86,19 @@ class PuzzleRecord {
     return '${DateTime.now().millisecondsSinceEpoch}_${random.nextInt(10000)}';
   }
 
+  /// Generate a content-based ID from hints (for duplicate detection)
+  String get contentId {
+    final sortedHints = List<int>.from(hints);
+    sortedHints.sort();
+    final pairs = <String>[];
+    for (int i = 0; i < hints.length; i++) {
+      final idx = sortedHints.indexOf(hints[i]);
+      pairs.add('${hints[i]}:${hintValues[i]}');
+    }
+    pairs.sort();
+    return '${n}_${pairs.join(',')}';
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'n': n,
@@ -132,6 +145,7 @@ enum AchievementType {
   speedDemon,
   constraintMaster,
   constraintOnly4x4,
+  constraintOnly9x9,
 }
 
 class Achievement {
@@ -278,6 +292,13 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.auto_fix_high_rounded,
       gradientColors: [AppColors.constraintPurple, AppColors.gold],
     ),
+    AchievementType.constraintOnly9x9: Achievement(
+      type: AchievementType.constraintOnly9x9,
+      title: 'Logic Grandmaster',
+      description: 'Complete a 9x9 puzzle using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.gold, AppColors.primaryPurple],
+    ),
   };
 }
 
@@ -406,11 +427,23 @@ class AchievementTracker {
     final achievements = await TrophyRoomStorage.loadAchievements();
     final stats = await TrophyRoomStorage.loadStats();
 
-    // Update stats
-    final totalCompleted = ((stats['totalCompleted'] ?? 0) as int) + 1;
+    // Check if this puzzle was already solved (by content ID)
+    final solvedPuzzleIds = Set<String>.from(
+      ((stats['solvedPuzzleIds'] ?? []) as List).cast<String>(),
+    );
+    final contentId = completedPuzzle.contentId;
+    final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
+
+    // Update stats only for new puzzles
+    final totalCompleted = isNewPuzzle
+        ? ((stats['totalCompleted'] ?? 0) as int) + 1
+        : (stats['totalCompleted'] ?? 0) as int;
     final completedSizes = Set<int>.from(
       ((stats['completedSizes'] ?? []) as List).cast<int>(),
     )..add(completedPuzzle.n);
+    if (isNewPuzzle) {
+      solvedPuzzleIds.add(contentId);
+    }
 
     // Helper to unlock achievement
     void unlock(AchievementType type) {
@@ -470,11 +503,17 @@ class AchievementTracker {
       unlock(AchievementType.constraintOnly4x4);
     }
 
+    // Check constraint-only 9x9 (solved without manual cell entries)
+    if (completedPuzzle.n == 3 && manualMoves == 0) {
+      unlock(AchievementType.constraintOnly9x9);
+    }
+
     // Save updates
     await TrophyRoomStorage.saveAchievements(achievements);
     await TrophyRoomStorage.saveStats({
       'totalCompleted': totalCompleted,
       'completedSizes': completedSizes.toList(),
+      'solvedPuzzleIds': solvedPuzzleIds.toList(),
     });
 
     return newlyUnlocked;

@@ -14,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart';
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
+import 'SudokuBuffer.dart';
+import 'SudokuDomain.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 import 'TrophyRoom.dart';
@@ -73,6 +75,8 @@ class SudokuScreenArguments {
   final bool addDemoConstraints;
   final List<int>? savedBuffer;
   final List<int>? savedHints;
+  // Full saved state from persistence
+  final Map<String, dynamic>? savedState;
 
   SudokuScreenArguments({
     required this.n,
@@ -81,6 +85,7 @@ class SudokuScreenArguments {
     this.addDemoConstraints = false,
     this.savedBuffer,
     this.savedHints,
+    this.savedState,
   });
 }
 
@@ -220,12 +225,124 @@ class SudokuScreenState extends State<SudokuScreen> {
   Future<void> _savePuzzleState() async {
     if (sd == null) return;
     final prefs = await SharedPreferences.getInstance();
+
+    // Serialize constraints
+    final constraintsData = sd!.assist.constraints.map((c) {
+      final data = <String, dynamic>{
+        'type': c.type.index,
+        'variables': c.variables.asIntIterable().toList(),
+      };
+      if (c is ConstraintOneOf) {
+        data['value'] = c.value;
+      } else if (c is ConstraintAllDiff) {
+        data['domain'] = c.domain.asIntIterable().toList();
+      }
+      return data;
+    }).toList();
+
+    // Serialize eliminator state
+    final eliminatorData = <Map<String, dynamic>>[];
+    for (int i = 0; i < sd!.assist.elim.length; i++) {
+      eliminatorData.add({
+        'condition': sd!.assist.elim.conditions[i].getBuffer(),
+        'forbidden': _serializeSudokuDomain(sd!.assist.elim.forbiddenValues[i]),
+      });
+    }
+
     final state = {
       'n': sd!.n,
       'buffer': sd!.buf.getBuffer(),
       'hints': sd!.hints.asIntIterable().toList(),
+      // Assistant settings
+      'autoComplete': sd!.assist.autoComplete,
+      'useDefaultConstraints': sd!.assist.useDefaultConstraints,
+      'hintAvailable': sd!.assist.hintAvailable,
+      'hintConstrained': sd!.assist.hintConstrained,
+      'hintContradictions': sd!.assist.hintContradictions,
+      // Constraints
+      'constraints': constraintsData,
+      // Eliminator
+      'eliminator': eliminatorData,
     };
     await prefs.setString(_savedPuzzleKey, jsonEncode(state));
+  }
+
+  List<List<int>> _serializeSudokuDomain(SudokuDomain sdom) {
+    final result = <List<int>>[];
+    for (int i = 0; i < sd!.ne4; i++) {
+      result.add(sdom[i].asBitArray().asIntIterable().toList());
+    }
+    return result;
+  }
+
+  void _restoreFullState(Map<String, dynamic> state) {
+    if (sd == null) return;
+
+    // Restore assistant settings
+    if (state.containsKey('autoComplete')) {
+      sd!.assist.autoComplete = state['autoComplete'] as bool;
+    }
+    if (state.containsKey('useDefaultConstraints')) {
+      sd!.assist.useDefaultConstraints = state['useDefaultConstraints'] as bool;
+    }
+    if (state.containsKey('hintAvailable')) {
+      sd!.assist.hintAvailable = state['hintAvailable'] as bool;
+    }
+    if (state.containsKey('hintConstrained')) {
+      sd!.assist.hintConstrained = state['hintConstrained'] as bool;
+    }
+    if (state.containsKey('hintContradictions')) {
+      sd!.assist.hintContradictions = state['hintContradictions'] as bool;
+    }
+
+    // Restore constraints
+    if (state.containsKey('constraints')) {
+      final constraintsData = state['constraints'] as List;
+      for (final cData in constraintsData) {
+        final data = cData as Map<String, dynamic>;
+        final typeIndex = data['type'] as int;
+        final variables = BitArray(sd!.ne4)
+          ..setBits((data['variables'] as List).cast<int>());
+
+        if (typeIndex == ConstraintType.ONE_OF.index) {
+          final value = data['value'] as int;
+          sd!.assist.addConstraint(ConstraintOneOf(sd!, variables, value));
+        } else if (typeIndex == ConstraintType.EQUAL.index) {
+          sd!.assist.addConstraint(ConstraintEqual(sd!, variables));
+        } else if (typeIndex == ConstraintType.ALLDIFF.index) {
+          final domain = BitArray(sd!.ne2 + 1)
+            ..setBits((data['domain'] as List).cast<int>());
+          sd!.assist.addConstraint(ConstraintAllDiff(sd!, variables, domain));
+        }
+      }
+    }
+
+    // Restore eliminator state
+    if (state.containsKey('eliminator')) {
+      final elimData = state['eliminator'] as List;
+      for (final eData in elimData) {
+        final data = eData as Map<String, dynamic>;
+        final conditionBuf = (data['condition'] as List).cast<int>();
+        final forbiddenData = data['forbidden'] as List;
+
+        // Create condition buffer
+        final condition = SudokuBuffer(sd!.ne4);
+        condition.setBuffer(conditionBuf);
+        sd!.assist.elim.conditions.add(condition);
+
+        // Create forbidden values domain
+        final forbidden = SudokuDomain(sd!);
+        for (int i = 0; i < sd!.ne4 && i < forbiddenData.length; i++) {
+          final bits = (forbiddenData[i] as List).cast<int>();
+          if (bits.isNotEmpty) {
+            forbidden[i].setBits(bits);
+          }
+        }
+        sd!.assist.elim.forbiddenValues.add(forbidden);
+      }
+    }
+
+    sd!.assist.updateCurrentCondition();
   }
 
   static Future<Map<String, dynamic>?> loadSavedPuzzle() async {
@@ -2130,6 +2247,10 @@ class SudokuScreenState extends State<SudokuScreen> {
         sd = Sudoku.fromSaved(n, args.savedBuffer!, args.savedHints!, () {
           this.runSetState();
         });
+        // Restore full state if available
+        if (args.savedState != null) {
+          _restoreFullState(args.savedState!);
+        }
       } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
         sd = Sudoku.demo(n, args.demoPuzzle!, () {

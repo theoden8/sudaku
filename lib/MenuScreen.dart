@@ -652,11 +652,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
     final buffer = (_savedPuzzle!['buffer'] as List).cast<int>();
     final hints = (_savedPuzzle!['hints'] as List).cast<int>();
 
-    await SudokuScreenState.clearSavedPuzzle();
-    setState(() {
-      _savedPuzzle = null;
-    });
-
+    // Don't clear saved puzzle - let it persist until explicit exit or victory
     Navigator.pushNamed(
       context,
       SudokuScreen.routeName,
@@ -664,6 +660,7 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         n: n,
         savedBuffer: buffer,
         savedHints: hints,
+        savedState: _savedPuzzle,
       ),
     ).then((_) => _loadSavedPuzzle());
   }
