@@ -114,10 +114,7 @@ abstract class ConstraintInteraction {
                 title: 'Assistant',
                 message: 'Once you get used to using constraints, you should enable default rules through the settings.',
                 nextFunc: () {
-                  self._showTutorial = false;
-                  self._tutorialStage = 0;
-                  self._tutorialCells = null;
-                  self.runSetState();
+                  self._completeTutorial();
                 }
               );
             }
@@ -1247,6 +1244,15 @@ class SudokuScreenState extends State<SudokuScreen> {
     if (kDebugMode) print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
   }
 
+  Future<void> _completeTutorial() async {
+    this._showTutorial = false;
+    this._tutorialStage = 0;
+    this._tutorialCells = null;
+    // Unlock tutorial achievement
+    await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+    this.runSetState();
+  }
+
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
     final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
@@ -1311,6 +1317,10 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialOfferDialog() async {
+    // Skip if tutorial already completed
+    final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+    if (tutorialDone) return;
+
     final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
@@ -1501,10 +1511,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               );
             }
         );
-        this._showTutorial = false;
-        this._tutorialStage = 0;
-        this._tutorialCells = null;
-        this.runSetState();
+        this._completeTutorial();
       },
       child: Container(
         decoration: BoxDecoration(

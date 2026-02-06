@@ -50,6 +50,13 @@ The Achievements tab tracks your progress across various milestones.
 | Pure Logic | Complete a 4x4 using only constraints |
 | Logic Grandmaster | Complete a 9x9 using only constraints |
 
+#### Learning Achievements
+| Achievement | Description |
+|-------------|-------------|
+| Quick Learner | Complete the constraint tutorial |
+
+Note: Once the tutorial is completed, the tutorial offer dialog will no longer appear.
+
 ### Puzzle Import
 
 Import puzzles using dot notation:

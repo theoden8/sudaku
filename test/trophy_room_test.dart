@@ -259,6 +259,37 @@ void main() {
       expect(stats['totalCompleted'], equals(0));
       expect(stats['completedSizes'], isEmpty);
     });
+
+    test('isAchievementUnlocked returns false for new achievement', () async {
+      SharedPreferences.setMockInitialValues({});
+      final isUnlocked = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+      expect(isUnlocked, isFalse);
+    });
+
+    test('unlockAchievement unlocks achievement and returns it', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final achievement = await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+
+      expect(achievement, isNotNull);
+      expect(achievement!.type, equals(AchievementType.tutorialComplete));
+      expect(achievement.isUnlocked, isTrue);
+
+      // Verify it's persisted
+      final isUnlocked = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+      expect(isUnlocked, isTrue);
+    });
+
+    test('unlockAchievement returns null if already unlocked', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      // First unlock
+      await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+
+      // Second unlock should return null
+      final achievement = await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+      expect(achievement, isNull);
+    });
   });
 
   group('AchievementTracker Tests', () {

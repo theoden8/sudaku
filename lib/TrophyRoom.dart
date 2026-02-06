@@ -146,6 +146,7 @@ enum AchievementType {
   constraintMaster,
   constraintOnly4x4,
   constraintOnly9x9,
+  tutorialComplete,
 }
 
 class Achievement {
@@ -299,6 +300,13 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.psychology_rounded,
       gradientColors: [AppColors.gold, AppColors.primaryPurple],
     ),
+    AchievementType.tutorialComplete: Achievement(
+      type: AchievementType.tutorialComplete,
+      title: 'Quick Learner',
+      description: 'Complete the constraint tutorial',
+      icon: Icons.school_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
   };
 }
 
@@ -413,6 +421,25 @@ class TrophyRoomStorage {
   static Future<void> saveStats(Map<String, dynamic> stats) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_statsKey, jsonEncode(stats));
+  }
+
+  /// Check if a specific achievement is unlocked
+  static Future<bool> isAchievementUnlocked(AchievementType type) async {
+    final achievements = await loadAchievements();
+    return achievements[type]?.isUnlocked ?? false;
+  }
+
+  /// Unlock a specific achievement directly (for non-puzzle achievements like tutorial)
+  static Future<Achievement?> unlockAchievement(AchievementType type) async {
+    final achievements = await loadAchievements();
+    if (achievements[type]!.isUnlocked) {
+      return null; // Already unlocked
+    }
+    achievements[type] = achievements[type]!.copyWith(
+      unlockedAt: DateTime.now(),
+    );
+    await saveAchievements(achievements);
+    return achievements[type];
   }
 }
 
