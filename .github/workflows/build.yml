@@ -118,10 +118,15 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Clean build artifacts before screenshots
-        run: fvm flutter clean && fvm flutter pub get --enforce-lockfile
+        run: |
+          fvm flutter clean
+          rm -rf ~/.gradle/caches/transforms-*
+          fvm flutter pub get --enforce-lockfile
 
       - name: Create AVD and generate screenshots
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          GRADLE_OPTS: -Xmx6g -XX:MaxMetaspaceSize=1g -Dorg.gradle.jvmargs=-Xmx6g
         with:
           api-level: 34
           target: google_apis
@@ -137,6 +142,9 @@ jobs:
 
             # Create screenshots directory
             mkdir -p screenshots/android
+
+            # Set Gradle memory for debug build
+            export GRADLE_OPTS="-Xmx6g -XX:MaxMetaspaceSize=1g"
 
             # Run fastlane android screenshots using bundle
             bundle exec fastlane android screenshots
