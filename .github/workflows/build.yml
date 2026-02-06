@@ -19,6 +19,7 @@ jobs:
   build-android-linux:
     name: Build Android & Linux
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       GRADLE_OPTS: -Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
     steps:
@@ -162,6 +163,7 @@ jobs:
   build-apple:
     name: Build iOS & macOS
     runs-on: macos-latest
+    timeout-minutes: 40
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
