@@ -1230,15 +1230,18 @@ class SudokuScreenState extends State<SudokuScreen> {
   int _tutorialStage = 0;
   // Static so it persists across screen instances (survives navigation)
   static bool _tutorialDialogShownThisSession = false;
+  // Store auto-complete state to restore after tutorial
+  bool? _tutorialSavedAutoComplete;
 
   BitArray? _tutorialCells = null;
   void _selectTutorialCells() {
+    // Select only cells that are currently empty (not hints and not filled)
     this._tutorialCells = BitArray(sd!.ne4)
       ..setBits(
           sd!.getUnsolvedRandomBC()
         .asIntIterable()
-        .where((ind) => !sd!.isHint(ind)));
-    if(this._tutorialCells == null) {
+        .where((ind) => !sd!.isHint(ind) && sd![ind] == 0));
+    if(this._tutorialCells == null || this._tutorialCells!.isEmpty) {
       this._tutorialCells = BitArray(sd!.ne4);
     }
     if (kDebugMode) print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
@@ -1248,6 +1251,11 @@ class SudokuScreenState extends State<SudokuScreen> {
     this._showTutorial = false;
     this._tutorialStage = 0;
     this._tutorialCells = null;
+    // Restore auto-complete state
+    if (this._tutorialSavedAutoComplete != null) {
+      sd!.assist.autoComplete = this._tutorialSavedAutoComplete!;
+      this._tutorialSavedAutoComplete = null;
+    }
     // Unlock tutorial achievement
     await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
     this.runSetState();
@@ -1389,6 +1397,9 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: const Text('Start Tutorial'),
               onPressed: () {
                 Navigator.of(ctx).pop();
+                // Disable auto-complete during tutorial to prevent cells from being filled
+                this._tutorialSavedAutoComplete = sd!.assist.autoComplete;
+                sd!.assist.autoComplete = false;
                 this._selectTutorialCells();
                 this._showTutorial = true;
                 this._tutorialStage = 1;
