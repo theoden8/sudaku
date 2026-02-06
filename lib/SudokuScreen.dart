@@ -16,6 +16,7 @@ import 'Sudoku.dart';
 import 'SudokuAssist.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
+import 'TrophyRoom.dart';
 import 'demo_data.dart';
 
 
@@ -248,6 +249,37 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Future<void> _showVictoryDialog() async {
     final theme = widget.sudokuThemeFunc(context);
+
+    // Create puzzle record
+    final hints = sd!.hints.asIntIterable().toList();
+    final hintValues = hints.map((i) => sd![i]).toList();
+    final record = PuzzleRecord(
+      id: '${DateTime.now().millisecondsSinceEpoch}_${sd!.n}',
+      n: sd!.n,
+      hints: hints,
+      hintValues: hintValues,
+      completedAt: DateTime.now(),
+      moveCount: sd!.age,
+    );
+
+    // Save to trophy room
+    await TrophyRoomStorage.addPuzzleRecord(record);
+
+    // Check achievements
+    final constraintTypes = sd!.assist.constraints
+        .map((c) => c.type)
+        .toSet()
+        .length;
+    final tracker = AchievementTracker();
+    final newAchievements = await tracker.checkAchievements(
+      completedPuzzle: record,
+      timeSpent: null, // TODO: Track time in future
+      constraintTypesUsed: constraintTypes,
+    );
+
+    // Clear saved puzzle state
+    await SudokuScreenState.clearSavedPuzzle();
+
     showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
@@ -269,11 +301,69 @@ class SudokuScreenState extends State<SudokuScreen> {
               ),
             ],
           ),
-          content: Text(
-            'Congratulations on solving the puzzle!',
-            style: TextStyle(
-              color: theme.dialogTextColor,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Congratulations on solving the puzzle!',
+                style: TextStyle(
+                  color: theme.dialogTextColor,
+                ),
+              ),
+              if (newAchievements.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Achievements Unlocked:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.dialogTitleColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...newAchievements.map((a) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: a.gradientColors,
+                          ),
+                        ),
+                        child: Icon(a.icon, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a.title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: theme.dialogTitleColor,
+                              ),
+                            ),
+                            Text(
+                              a.description,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.mutedPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ],
           ),
           actions: <Widget>[
             TextButton(

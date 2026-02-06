@@ -12,6 +12,7 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
+import 'TrophyRoomScreen.dart';
 
 
 /// Custom painter for hand-drawn/sketched grid lines (Excalidraw-style)
@@ -666,6 +667,7 @@ class _SudokuAppState extends State<SudokuApp> {
       routes: {
         SudokuScreen.routeName: (ctx) => SudokuScreen(sudokuThemeFunc: getSudokuTheme),
         SudokuAssistScreen.routeName: (ctx) => SudokuAssistScreen(),
+        TrophyRoomScreen.routeName: (ctx) => TrophyRoomScreen(sudokuThemeFunc: getSudokuTheme),
       },
     );
   }

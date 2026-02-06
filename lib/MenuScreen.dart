@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart';
 import 'SudokuScreen.dart';
+import 'TrophyRoomScreen.dart';
 import 'demo_data.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -816,6 +817,14 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.emoji_events_rounded,
+              color: theme.iconColor,
+            ),
+            onPressed: () => Navigator.pushNamed(context, TrophyRoomScreen.routeName),
+            tooltip: 'Trophy Room',
+          ),
           PopupMenuButton<String>(
             icon: Icon(
               Icons.palette,
