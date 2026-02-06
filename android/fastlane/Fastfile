@@ -23,7 +23,7 @@ platform :android do
 
   desc "Build debug APK"
   lane :build_debug do
-    sh("cd '#{project_root}' && fvm fvm flutter build apk --debug")
+    sh("cd '#{project_root}' && fvm flutter build apk --debug")
   end
 
   desc "Build release APK"

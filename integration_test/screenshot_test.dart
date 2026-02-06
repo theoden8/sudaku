@@ -208,7 +208,8 @@ void main() {
             // The number pad buttons are usually the last ones found
             print('Found digit 4, tapping to enter value...');
             await tester.tap(digit4.last);
-            await tester.pump(const Duration(seconds: 2));
+            // Wait for "allDiff applied/satisfied" message to disappear before screenshot
+            await tester.pump(const Duration(seconds: 4));
           }
 
           // Take screenshot showing the filled cell
