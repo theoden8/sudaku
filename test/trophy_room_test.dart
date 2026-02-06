@@ -202,6 +202,48 @@ void main() {
       expect(records[0].id, equals('delete_test_2'));
     });
 
+    test('addPuzzleRecord does not add duplicate puzzles', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      final record1 = PuzzleRecord(
+        id: 'first_solve',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 5,
+      );
+
+      // Same puzzle content, different ID (simulating solving same puzzle again)
+      final record2 = PuzzleRecord(
+        id: 'second_solve',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 8,
+      );
+
+      // Third solve of same puzzle
+      final record3 = PuzzleRecord(
+        id: 'third_solve',
+        n: 3,
+        hints: [0, 5, 10],
+        hintValues: [1, 2, 3],
+        completedAt: DateTime.now(),
+        moveCount: 3,
+      );
+
+      await TrophyRoomStorage.addPuzzleRecord(record1);
+      await TrophyRoomStorage.addPuzzleRecord(record2);
+      await TrophyRoomStorage.addPuzzleRecord(record3);
+
+      final records = await TrophyRoomStorage.loadPuzzleRecords();
+      // Should only have 1 record, not 3
+      expect(records.length, equals(1));
+      expect(records[0].id, equals('first_solve'));
+    });
+
     test('loadAchievements returns defaults when empty', () async {
       SharedPreferences.setMockInitialValues({});
       final achievements = await TrophyRoomStorage.loadAchievements();

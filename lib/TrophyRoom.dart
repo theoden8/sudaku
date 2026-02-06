@@ -335,6 +335,12 @@ class TrophyRoomStorage {
 
   static Future<void> addPuzzleRecord(PuzzleRecord record) async {
     final records = await loadPuzzleRecords();
+    // Check for duplicate by contentId - don't add if already exists
+    final existingIndex = records.indexWhere((r) => r.contentId == record.contentId);
+    if (existingIndex != -1) {
+      // Puzzle already exists, don't add duplicate
+      return;
+    }
     records.insert(0, record); // Most recent first
     await savePuzzleRecords(records);
   }
