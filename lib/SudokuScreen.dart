@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,13 +8,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bit_array/bit_array.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'main.dart';
 import 'Sudoku.dart';
 import 'SudokuAssist.dart';
+import 'SudokuBuffer.dart';
+import 'SudokuDomain.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
+import 'TrophyRoom.dart';
 import 'demo_data.dart';
 
 
@@ -68,12 +73,19 @@ class SudokuScreenArguments {
   final bool isDemoMode;
   final List<int>? demoPuzzle;
   final bool addDemoConstraints;
+  final List<int>? savedBuffer;
+  final List<int>? savedHints;
+  // Full saved state from persistence
+  final Map<String, dynamic>? savedState;
 
   SudokuScreenArguments({
     required this.n,
     this.isDemoMode = false,
     this.demoPuzzle,
     this.addDemoConstraints = false,
+    this.savedBuffer,
+    this.savedHints,
+    this.savedState,
   });
 }
 
@@ -102,10 +114,7 @@ abstract class ConstraintInteraction {
                 title: 'Assistant',
                 message: 'Once you get used to using constraints, you should enable default rules through the settings.',
                 nextFunc: () {
-                  self._showTutorial = false;
-                  self._tutorialStage = 0;
-                  self._tutorialCells = null;
-                  self.runSetState();
+                  self._completeTutorial();
                 }
               );
             }
@@ -193,6 +202,160 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   void runSetState() {
     setState((){});
+    _autoSavePuzzleState();
+  }
+
+  // Auto-save with debouncing to avoid excessive writes
+  DateTime? _lastAutoSave;
+  void _autoSavePuzzleState() {
+    final now = DateTime.now();
+    if (_lastAutoSave != null && now.difference(_lastAutoSave!).inMilliseconds < 500) {
+      return; // Debounce: skip if last save was less than 500ms ago
+    }
+    _lastAutoSave = now;
+    _savePuzzleState();
+  }
+
+  // Persistence keys
+  static const String _savedPuzzleKey = 'savedPuzzle';
+
+  Future<void> _savePuzzleState() async {
+    if (sd == null) return;
+    final prefs = await SharedPreferences.getInstance();
+
+    // Serialize constraints
+    final constraintsData = sd!.assist.constraints.map((c) {
+      final data = <String, dynamic>{
+        'type': c.type.index,
+        'variables': c.variables.asIntIterable().toList(),
+      };
+      if (c is ConstraintOneOf) {
+        data['value'] = c.value;
+      } else if (c is ConstraintAllDiff) {
+        data['domain'] = c.domain.asIntIterable().toList();
+      }
+      return data;
+    }).toList();
+
+    // Serialize eliminator state
+    final eliminatorData = <Map<String, dynamic>>[];
+    for (int i = 0; i < sd!.assist.elim.length; i++) {
+      eliminatorData.add({
+        'condition': sd!.assist.elim.conditions[i].getBuffer(),
+        'forbidden': _serializeSudokuDomain(sd!.assist.elim.forbiddenValues[i]),
+      });
+    }
+
+    final state = {
+      'n': sd!.n,
+      'buffer': sd!.buf.getBuffer(),
+      'hints': sd!.hints.asIntIterable().toList(),
+      // Assistant settings
+      'autoComplete': sd!.assist.autoComplete,
+      'useDefaultConstraints': sd!.assist.useDefaultConstraints,
+      'hintAvailable': sd!.assist.hintAvailable,
+      'hintConstrained': sd!.assist.hintConstrained,
+      'hintContradictions': sd!.assist.hintContradictions,
+      // Constraints
+      'constraints': constraintsData,
+      // Eliminator
+      'eliminator': eliminatorData,
+    };
+    await prefs.setString(_savedPuzzleKey, jsonEncode(state));
+  }
+
+  List<List<int>> _serializeSudokuDomain(SudokuDomain sdom) {
+    final result = <List<int>>[];
+    for (int i = 0; i < sd!.ne4; i++) {
+      result.add(sdom[i].asBitArray().asIntIterable().toList());
+    }
+    return result;
+  }
+
+  void _restoreFullState(Map<String, dynamic> state) {
+    if (sd == null) return;
+
+    // Restore assistant settings
+    if (state.containsKey('autoComplete')) {
+      sd!.assist.autoComplete = state['autoComplete'] as bool;
+    }
+    if (state.containsKey('useDefaultConstraints')) {
+      sd!.assist.useDefaultConstraints = state['useDefaultConstraints'] as bool;
+    }
+    if (state.containsKey('hintAvailable')) {
+      sd!.assist.hintAvailable = state['hintAvailable'] as bool;
+    }
+    if (state.containsKey('hintConstrained')) {
+      sd!.assist.hintConstrained = state['hintConstrained'] as bool;
+    }
+    if (state.containsKey('hintContradictions')) {
+      sd!.assist.hintContradictions = state['hintContradictions'] as bool;
+    }
+
+    // Restore constraints
+    if (state.containsKey('constraints')) {
+      final constraintsData = state['constraints'] as List;
+      for (final cData in constraintsData) {
+        final data = cData as Map<String, dynamic>;
+        final typeIndex = data['type'] as int;
+        final variables = BitArray(sd!.ne4)
+          ..setBits((data['variables'] as List).cast<int>());
+
+        if (typeIndex == ConstraintType.ONE_OF.index) {
+          final value = data['value'] as int;
+          sd!.assist.addConstraint(ConstraintOneOf(sd!, variables, value));
+        } else if (typeIndex == ConstraintType.EQUAL.index) {
+          sd!.assist.addConstraint(ConstraintEqual(sd!, variables));
+        } else if (typeIndex == ConstraintType.ALLDIFF.index) {
+          final domain = BitArray(sd!.ne2 + 1)
+            ..setBits((data['domain'] as List).cast<int>());
+          sd!.assist.addConstraint(ConstraintAllDiff(sd!, variables, domain));
+        }
+      }
+    }
+
+    // Restore eliminator state
+    if (state.containsKey('eliminator')) {
+      final elimData = state['eliminator'] as List;
+      for (final eData in elimData) {
+        final data = eData as Map<String, dynamic>;
+        final conditionBuf = (data['condition'] as List).cast<int>();
+        final forbiddenData = data['forbidden'] as List;
+
+        // Create condition buffer
+        final condition = SudokuBuffer(sd!.ne4);
+        condition.setBuffer(conditionBuf);
+        sd!.assist.elim.conditions.add(condition);
+
+        // Create forbidden values domain
+        final forbidden = SudokuDomain(sd!);
+        for (int i = 0; i < sd!.ne4 && i < forbiddenData.length; i++) {
+          final bits = (forbiddenData[i] as List).cast<int>();
+          if (bits.isNotEmpty) {
+            forbidden[i].setBits(bits);
+          }
+        }
+        sd!.assist.elim.forbiddenValues.add(forbidden);
+      }
+    }
+
+    sd!.assist.updateCurrentCondition();
+  }
+
+  static Future<Map<String, dynamic>?> loadSavedPuzzle() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_savedPuzzleKey);
+    if (saved == null) return null;
+    try {
+      return jsonDecode(saved) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> clearSavedPuzzle() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_savedPuzzleKey);
   }
 
   void _handleVictory() {
@@ -200,6 +363,38 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Future<void> _showVictoryDialog() async {
     final theme = widget.sudokuThemeFunc(context);
+
+    // Create puzzle record
+    final hints = sd!.hints.asIntIterable().toList();
+    final hintValues = hints.map((i) => sd![i]).toList();
+    final record = PuzzleRecord(
+      id: '${DateTime.now().millisecondsSinceEpoch}_${sd!.n}',
+      n: sd!.n,
+      hints: hints,
+      hintValues: hintValues,
+      completedAt: DateTime.now(),
+      moveCount: sd!.age,
+    );
+
+    // Save to trophy room
+    await TrophyRoomStorage.addPuzzleRecord(record);
+
+    // Check achievements
+    final constraintTypes = sd!.assist.constraints
+        .map((c) => c.type)
+        .toSet()
+        .length;
+    final tracker = AchievementTracker();
+    final newAchievements = await tracker.checkAchievements(
+      completedPuzzle: record,
+      timeSpent: null, // TODO: Track time in future
+      constraintTypesUsed: constraintTypes,
+      manualMoves: sd!.age,
+    );
+
+    // Clear saved puzzle state
+    await SudokuScreenState.clearSavedPuzzle();
+
     showDialog<void>(
       context: this.context,
       builder: (BuildContext ctx) {
@@ -221,11 +416,69 @@ class SudokuScreenState extends State<SudokuScreen> {
               ),
             ],
           ),
-          content: Text(
-            'Congratulations on solving the puzzle!',
-            style: TextStyle(
-              color: theme.dialogTextColor,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Congratulations on solving the puzzle!',
+                style: TextStyle(
+                  color: theme.dialogTextColor,
+                ),
+              ),
+              if (newAchievements.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Achievements Unlocked:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.dialogTitleColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...newAchievements.map((a) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            colors: a.gradientColors,
+                          ),
+                        ),
+                        child: Icon(a.icon, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a.title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: theme.dialogTitleColor,
+                              ),
+                            ),
+                            Text(
+                              a.description,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.mutedPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ],
           ),
           actions: <Widget>[
             TextButton(
@@ -435,6 +688,71 @@ class SudokuScreenState extends State<SudokuScreen> {
     setState(() {
       this.sd = null;
     });
+  }
+
+  Future<void> _showExitDialog(BuildContext ctx) async {
+    final theme = widget.sudokuThemeFunc(context);
+    return showDialog<void>(
+      context: this.context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.exit_to_app_rounded, color: AppColors.primaryPurple, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Exit Puzzle',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: theme.dialogTitleColor,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Your progress will be discarded.',
+            style: TextStyle(
+              color: theme.dialogTextColor,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: theme.cancelButtonColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              }
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text('Exit'),
+              onPressed: () async {
+                await SudokuScreenState.clearSavedPuzzle();
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              }
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _showThemeDialog(BuildContext ctx) async {
@@ -762,7 +1080,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         return theme.cellSelectionColor;
       }
     }
-    if(this._tutorialCells != null && this._tutorialCells![index]) {
+    if(this._tutorialCells != null && this._tutorialCells![index] && sd![index] == 0) {
       return theme.orange;
     }
     return null;
@@ -912,18 +1230,35 @@ class SudokuScreenState extends State<SudokuScreen> {
   int _tutorialStage = 0;
   // Static so it persists across screen instances (survives navigation)
   static bool _tutorialDialogShownThisSession = false;
+  // Store auto-complete state to restore after tutorial
+  bool? _tutorialSavedAutoComplete;
 
   BitArray? _tutorialCells = null;
   void _selectTutorialCells() {
+    // Select only cells that are currently empty (not hints and not filled)
     this._tutorialCells = BitArray(sd!.ne4)
       ..setBits(
           sd!.getUnsolvedRandomBC()
         .asIntIterable()
-        .where((ind) => !sd!.isHint(ind)));
-    if(this._tutorialCells == null) {
+        .where((ind) => !sd!.isHint(ind) && sd![ind] == 0));
+    if(this._tutorialCells == null || this._tutorialCells!.isEmpty) {
       this._tutorialCells = BitArray(sd!.ne4);
     }
     if (kDebugMode) print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
+  }
+
+  Future<void> _completeTutorial() async {
+    this._showTutorial = false;
+    this._tutorialStage = 0;
+    this._tutorialCells = null;
+    // Restore auto-complete state
+    if (this._tutorialSavedAutoComplete != null) {
+      sd!.assist.autoComplete = this._tutorialSavedAutoComplete!;
+      this._tutorialSavedAutoComplete = null;
+    }
+    // Unlock tutorial achievement
+    await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+    this.runSetState();
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
@@ -990,6 +1325,10 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   Future<void> _showTutorialOfferDialog() async {
+    // Skip if tutorial already completed
+    final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+    if (tutorialDone) return;
+
     final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
       context: this.context,
@@ -1058,6 +1397,9 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: const Text('Start Tutorial'),
               onPressed: () {
                 Navigator.of(ctx).pop();
+                // Disable auto-complete during tutorial to prevent cells from being filled
+                this._tutorialSavedAutoComplete = sd!.assist.autoComplete;
+                sd!.assist.autoComplete = false;
                 this._selectTutorialCells();
                 this._showTutorial = true;
                 this._tutorialStage = 1;
@@ -1180,10 +1522,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               );
             }
         );
-        this._showTutorial = false;
-        this._tutorialStage = 0;
-        this._tutorialCells = null;
-        this.runSetState();
+        this._completeTutorial();
       },
       child: Container(
         decoration: BoxDecoration(
@@ -1700,7 +2039,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         onSelected: (int opt) {
           switch(opt) {
             case TOOLBAR_RESET:
-              this._showResetDialog(ctx);
+              this._showExitDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
               this._showTutorialOfferDialog();
@@ -1754,9 +2093,9 @@ class SudokuScreenState extends State<SudokuScreen> {
             value: TOOLBAR_RESET,
             child: Row(
               children: [
-                Icon(Icons.refresh_rounded, size: 20),
+                Icon(Icons.exit_to_app_rounded, size: 20),
                 SizedBox(width: 12),
-                Text('Reset / Menu'),
+                Text('Exit'),
               ],
             ),
           ),
@@ -1921,7 +2260,16 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(ctx);
 
     if(sd == null || sd!.n != n) {
-      if (args.isDemoMode && args.demoPuzzle != null) {
+      if (args.savedBuffer != null && args.savedHints != null) {
+        // Restore from saved state
+        sd = Sudoku.fromSaved(n, args.savedBuffer!, args.savedHints!, () {
+          this.runSetState();
+        });
+        // Restore full state if available
+        if (args.savedState != null) {
+          _restoreFullState(args.savedState!);
+        }
+      } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
         sd = Sudoku.demo(n, args.demoPuzzle!, () {
           this.runSetState();

@@ -308,6 +308,31 @@ class Sudoku {
     callback_f();
   }
 
+  /// Creates a Sudoku restored from saved state.
+  /// [buffer] is the current grid values, [hintIndices] are the original hint cell indices.
+  Sudoku.fromSaved(int n, List<int> buffer, List<int> hintIndices, callback_f) {
+    this.n = n;
+    this.ne2 = n * n;
+    this.ne4 = ne2 * ne2;
+    this.ne6 = ne4 * ne2;
+    this.changes = <SudokuChange>[];
+    this.assist = SudokuAssist(this);
+    this.hints = BitArray(ne4);
+    this._setupSavedSudoku(buffer, hintIndices, callback_f);
+  }
+
+  void _setupSavedSudoku(List<int> buffer, List<int> hintIndices, Function() callback_f) {
+    assert(buffer.length == ne4);
+    this.buf = SudokuBuffer(ne4);
+    this.buf.setBuffer(buffer);
+    this.guard(() {
+      this.hints = BitArray(ne4);
+      this.hints.setBits(hintIndices);
+    });
+    this.assist.updateCurrentCondition();
+    callback_f();
+  }
+
   bool isHint(int ind) {
     if(this.hints == null) {
       return false;

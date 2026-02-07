@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart';
 import 'SudokuScreen.dart';
+import 'TrophyRoomScreen.dart';
 import 'demo_data.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -624,6 +625,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
 
 class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  Map<String, dynamic>? _savedPuzzle;
 
   @override
   void initState() {
@@ -632,6 +634,35 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
+    _loadSavedPuzzle();
+  }
+
+  Future<void> _loadSavedPuzzle() async {
+    final saved = await SudokuScreenState.loadSavedPuzzle();
+    if (mounted) {
+      setState(() {
+        _savedPuzzle = saved;
+      });
+    }
+  }
+
+  void _continueSavedPuzzle() async {
+    if (_savedPuzzle == null) return;
+    final n = _savedPuzzle!['n'] as int;
+    final buffer = (_savedPuzzle!['buffer'] as List).cast<int>();
+    final hints = (_savedPuzzle!['hints'] as List).cast<int>();
+
+    // Don't clear saved puzzle - let it persist until explicit exit or victory
+    Navigator.pushNamed(
+      context,
+      SudokuScreen.routeName,
+      arguments: SudokuScreenArguments(
+        n: n,
+        savedBuffer: buffer,
+        savedHints: hints,
+        savedState: _savedPuzzle,
+      ),
+    ).then((_) => _loadSavedPuzzle());
   }
 
   @override
@@ -783,6 +814,14 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.emoji_events_rounded,
+              color: theme.iconColor,
+            ),
+            onPressed: () => Navigator.pushNamed(context, TrophyRoomScreen.routeName),
+            tooltip: 'Trophy Room',
+          ),
           PopupMenuButton<String>(
             icon: Icon(
               Icons.palette,
@@ -1013,65 +1052,119 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                         },
                       ),
                       SizedBox(height: shortestSide * 0.06),
-                      // Play button
-                      AnimatedBuilder(
-                        animation: _pulseController,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: 1.0 + (_pulseController.value * 0.03),
-                            child: child,
-                          );
-                        },
-                        child: GestureDetector(
-                          onTap: () => _showPlayDialog(ctx),
-                          child: Container(
-                            width: buttonWidth,
-                            height: buttonHeight,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(buttonHeight * 0.5),
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.primaryPurple,
-                                  AppColors.secondaryPurple,
+                      // Continue button (if saved puzzle exists)
+                      if (_savedPuzzle != null) ...[
+                        AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: 1.0 + (_pulseController.value * 0.03),
+                              child: child,
+                            );
+                          },
+                          child: GestureDetector(
+                            onTap: _continueSavedPuzzle,
+                            child: Container(
+                              width: buttonWidth,
+                              height: buttonHeight,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(buttonHeight * 0.5),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.success,
+                                    AppColors.successLight,
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.success.withOpacity(0.4),
+                                    blurRadius: 25,
+                                    offset: const Offset(0, 10),
+                                  ),
                                 ],
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryPurple.withOpacity(0.4),
-                                  blurRadius: 25,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: buttonHeight * 0.5,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'PLAY',
-                                  style: TextStyle(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.play_arrow_rounded,
                                     color: Colors.white,
-                                    fontSize: buttonHeight * 0.35,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 4,
+                                    size: buttonHeight * 0.5,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'CONTINUE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: buttonHeight * 0.35,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 4,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          ),
+                        ),
+                        SizedBox(height: shortestSide * 0.03),
+                      ],
+                      // Play button
+                      GestureDetector(
+                        onTap: () => _showPlayDialog(ctx),
+                        child: Container(
+                          width: buttonWidth,
+                          height: _savedPuzzle != null ? buttonHeight * 0.7 : buttonHeight,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(buttonHeight * 0.5),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: _savedPuzzle != null
+                                  ? [
+                                      AppColors.primaryPurple.withOpacity(0.7),
+                                      AppColors.secondaryPurple.withOpacity(0.7),
+                                    ]
+                                  : [
+                                      AppColors.primaryPurple,
+                                      AppColors.secondaryPurple,
+                                    ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryPurple.withOpacity(_savedPuzzle != null ? 0.2 : 0.4),
+                                blurRadius: _savedPuzzle != null ? 15 : 25,
+                                offset: Offset(0, _savedPuzzle != null ? 5 : 10),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _savedPuzzle != null ? Icons.add_rounded : Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: (_savedPuzzle != null ? buttonHeight * 0.7 : buttonHeight) * 0.5,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _savedPuzzle != null ? 'NEW' : 'PLAY',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: (_savedPuzzle != null ? buttonHeight * 0.7 : buttonHeight) * 0.35,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 4,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                       SizedBox(height: shortestSide * 0.04),
                       // Subtitle
                       Text(
-                        'Tap to begin',
+                        _savedPuzzle != null ? 'Continue or start new' : 'Tap to begin',
                         style: TextStyle(
                           color: theme.subtitleColor,
                           fontSize: min(16, shortestSide * 0.025),
