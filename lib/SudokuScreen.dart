@@ -338,17 +338,26 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
-    // Serialize changes history
-    final changesData = sd!.changes.map((c) => {
+    // Only save manual changes (not assisted ones)
+    final manualChanges = sd!.changes.where((c) => !c.assisted).toList();
+    final changesData = manualChanges.map((c) => {
       'variable': c.variable,
       'value': c.value,
       'prevValue': c.prevValue,
       'assisted': c.assisted,
     }).toList();
 
+    // Only save manual values (hints + user-entered), not assistant-propagated ones
+    final manualBuffer = List<int>.generate(sd!.ne4, (i) {
+      if (sd!.isHint(i) || sd!.isVariableManual(i)) {
+        return sd![i];
+      }
+      return 0;
+    });
+
     final state = {
       'n': sd!.n,
-      'buffer': sd!.buf.getBuffer(),
+      'buffer': manualBuffer,
       'hints': sd!.hints.asIntIterable().toList(),
       'changes': changesData,
       // Assistant settings
@@ -469,7 +478,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     sd!.assist.updateCurrentCondition();
 
-    // Run assistant to apply constraints and update their status
+    // Re-run assistant to propagate values and apply constraints
+    // (we only save manual values, so assistant needs to re-propagate)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (sd != null && mounted) {
         runAssistant();
