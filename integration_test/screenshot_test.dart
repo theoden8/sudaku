@@ -135,6 +135,13 @@ void main() {
           await tester.pump(const Duration(seconds: 1));
         }
 
+        // Verify grid selection dialog is visible before taking screenshot
+        final startButton = find.text('START');
+        if (startButton.evaluate().isEmpty) {
+          print('Warning: START button not found, waiting longer...');
+          await tester.pump(const Duration(seconds: 2));
+        }
+
         // Take screenshot of grid selection with 9×9 pre-selected
         await _takeScreenshot(
           binding,
@@ -172,6 +179,14 @@ void main() {
         // Screenshot 2: Constraint List with AllDiff Highlighted
         // =========================================
         print('--- Screenshot 2: Constraint list with AllDiff highlighted ---');
+
+        // Clear any SnackBars that may have appeared from initial assistant run
+        final scaffoldFinder = find.byType(Scaffold);
+        if (scaffoldFinder.evaluate().isNotEmpty) {
+          final scaffoldContext = tester.element(scaffoldFinder.first);
+          ScaffoldMessenger.of(scaffoldContext).clearSnackBars();
+          await tester.pump(const Duration(milliseconds: 300));
+        }
 
         // Constraints are pre-loaded via setupDemoConstraints() when addDemoConstraints=true
         // Wait a bit longer for constraints to be fully rendered
