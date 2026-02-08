@@ -91,60 +91,63 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       return const SizedBox.shrink();
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: options.map((opt) {
-        final isSelected = _selectedDifficulty == opt.difficulty;
-        final color = _sizeColors[_selectedSize]?[0] ?? AppColors.primaryPurple;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: options.map((opt) {
+          final isSelected = _selectedDifficulty == opt.difficulty;
+          final color = _sizeColors[_selectedSize]?[0] ?? AppColors.primaryPurple;
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                setState(() {
-                  _selectedDifficulty = opt.difficulty;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: isSelected
-                      ? color.withOpacity(0.15)
-                      : Theme.of(context).colorScheme.surface.withOpacity(0.5),
-                  border: Border.all(
-                    color: isSelected ? color : theme.mutedPrimary.withOpacity(0.3),
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      opt.icon,
-                      size: 18,
-                      color: isSelected ? color : theme.mutedPrimary,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  setState(() {
+                    _selectedDifficulty = opt.difficulty;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected
+                        ? color.withOpacity(0.15)
+                        : Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                    border: Border.all(
+                      color: isSelected ? color : theme.mutedPrimary.withOpacity(0.3),
+                      width: isSelected ? 2 : 1,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      opt.label,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        opt.icon,
+                        size: 18,
                         color: isSelected ? color : theme.mutedPrimary,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        opt.label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? color : theme.mutedPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
