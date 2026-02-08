@@ -1,11 +1,17 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'main.dart';
 import 'TrophyRoom.dart';
 import 'SudokuScreen.dart';
+
+Color _getDifficultyColor(double normalized) {
+  if (normalized < 0.15) return AppColors.success;
+  if (normalized < 0.35) return AppColors.accent;
+  if (normalized < 0.55) return AppColors.warning;
+  if (normalized < 0.75) return AppColors.constraintPurple;
+  return AppColors.error;
+}
 
 class TrophyRoomScreen extends StatefulWidget {
   static const String routeName = '/trophy_room';
@@ -333,6 +339,24 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
                       color: theme.mutedPrimary,
                     ),
                   ),
+                  if (record.difficultyNormalized != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: _getDifficultyColor(record.difficultyNormalized!),
+                      ),
+                      child: Text(
+                        record.difficultyLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

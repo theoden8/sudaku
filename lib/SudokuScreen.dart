@@ -20,6 +20,7 @@ import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 import 'TrophyRoom.dart';
 import 'demo_data.dart';
+import 'sudoku_native.dart';
 
 
 /// Helper widget that renders text with a slight random wobble for pen-and-paper style
@@ -200,9 +201,17 @@ class SudokuScreenState extends State<SudokuScreen> {
   double screenWidth = 0,
          screenHeight = 0;
 
+  // Difficulty tracking
+  int? _currentDifficultyForwards;
+  bool _difficultyLoading = false;
+
   void runSetState() {
     setState((){});
     _autoSavePuzzleState();
+    // Update live difficulty if enabled
+    if (sd != null && sd!.assist.showDifficulty && sd!.assist.showLiveDifficulty) {
+      _estimateDifficulty(isInitial: false);
+    }
   }
 
   // Auto-save with debouncing to avoid excessive writes
@@ -256,6 +265,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       'hintAvailable': sd!.assist.hintAvailable,
       'hintConstrained': sd!.assist.hintConstrained,
       'hintContradictions': sd!.assist.hintContradictions,
+      'showDifficulty': sd!.assist.showDifficulty,
+      'showLiveDifficulty': sd!.assist.showLiveDifficulty,
       // Constraints
       'constraints': constraintsData,
       // Eliminator
@@ -290,6 +301,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
     if (state.containsKey('hintContradictions')) {
       sd!.assist.hintContradictions = state['hintContradictions'] as bool;
+    }
+    if (state.containsKey('showDifficulty')) {
+      sd!.assist.showDifficulty = state['showDifficulty'] as bool;
+    }
+    if (state.containsKey('showLiveDifficulty')) {
+      sd!.assist.showLiveDifficulty = state['showLiveDifficulty'] as bool;
     }
 
     // Restore constraints
@@ -358,15 +375,92 @@ class SudokuScreenState extends State<SudokuScreen> {
     await prefs.remove(_savedPuzzleKey);
   }
 
+  Color _getDifficultyColor(double normalized) {
+    if (normalized < 0.15) return AppColors.success;
+    if (normalized < 0.35) return AppColors.accent;
+    if (normalized < 0.55) return AppColors.warning;
+    if (normalized < 0.75) return AppColors.constraintPurple;
+    return AppColors.error;
+  }
+
+  String _getDifficultyLabel(double normalized) {
+    if (normalized < 0.15) return 'Easy';
+    if (normalized < 0.35) return 'Medium';
+    if (normalized < 0.55) return 'Hard';
+    if (normalized < 0.75) return 'Expert';
+    return 'Extreme';
+  }
+
+  double? _getDifficultyNormalized(int? forwards) {
+    if (forwards == null) return null;
+    const minLog = 8.3;
+    const maxLog = 19.2;
+    final logVal = forwards > 0 ? (log(forwards.toDouble()) / ln2) : 0.0;
+    return ((logVal - minLog) / (maxLog - minLog)).clamp(0.0, 1.0);
+  }
+
+  Future<void> _estimateDifficulty({bool isInitial = false}) async {
+    if (sd == null) return;
+    if (!sd!.assist.showDifficulty) return;
+    if (!isInitial && !sd!.assist.showLiveDifficulty) return;
+
+    setState(() => _difficultyLoading = true);
+
+    try {
+      // Get current puzzle state (hints only for initial, current state for live)
+      List<int> puzzleBuffer;
+      if (isInitial) {
+        // Use original hints only
+        puzzleBuffer = List.filled(sd!.ne4, 0);
+        for (final i in sd!.hints.asIntIterable()) {
+          puzzleBuffer[i] = sd![i];
+        }
+      } else {
+        // Use current puzzle state
+        puzzleBuffer = List.generate(sd!.ne4, (i) => sd![i]);
+      }
+
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 3);
+      if (mounted) {
+        setState(() {
+          _currentDifficultyForwards = stats?['avgForwards'];
+          _difficultyLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _currentDifficultyForwards = null;
+          _difficultyLoading = false;
+        });
+      }
+    }
+  }
+
   void _handleVictory() {
   }
 
   Future<void> _showVictoryDialog() async {
     final theme = widget.sudokuThemeFunc(context);
 
-    // Create puzzle record
+    // Create puzzle record with difficulty estimation
     final hints = sd!.hints.asIntIterable().toList();
     final hintValues = hints.map((i) => sd![i]).toList();
+
+    // Estimate difficulty using native library
+    int? difficultyForwards;
+    try {
+      final puzzleBuffer = List.filled(sd!.ne4, 0);
+      for (int i = 0; i < hints.length; i++) {
+        puzzleBuffer[hints[i]] = hintValues[i];
+      }
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 5);
+      difficultyForwards = stats?['avgForwards'];
+    } catch (e) {
+      // Native library might not be available on all platforms
+      difficultyForwards = null;
+    }
+
     final record = PuzzleRecord(
       id: '${DateTime.now().millisecondsSinceEpoch}_${sd!.n}',
       n: sd!.n,
@@ -374,6 +468,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       hintValues: hintValues,
       completedAt: DateTime.now(),
       moveCount: sd!.age,
+      difficultyForwards: difficultyForwards,
     );
 
     // Save to trophy room
@@ -426,6 +521,34 @@ class SudokuScreenState extends State<SudokuScreen> {
                   color: theme.dialogTextColor,
                 ),
               ),
+              if (record.difficultyNormalized != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      'Difficulty: ',
+                      style: TextStyle(
+                        color: theme.dialogTextColor,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: _getDifficultyColor(record.difficultyNormalized!),
+                      ),
+                      child: Text(
+                        record.difficultyLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (newAchievements.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -2285,6 +2408,11 @@ class SudokuScreenState extends State<SudokuScreen> {
         });
       }
       this._multiSelect = BitArray(sd!.ne4);
+      // Initial difficulty estimation
+      _currentDifficultyForwards = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _estimateDifficulty(isInitial: true);
+      });
     }
 
     // Show tutorial offer dialog once per session (not after reset or navigation)
@@ -2295,17 +2423,61 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
+    // Build difficulty badge for app bar
+    Widget? difficultyBadge;
+    if (sd != null && sd!.assist.showDifficulty) {
+      final norm = _getDifficultyNormalized(_currentDifficultyForwards);
+      if (_difficultyLoading) {
+        difficultyBadge = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.mutedPrimary,
+            ),
+          ),
+        );
+      } else if (norm != null) {
+        difficultyBadge = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: _getDifficultyColor(norm),
+          ),
+          child: Text(
+            _getDifficultyLabel(norm),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        );
+      }
+    }
+
     var appBar = AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      title: Text(
-        'SUDOKU',
-        style: TextStyle(
-          fontWeight: FontWeight.w900,
-          fontSize: 24,
-          letterSpacing: 3,
-          color: theme.dialogTitleColor,
-        ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'SUDOKU',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              letterSpacing: 3,
+              color: theme.dialogTitleColor,
+            ),
+          ),
+          if (difficultyBadge != null) ...[
+            const SizedBox(width: 12),
+            difficultyBadge,
+          ],
+        ],
       ),
       centerTitle: true,
       leading: const SizedBox.shrink(),

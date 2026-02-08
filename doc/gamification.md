@@ -8,12 +8,34 @@ Tap the trophy icon in the top-right corner of the main menu.
 
 ## Features
 
+### Puzzle Difficulty
+
+Puzzle difficulty is estimated using the native solver library and displayed throughout the app:
+
+#### Difficulty Levels
+| Level | Description |
+|-------|-------------|
+| Easy | Straightforward puzzles, quick to solve |
+| Medium | Moderate challenge |
+| Hard | Requires more advanced techniques |
+| Expert | Challenging puzzles |
+| Extreme | Top-tier difficulty (comparable to top44 hard puzzles) |
+
+#### Difficulty Display
+- **App Bar**: Shows difficulty badge next to "SUDOKU" title (can be toggled in Assistant settings)
+- **Victory Dialog**: Shows difficulty when you complete a puzzle
+- **Trophy Room**: Shows difficulty on each puzzle card in the Puzzles tab
+
+#### Live Difficulty
+When enabled in Assistant settings, difficulty updates as you solve the puzzle, showing how hard the remaining puzzle is. This feature is disabled by default as it may affect performance on older devices.
+
 ### Completed Puzzles
 
 The Puzzles tab displays all unique puzzles you've completed. Each puzzle shows:
 - Mini grid preview with hint positions
 - Completion date
 - Move count
+- Difficulty level (if available)
 
 Actions:
 - **Share**: Export puzzle as dot notation (copy to clipboard)
@@ -49,6 +71,13 @@ The Achievements tab tracks your progress across various milestones.
 | Constraint Master | Use all 3 constraint types in one puzzle |
 | Pure Logic | Complete a 4x4 using only constraints |
 | Logic Grandmaster | Complete a 9x9 using only constraints |
+
+#### Difficulty Achievements
+| Achievement | Description |
+|-------------|-------------|
+| Hard Solver | Complete a Hard difficulty puzzle |
+| Expert Solver | Complete an Expert difficulty puzzle |
+| Extreme Solver | Complete an Extreme difficulty puzzle |
 
 #### Learning Achievements
 | Achievement | Description |

@@ -225,6 +225,39 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
       ));
     }
 
+    // Difficulty section
+    widgets.add(_buildSectionHeader(ctx, 'DIFFICULTY'));
+
+    widgets.add(_buildSettingItem(
+      ctx: ctx,
+      icon: Icons.psychology_rounded,
+      title: 'Show puzzle difficulty',
+      subtitle: 'Display difficulty rating in the app bar',
+      value: sd.assist.showDifficulty,
+      onChanged: (bool b) {
+        sd.assist.showDifficulty = b;
+        runSetState();
+      },
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ));
+
+    // Show nested option only when showDifficulty is enabled
+    if (sd.assist.showDifficulty) {
+      widgets.add(_buildSettingItem(
+        ctx: ctx,
+        icon: Icons.update_rounded,
+        title: 'Live difficulty',
+        subtitle: 'Update difficulty as you solve (may affect performance)',
+        value: sd.assist.showLiveDifficulty,
+        onChanged: (bool b) {
+          sd.assist.showLiveDifficulty = b;
+          runSetState();
+        },
+        gradientColors: [AppColors.warning, AppColors.warningLight],
+        isIndented: true,
+      ));
+    }
+
     return widgets;
   }
 
