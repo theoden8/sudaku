@@ -69,6 +69,15 @@ void main() {
     await clearDemoData();
   });
 
+  // Clean up after all tests to help process exit
+  tearDownAll(() async {
+    await clearDemoData();
+    // Reset frame policy to stop continuous rendering
+    binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.benchmark;
+    // Give time for cleanup to complete
+    await Future.delayed(const Duration(milliseconds: 500));
+  });
+
   group('Screenshot Tour', () {
     // All theme/style combinations
     final combinations = [
