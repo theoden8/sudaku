@@ -214,8 +214,8 @@ void main() {
             // The number pad buttons are usually the last ones found
             print('Found digit 4, tapping to enter value...');
             await tester.tap(digit4.last);
-            // Wait for "allDiff applied/satisfied" message to disappear before screenshot
-            await tester.pump(const Duration(seconds: 4));
+            // Wait for UI to update (SnackBar stays visible in demo mode)
+            await tester.pump(const Duration(milliseconds: 500));
           }
 
           // Take screenshot showing the filled cell

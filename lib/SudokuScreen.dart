@@ -1420,6 +1420,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       ScaffoldMessenger.of(this._scaffoldBodyContext).showSnackBar(
         SnackBar(
           elevation: 4.0,
+          // In demo mode, keep SnackBar visible indefinitely for screenshots
+          duration: sd!.isDemo ? const Duration(days: 1) : const Duration(seconds: 4),
           content: Text(
             constr.toString(),
             textAlign: TextAlign.center,
