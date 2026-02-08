@@ -6,6 +6,9 @@ import 'package:sudaku/main.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  // Make hit test warnings fatal to catch layout issues
+  WidgetController.hitTestWarningShouldBeFatal = true;
+
   group('Standard Interaction Flow Tests', () {
     testWidgets('Full flow: Menu -> Size Selection -> Sudoku Screen',
         (WidgetTester tester) async {

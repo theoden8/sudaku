@@ -67,6 +67,9 @@ SudokuTheme getTestTheme(BuildContext ctx) {
 }
 
 void main() {
+  // Make hit test warnings fatal to catch layout issues
+  WidgetController.hitTestWarningShouldBeFatal = true;
+
   group('Menu Screen Widget Tests', () {
     testWidgets('Menu screen displays app title', (WidgetTester tester) async {
       await tester.pumpWidget(createTestApp(
@@ -155,7 +158,9 @@ void main() {
       await tester.tap(find.text('PLAY'));
       await tester.pump(const Duration(milliseconds: 500));
 
-      // Select Classic (9×9)
+      // Select Classic (9×9) - ensure visible first as it may be off-screen
+      await tester.ensureVisible(find.text('Classic'));
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Classic'));
       await tester.pump(const Duration(milliseconds: 300));
 
