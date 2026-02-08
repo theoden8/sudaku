@@ -2657,19 +2657,43 @@ class SudokuScreenState extends State<SudokuScreen> {
         final displayText = sd!.assist.showDifficultyNumbers
             ? difficultyToShow.toString()
             : _getDifficultyLabel(norm);
+        final isLive = sd!.assist.showLiveDifficulty;
         difficultyBadge = Container(
           padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12 * scale),
             color: _getDifficultyColor(norm),
           ),
-          child: Text(
-            displayText,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11 * scale,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                displayText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11 * scale,
+                ),
+              ),
+              if (isLive) ...[
+                SizedBox(width: 4 * scale),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 4 * scale, vertical: 1 * scale),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4 * scale),
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                  child: Text(
+                    'LIVE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 8 * scale,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         );
       }
