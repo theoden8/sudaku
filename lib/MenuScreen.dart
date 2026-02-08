@@ -649,6 +649,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           maxWidth: min(availableWidth * 0.9, 350),
+                          maxHeight: min(50, availableHeight * 0.08),
                         ),
                         child: _buildDifficultySelector(context),
                       ),
