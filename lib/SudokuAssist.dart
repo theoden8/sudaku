@@ -561,7 +561,14 @@ class Eliminator extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
-    sdom &= ~this.getTotalElimination();
+    // Clear eliminated values from the domain
+    // Note: We can't use &= because it creates a new object instead of modifying in place
+    var eliminated = this.getTotalElimination();
+    for (int i = 0; i < sdom.dom.length; ++i) {
+      if (eliminated.dom[i]) {
+        sdom.dom.clearBit(i);
+      }
+    }
   }
 }
 

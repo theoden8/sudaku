@@ -3,8 +3,107 @@ import 'package:bit_array/bit_array.dart';
 import 'package:sudaku/Sudoku.dart';
 import 'package:sudaku/SudokuAssist.dart';
 import 'package:sudaku/SudokuBuffer.dart';
+import 'package:sudaku/demo_data.dart';
 
 void main() {
+  group('Elimination Auto-Complete Integration', () {
+    // Demo puzzle solution (row 1): 7 5 1 6 2 4 8 3 9
+    // Cell 9 (row 1, col 0) solution = 7
+    // Cell 10 (row 1, col 1) solution = 5
+    // Cell 11 (row 1, col 2) solution = 1
+
+    late Sudoku sd;
+
+    setUp(() {
+      // Create puzzle from demo using the demo constructor
+      final puzzle = parseDemoPuzzle(demoPuzzle9x9);
+      sd = Sudoku.demo(3, puzzle, () {});
+    });
+
+    test('eliminating all but one value triggers auto-complete', () {
+      // Enable auto-complete
+      sd.assist.autoComplete = true;
+
+      // Cell 9 (row 1, col 0) is empty, solution is 7
+      expect(sd.buf[9], equals(0)); // Initially empty
+
+      // Get the domain for cell 9 before eliminations
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[9].asIntIterable().toList();
+
+      // Eliminate all values except 7 (using invertBits like the UI does)
+      final valuesToEliminate = initialDomain.where((v) => v != 7).toList();
+      sd.assist.elim[9].invertBits(valuesToEliminate);
+
+      // Verify elimination was stored
+      expect(sd.assist.elim.length, equals(1));
+
+      // Verify domain is now single-valued
+      var domainAfter = sd.assist.getTotalDomain();
+      expect(domainAfter[9].cardinality, equals(1));
+      expect(domainAfter[9].asIntIterable().first, equals(7));
+
+      // Run the assistant (simulates what happens after elimination in UI)
+      sd.assist.apply();
+
+      // Cell should now be auto-filled with 7
+      expect(sd.buf[9], equals(7),
+          reason: 'Cell should be auto-filled when only one value remains after elimination');
+    });
+
+    test('eliminations persist across assistant runs', () {
+      sd.assist.autoComplete = true;
+
+      // Cell 10 (row 1, col 1) is empty, solution is 5
+      expect(sd.buf[10], equals(0));
+
+      // Get initial domain
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[10].asIntIterable().toList();
+
+      // Eliminate all values except 5 (using invertBits like the UI does)
+      final valuesToEliminate = initialDomain.where((v) => v != 5).toList();
+      sd.assist.elim[10].invertBits(valuesToEliminate);
+
+      // Run assistant multiple times (simulating user interactions)
+      sd.assist.apply();
+
+      // Verify cell is filled
+      expect(sd.buf[10], equals(5));
+
+      // The key test: run assistant again, cell should stay filled
+      sd.assist.apply();
+      expect(sd.buf[10], equals(5),
+          reason: 'Auto-filled value should persist across assistant runs');
+    });
+
+    test('partial elimination does not trigger auto-complete', () {
+      sd.assist.autoComplete = true;
+
+      // Cell 11 (row 1, col 2) is empty, solution is 1
+      expect(sd.buf[11], equals(0));
+
+      // Get domain
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[11].asIntIterable().toList();
+
+      // Only eliminate some values, leaving more than 1 (using invertBits)
+      if (initialDomain.length > 2) {
+        sd.assist.elim[11].invertBits([initialDomain.first]);
+      }
+
+      // Run assistant
+      sd.assist.apply();
+
+      // Verify domain still has multiple values, cell not auto-filled
+      domain = sd.assist.getTotalDomain();
+      if (domain[11].cardinality > 1) {
+        expect(sd.buf[11], equals(0),
+            reason: 'Cell should NOT be auto-filled when multiple values remain');
+      }
+    });
+  });
+
   group('ConstraintType', () {
     test('has all required types', () {
       expect(ConstraintType.values.length, equals(4));
