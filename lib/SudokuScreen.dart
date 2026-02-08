@@ -215,7 +215,8 @@ class SudokuScreenState extends State<SudokuScreen> {
   bool _isDemoMode = false;
 
   // Difficulty tracking
-  int? _currentDifficultyForwards;
+  int? _initialDifficultyForwards;  // Difficulty of original puzzle (hints only)
+  int? _currentDifficultyForwards;  // Live difficulty (current state)
   bool _difficultyLoading = false;
 
   // Track last constraint added by user in current session (not restored)
@@ -539,13 +540,20 @@ class SudokuScreenState extends State<SudokuScreen> {
       final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 5);
       if (mounted) {
         setState(() {
-          _currentDifficultyForwards = stats?['avgForwards'];
+          final difficulty = stats?['avgForwards'];
+          if (isInitial) {
+            _initialDifficultyForwards = difficulty;
+          }
+          _currentDifficultyForwards = difficulty;
           _difficultyLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
+          if (isInitial) {
+            _initialDifficultyForwards = null;
+          }
           _currentDifficultyForwards = null;
           _difficultyLoading = false;
         });
@@ -2628,7 +2636,11 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     Widget? difficultyBadge;
     if (sd != null && sd!.assist.showDifficulty) {
-      final norm = _getDifficultyNormalized(_currentDifficultyForwards);
+      // Use live difficulty if enabled, otherwise show initial difficulty
+      final difficultyToShow = sd!.assist.showLiveDifficulty
+          ? _currentDifficultyForwards
+          : _initialDifficultyForwards;
+      final norm = _getDifficultyNormalized(difficultyToShow);
       if (_difficultyLoading) {
         difficultyBadge = Container(
           padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 4 * scale),
@@ -2643,7 +2655,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         );
       } else if (norm != null) {
         final displayText = sd!.assist.showDifficultyNumbers
-            ? _currentDifficultyForwards.toString()
+            ? difficultyToShow.toString()
             : _getDifficultyLabel(norm);
         difficultyBadge = Container(
           padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
