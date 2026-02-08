@@ -221,6 +221,9 @@ class SudokuScreenState extends State<SudokuScreen> {
   // Track last constraint added by user in current session (not restored)
   Constraint? _lastUserAddedConstraint;
 
+  // Skip victory check when restoring a completed puzzle
+  bool _skipVictoryCheck = false;
+
   void runSetState() {
     setState((){});
     // Skip saving in demo mode
@@ -480,6 +483,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     // Re-run assistant to propagate values and apply constraints
     // (we only save manual values, so assistant needs to re-propagate)
+    // Skip victory check since we're restoring a potentially completed puzzle
+    _skipVictoryCheck = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (sd != null && mounted) {
         runAssistant();
@@ -763,6 +768,11 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   void _checkVictoryConditions() async {
+    // Skip victory check when restoring a completed puzzle
+    if (_skipVictoryCheck) {
+      _skipVictoryCheck = false;
+      return;
+    }
     if(sd!.checkIsComplete() && sd!.check()) {
       this._showVictoryDialog();
     }
