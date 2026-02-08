@@ -584,11 +584,12 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             const double minCardSize = 120.0;
 
             if (isPortrait) {
-              // Reserve space for START button (88px) and use slightly larger divisor to prevent trimming
-              final double availableForCards = availableHeight - 88;
+              // Reserve space for START button (88px) + difficulty selector (62px when visible) + padding (24px)
+              final double reservedHeight = 88 + 62 + 24;
+              final double availableForCards = availableHeight - reservedHeight;
               cardSize = max(minCardSize, min(
                 availableWidth * 0.65,
-                availableForCards / 3.4,
+                availableForCards / 3.2,
               ));
             } else {
               cardSize = max(minCardSize, min(
@@ -610,7 +611,8 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
             ];
 
             final double totalCardsHeight = cardSize * 3 + cardSize * 0.08 * 6;
-            final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - 88);
+            final double reservedForControls = 88 + 62 + 24; // START + difficulty selector + padding
+            final bool needsScroll = isPortrait && totalCardsHeight > (availableHeight - reservedForControls);
 
             return Padding(
               padding: const EdgeInsets.all(12.0),
