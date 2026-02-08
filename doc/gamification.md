@@ -67,23 +67,25 @@ The Achievements tab tracks your progress across various milestones.
 #### Skill Achievements
 | Achievement | Description |
 |-------------|-------------|
-| Speed Demon | Complete a puzzle in under 2 minutes |
 | Constraint Master | Use all 3 constraint types in one puzzle |
-| Logic Grandmaster | Complete a 9x9 using only constraints |
 
 Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
 
 #### Difficulty Achievements
 
-Each difficulty tier has count-based milestones:
+Each difficulty tier has count-based milestones plus speed and logic achievements:
 
-| Tier | Achievements |
-|------|--------------|
-| Easy | Easy Start (1), Easy Going (5), Easy Expert (10) |
-| Medium | Medium Start (1), Medium Minded (5), Medium Master (10) |
-| Hard | Hard Start (1), Hard Worker (5), Hard Core (10) |
-| Expert | Expert Start (1), Expert Mind (5) |
-| Extreme | Extreme Start (1), Extreme Legend (3) |
+| Tier | Count Achievements | Speed Achievement | Logic Achievement |
+|------|--------------------|--------------------|-------------------|
+| Easy | Easy Start (1), Easy Going (5), Easy Expert (10) | Speed Easy | Logic Easy |
+| Medium | Medium Start (1), Medium Minded (5), Medium Master (10) | Speed Medium | Logic Medium |
+| Hard | Hard Start (1), Hard Worker (5), Hard Core (10) | Speed Hard | Logic Hard |
+| Expert | Expert Start (1), Expert Mind (5) | Speed Expert | Logic Expert |
+| Extreme | Extreme Start (1), Extreme Legend (3) | Speed Extreme | Logic Extreme |
+
+**Speed achievements** require completing a puzzle of that difficulty in under 2 minutes.
+
+**Logic achievements** require completing a 9x9+ puzzle of that difficulty using only constraints (no manual cell entries).
 
 #### Learning Achievements
 | Achievement | Description |

@@ -377,26 +377,41 @@ void main() {
       expect(achievements[AchievementType.allSizesMaster]!.isUnlocked, isTrue);
     });
 
-    test('speedDemon unlocks for fast time', () {
-      // Just over threshold
-      var achievements = deriveAchievements(const GamificationStats(fastestTimeSeconds: 120));
-      expect(achievements[AchievementType.speedDemon]!.isUnlocked, isFalse);
+    test('speed achievements unlock per difficulty tier', () {
+      // No speed tiers
+      var achievements = deriveAchievements(const GamificationStats(speedTiers: {}));
+      expect(achievements[AchievementType.speedEasy]!.isUnlocked, isFalse);
+      expect(achievements[AchievementType.speedHard]!.isUnlocked, isFalse);
 
-      // Under threshold
-      achievements = deriveAchievements(const GamificationStats(fastestTimeSeconds: 119));
-      expect(achievements[AchievementType.speedDemon]!.isUnlocked, isTrue);
+      // Easy tier speed (tier index 0)
+      achievements = deriveAchievements(const GamificationStats(speedTiers: {0}));
+      expect(achievements[AchievementType.speedEasy]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.speedHard]!.isUnlocked, isFalse);
+
+      // Hard tier speed (tier index 2)
+      achievements = deriveAchievements(const GamificationStats(speedTiers: {2}));
+      expect(achievements[AchievementType.speedHard]!.isUnlocked, isTrue);
     });
 
-    test('constraint achievements unlock correctly', () {
+    test('logic achievements unlock per difficulty tier', () {
+      // No logic tiers
+      var achievements = deriveAchievements(const GamificationStats(logicTiers: {}));
+      expect(achievements[AchievementType.logicEasy]!.isUnlocked, isFalse);
+      expect(achievements[AchievementType.logicExpert]!.isUnlocked, isFalse);
+
+      // Easy tier logic (tier index 0)
+      achievements = deriveAchievements(const GamificationStats(logicTiers: {0}));
+      expect(achievements[AchievementType.logicEasy]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.logicExpert]!.isUnlocked, isFalse);
+
+      // Expert tier logic (tier index 3)
+      achievements = deriveAchievements(const GamificationStats(logicTiers: {3}));
+      expect(achievements[AchievementType.logicExpert]!.isUnlocked, isTrue);
+    });
+
+    test('constraint master achievement unlocks correctly', () {
       var achievements = deriveAchievements(const GamificationStats(usedAllConstraintTypes: true));
       expect(achievements[AchievementType.constraintMaster]!.isUnlocked, isTrue);
-
-      // Note: constraintOnly4x4 was removed (too easy)
-      achievements = deriveAchievements(const GamificationStats(constraintOnlySizes: {2}));
-      expect(achievements[AchievementType.constraintOnly9x9]!.isUnlocked, isFalse);
-
-      achievements = deriveAchievements(const GamificationStats(constraintOnlySizes: {3}));
-      expect(achievements[AchievementType.constraintOnly9x9]!.isUnlocked, isTrue);
     });
 
     test('tutorial achievement unlocks when completed', () {
@@ -455,17 +470,18 @@ void main() {
 
     test('returns multiple achievements when unlocked together', () {
       const oldStats = GamificationStats(totalCompleted: 0);
-      // Use 9x9 so firstSolve can unlock
+      // Use 9x9 so firstSolve can unlock, with speed tier for easy (index 0)
       const newStats = GamificationStats(
         totalCompleted: 1,
         completedSizes: {3},
-        fastestTimeSeconds: 60,
+        easyCount: 1,
+        speedTiers: {0},  // Easy tier speed
       );
 
       final newlyUnlocked = getNewlyUnlocked(oldStats, newStats);
       expect(newlyUnlocked.any((a) => a.type == AchievementType.firstSolve), isTrue);
       expect(newlyUnlocked.any((a) => a.type == AchievementType.size9x9Master), isTrue);
-      expect(newlyUnlocked.any((a) => a.type == AchievementType.speedDemon), isTrue);
+      expect(newlyUnlocked.any((a) => a.type == AchievementType.speedEasy), isTrue);
     });
 
     test('does not return already unlocked achievements', () {
@@ -685,9 +701,10 @@ void main() {
       expect(newAchievements.any((a) => a.type == AchievementType.size4x4Master), isTrue);
     });
 
-    test('unlocks speedDemon for fast completion', () async {
+    test('unlocks speed achievement for fast completion', () async {
       SharedPreferences.setMockInitialValues({});
 
+      // No difficulty = defaults to Easy tier
       final record = PuzzleRecord(
         id: 'speed_test',
         n: 3,
@@ -705,10 +722,11 @@ void main() {
         manualMoves: 10,
       );
 
-      expect(newAchievements.any((a) => a.type == AchievementType.speedDemon), isTrue);
+      // Should unlock speedEasy (Easy tier speed achievement)
+      expect(newAchievements.any((a) => a.type == AchievementType.speedEasy), isTrue);
     });
 
-    test('does not unlock speedDemon for slow completion', () async {
+    test('does not unlock speed achievement for slow completion', () async {
       SharedPreferences.setMockInitialValues({});
 
       final record = PuzzleRecord(
@@ -728,7 +746,8 @@ void main() {
         manualMoves: 10,
       );
 
-      expect(newAchievements.any((a) => a.type == AchievementType.speedDemon), isFalse);
+      // No speed achievements for slow completion
+      expect(newAchievements.any((a) => a.type == AchievementType.speedEasy), isFalse);
     });
 
     test('unlocks constraintMaster when using all 3 types', () async {
@@ -754,7 +773,7 @@ void main() {
       expect(newAchievements.any((a) => a.type == AchievementType.constraintMaster), isTrue);
     });
 
-    test('4x4 constraint-only does NOT unlock constraint achievement (too easy)', () async {
+    test('4x4 constraint-only does NOT unlock logic achievement (too easy)', () async {
       SharedPreferences.setMockInitialValues({});
 
       final record = PuzzleRecord(
@@ -774,13 +793,14 @@ void main() {
         manualMoves: 0,
       );
 
-      // 4x4 constraint-only should NOT unlock constraintOnly9x9
-      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly9x9), isFalse);
+      // 4x4 constraint-only should NOT unlock any logic achievements (requires 9x9+)
+      expect(newAchievements.any((a) => a.type == AchievementType.logicEasy), isFalse);
     });
 
-    test('unlocks constraintOnly9x9 for 9x9 with zero manual moves', () async {
+    test('unlocks logic achievement for 9x9 with zero manual moves', () async {
       SharedPreferences.setMockInitialValues({});
 
+      // No difficulty = defaults to Easy tier
       final record = PuzzleRecord(
         id: 'constraint_only_9x9',
         n: 3,
@@ -798,7 +818,8 @@ void main() {
         manualMoves: 0,
       );
 
-      expect(newAchievements.any((a) => a.type == AchievementType.constraintOnly9x9), isTrue);
+      // Should unlock logicEasy (Easy tier since no difficulty specified)
+      expect(newAchievements.any((a) => a.type == AchievementType.logicEasy), isTrue);
     });
 
     test('does not double-count same puzzle', () async {
@@ -942,11 +963,11 @@ void main() {
         manualMoves: 10,
       );
 
-      // Verify achievements
+      // Verify achievements (puzzle has no difficulty, so defaults to Easy tier)
       var achievements = await TrophyRoomStorage.loadAchievements();
       expect(achievements[AchievementType.firstSolve]!.isUnlocked, isTrue);
       expect(achievements[AchievementType.size9x9Master]!.isUnlocked, isTrue);
-      expect(achievements[AchievementType.speedDemon]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.speedEasy]!.isUnlocked, isTrue);
       expect(achievements[AchievementType.constraintMaster]!.isUnlocked, isTrue);
 
       // Delete the puzzle record
@@ -960,7 +981,7 @@ void main() {
       achievements = await TrophyRoomStorage.loadAchievements();
       expect(achievements[AchievementType.firstSolve]!.isUnlocked, isTrue);
       expect(achievements[AchievementType.size9x9Master]!.isUnlocked, isTrue);
-      expect(achievements[AchievementType.speedDemon]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.speedEasy]!.isUnlocked, isTrue);
       expect(achievements[AchievementType.constraintMaster]!.isUnlocked, isTrue);
     });
 

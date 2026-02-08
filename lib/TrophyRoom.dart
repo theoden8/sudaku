@@ -171,21 +171,18 @@ enum AchievementType {
   size9x9Master,
   size16x16Master,
   allSizesMaster,
-  speedDemon,
   constraintMaster,
-  constraintOnly9x9,  // Note: 4x4 constraint-only removed (too easy)
   tutorialComplete,
-  // Difficulty-based achievements (per tier with count milestones)
-  // Easy tier
+  // Difficulty-based count achievements
   easy1, easy5, easy10,
-  // Medium tier
   medium1, medium5, medium10,
-  // Hard tier
   hard1, hard5, hard10,
-  // Expert tier
   expert1, expert5,
-  // Extreme tier
   extreme1, extreme3,
+  // Speed achievements per difficulty tier (under 2 minutes)
+  speedEasy, speedMedium, speedHard, speedExpert, speedExtreme,
+  // Constraint-only achievements per difficulty tier (9x9+ only)
+  logicEasy, logicMedium, logicHard, logicExpert, logicExtreme,
 }
 
 class Achievement {
@@ -311,26 +308,12 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.emoji_events_rounded,
       gradientColors: [AppColors.gold, AppColors.warning],
     ),
-    AchievementType.speedDemon: Achievement(
-      type: AchievementType.speedDemon,
-      title: 'Speed Demon',
-      description: 'Complete a puzzle in under 2 minutes',
-      icon: Icons.speed_rounded,
-      gradientColors: [AppColors.error, AppColors.errorLight],
-    ),
     AchievementType.constraintMaster: Achievement(
       type: AchievementType.constraintMaster,
       title: 'Constraint Master',
       description: 'Use all 3 constraint types in one puzzle',
       icon: Icons.rule_rounded,
       gradientColors: [AppColors.primaryPurple, AppColors.secondaryPurple],
-    ),
-    AchievementType.constraintOnly9x9: Achievement(
-      type: AchievementType.constraintOnly9x9,
-      title: 'Logic Grandmaster',
-      description: 'Complete a 9x9 puzzle using only constraints',
-      icon: Icons.psychology_rounded,
-      gradientColors: [AppColors.gold, AppColors.primaryPurple],
     ),
     AchievementType.tutorialComplete: Achievement(
       type: AchievementType.tutorialComplete,
@@ -452,6 +435,78 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       target: 3,
       progress: 0,
     ),
+    // Speed achievements per difficulty tier (under 2 minutes)
+    AchievementType.speedEasy: Achievement(
+      type: AchievementType.speedEasy,
+      title: 'Speed Demon (Easy)',
+      description: 'Complete an Easy puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.speedMedium: Achievement(
+      type: AchievementType.speedMedium,
+      title: 'Speed Demon (Medium)',
+      description: 'Complete a Medium puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+    ),
+    AchievementType.speedHard: Achievement(
+      type: AchievementType.speedHard,
+      title: 'Speed Demon (Hard)',
+      description: 'Complete a Hard puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.speedExpert: Achievement(
+      type: AchievementType.speedExpert,
+      title: 'Speed Demon (Expert)',
+      description: 'Complete an Expert puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ),
+    AchievementType.speedExtreme: Achievement(
+      type: AchievementType.speedExtreme,
+      title: 'Speed Demon (Extreme)',
+      description: 'Complete an Extreme puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+    ),
+    // Logic achievements per difficulty tier (constraint-only on 9x9+)
+    AchievementType.logicEasy: Achievement(
+      type: AchievementType.logicEasy,
+      title: 'Logic Master (Easy)',
+      description: 'Complete an Easy 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.logicMedium: Achievement(
+      type: AchievementType.logicMedium,
+      title: 'Logic Master (Medium)',
+      description: 'Complete a Medium 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+    ),
+    AchievementType.logicHard: Achievement(
+      type: AchievementType.logicHard,
+      title: 'Logic Master (Hard)',
+      description: 'Complete a Hard 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.logicExpert: Achievement(
+      type: AchievementType.logicExpert,
+      title: 'Logic Master (Expert)',
+      description: 'Complete an Expert 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ),
+    AchievementType.logicExtreme: Achievement(
+      type: AchievementType.logicExtreme,
+      title: 'Logic Master (Extreme)',
+      description: 'Complete an Extreme 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+    ),
   };
 }
 
@@ -482,6 +537,9 @@ class GamificationStats {
   final int hardCount;
   final int expertCount;
   final int extremeCount;
+  // Per-tier skill achievements (stored as tier index: 0=easy, 1=medium, 2=hard, 3=expert, 4=extreme)
+  final Set<int> speedTiers;    // Tiers where completed in under 2 minutes
+  final Set<int> logicTiers;    // Tiers where completed with constraint-only (9x9+ only)
 
   const GamificationStats({
     this.totalCompleted = 0,
@@ -497,6 +555,8 @@ class GamificationStats {
     this.hardCount = 0,
     this.expertCount = 0,
     this.extremeCount = 0,
+    this.speedTiers = const {},
+    this.logicTiers = const {},
   });
 
   /// Create updated stats after completing a puzzle
@@ -512,11 +572,20 @@ class GamificationStats {
 
     // Determine difficulty tier and increment count
     final tier = _getDifficultyTier(difficultyNormalized);
+    final tierIndex = tier.index;
     final newEasyCount = (isNewPuzzle && tier == _DifficultyTier.easy) ? easyCount + 1 : easyCount;
     final newMediumCount = (isNewPuzzle && tier == _DifficultyTier.medium) ? mediumCount + 1 : mediumCount;
     final newHardCount = (isNewPuzzle && tier == _DifficultyTier.hard) ? hardCount + 1 : hardCount;
     final newExpertCount = (isNewPuzzle && tier == _DifficultyTier.expert) ? expertCount + 1 : expertCount;
     final newExtremeCount = (isNewPuzzle && tier == _DifficultyTier.extreme) ? extremeCount + 1 : extremeCount;
+
+    // Track speed achievement (under 2 minutes = 120 seconds)
+    final isSpeedRun = timeSeconds != null && timeSeconds < 120;
+    final newSpeedTiers = isSpeedRun ? {...speedTiers, tierIndex} : speedTiers;
+
+    // Track logic achievement (constraint-only on 9x9+ puzzles)
+    final isLogicRun = wasConstraintOnly && gridSize >= 3; // 3 = 9x9
+    final newLogicTiers = isLogicRun ? {...logicTiers, tierIndex} : logicTiers;
 
     return GamificationStats(
       totalCompleted: isNewPuzzle ? totalCompleted + 1 : totalCompleted,
@@ -534,6 +603,8 @@ class GamificationStats {
       hardCount: newHardCount,
       expertCount: newExpertCount,
       extremeCount: newExtremeCount,
+      speedTiers: newSpeedTiers,
+      logicTiers: newLogicTiers,
     );
   }
 
@@ -562,6 +633,8 @@ class GamificationStats {
     hardCount: hardCount,
     expertCount: expertCount,
     extremeCount: extremeCount,
+    speedTiers: speedTiers,
+    logicTiers: logicTiers,
   );
 
   static int? _minNullable(int? a, int? b) {
@@ -590,6 +663,8 @@ class GamificationStats {
     'hardCount': hardCount,
     'expertCount': expertCount,
     'extremeCount': extremeCount,
+    'speedTiers': speedTiers.toList(),
+    'logicTiers': logicTiers.toList(),
   };
 
   static GamificationStats fromJson(Map<String, dynamic> json) {
@@ -613,6 +688,12 @@ class GamificationStats {
       hardCount: (json['hardCount'] ?? 0) as int,
       expertCount: (json['expertCount'] ?? 0) as int,
       extremeCount: (json['extremeCount'] ?? 0) as int,
+      speedTiers: Set<int>.from(
+        ((json['speedTiers'] ?? []) as List).cast<int>(),
+      ),
+      logicTiers: Set<int>.from(
+        ((json['logicTiers'] ?? []) as List).cast<int>(),
+      ),
     );
   }
 }
@@ -665,18 +746,10 @@ Map<AchievementType, Achievement> deriveAchievements(GamificationStats stats) {
       : templates[AchievementType.allSizesMaster]!;
 
   // Speed achievement
-  result[AchievementType.speedDemon] = (stats.fastestTimeSeconds != null && stats.fastestTimeSeconds! < 120)
-      ? unlocked(AchievementType.speedDemon)
-      : templates[AchievementType.speedDemon]!;
-
   // Constraint achievements
   result[AchievementType.constraintMaster] = stats.usedAllConstraintTypes
       ? unlocked(AchievementType.constraintMaster)
       : templates[AchievementType.constraintMaster]!;
-  // Note: constraintOnly4x4 removed (too easy)
-  result[AchievementType.constraintOnly9x9] = stats.constraintOnlySizes.contains(3)
-      ? unlocked(AchievementType.constraintOnly9x9)
-      : templates[AchievementType.constraintOnly9x9]!;
 
   // Tutorial achievement
   result[AchievementType.tutorialComplete] = stats.tutorialCompleted
@@ -716,6 +789,40 @@ Map<AchievementType, Achievement> deriveAchievements(GamificationStats stats) {
       ? unlocked(AchievementType.extreme1)
       : templates[AchievementType.extreme1]!;
   result[AchievementType.extreme3] = withProgress(AchievementType.extreme3, stats.extremeCount);
+
+  // Speed achievements per tier (tier indices: 0=easy, 1=medium, 2=hard, 3=expert, 4=extreme)
+  result[AchievementType.speedEasy] = stats.speedTiers.contains(0)
+      ? unlocked(AchievementType.speedEasy)
+      : templates[AchievementType.speedEasy]!;
+  result[AchievementType.speedMedium] = stats.speedTiers.contains(1)
+      ? unlocked(AchievementType.speedMedium)
+      : templates[AchievementType.speedMedium]!;
+  result[AchievementType.speedHard] = stats.speedTiers.contains(2)
+      ? unlocked(AchievementType.speedHard)
+      : templates[AchievementType.speedHard]!;
+  result[AchievementType.speedExpert] = stats.speedTiers.contains(3)
+      ? unlocked(AchievementType.speedExpert)
+      : templates[AchievementType.speedExpert]!;
+  result[AchievementType.speedExtreme] = stats.speedTiers.contains(4)
+      ? unlocked(AchievementType.speedExtreme)
+      : templates[AchievementType.speedExtreme]!;
+
+  // Logic achievements per tier (constraint-only on 9x9+)
+  result[AchievementType.logicEasy] = stats.logicTiers.contains(0)
+      ? unlocked(AchievementType.logicEasy)
+      : templates[AchievementType.logicEasy]!;
+  result[AchievementType.logicMedium] = stats.logicTiers.contains(1)
+      ? unlocked(AchievementType.logicMedium)
+      : templates[AchievementType.logicMedium]!;
+  result[AchievementType.logicHard] = stats.logicTiers.contains(2)
+      ? unlocked(AchievementType.logicHard)
+      : templates[AchievementType.logicHard]!;
+  result[AchievementType.logicExpert] = stats.logicTiers.contains(3)
+      ? unlocked(AchievementType.logicExpert)
+      : templates[AchievementType.logicExpert]!;
+  result[AchievementType.logicExtreme] = stats.logicTiers.contains(4)
+      ? unlocked(AchievementType.logicExtreme)
+      : templates[AchievementType.logicExtreme]!;
 
   return result;
 }

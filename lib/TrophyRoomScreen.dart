@@ -584,9 +584,7 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
         AchievementType.allSizesMaster,
       ],
       'SKILL': [
-        AchievementType.speedDemon,
         AchievementType.constraintMaster,
-        AchievementType.constraintOnly9x9,
       ],
       'LEARNING': [
         AchievementType.tutorialComplete,
@@ -595,24 +593,34 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
         AchievementType.easy1,
         AchievementType.easy5,
         AchievementType.easy10,
+        AchievementType.speedEasy,
+        AchievementType.logicEasy,
       ],
       'MEDIUM': [
         AchievementType.medium1,
         AchievementType.medium5,
         AchievementType.medium10,
+        AchievementType.speedMedium,
+        AchievementType.logicMedium,
       ],
       'HARD': [
         AchievementType.hard1,
         AchievementType.hard5,
         AchievementType.hard10,
+        AchievementType.speedHard,
+        AchievementType.logicHard,
       ],
       'EXPERT': [
         AchievementType.expert1,
         AchievementType.expert5,
+        AchievementType.speedExpert,
+        AchievementType.logicExpert,
       ],
       'EXTREME': [
         AchievementType.extreme1,
         AchievementType.extreme3,
+        AchievementType.speedExtreme,
+        AchievementType.logicExtreme,
       ],
     };
 
