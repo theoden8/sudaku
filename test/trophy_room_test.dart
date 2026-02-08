@@ -407,24 +407,31 @@ void main() {
       expect(achievements[AchievementType.tutorialComplete]!.isUnlocked, isTrue);
     });
 
-    test('difficulty achievements unlock at thresholds', () {
-      // Under hard threshold
-      var achievements = deriveAchievements(const GamificationStats(maxDifficultyNormalized: 0.34));
-      expect(achievements[AchievementType.hardPuzzle]!.isUnlocked, isFalse);
+    test('difficulty tier achievements unlock based on counts', () {
+      // No puzzles - nothing unlocked
+      var achievements = deriveAchievements(const GamificationStats());
+      expect(achievements[AchievementType.easy1]!.isUnlocked, isFalse);
+      expect(achievements[AchievementType.hard1]!.isUnlocked, isFalse);
 
-      // At hard threshold
-      achievements = deriveAchievements(const GamificationStats(maxDifficultyNormalized: 0.35));
-      expect(achievements[AchievementType.hardPuzzle]!.isUnlocked, isTrue);
-      expect(achievements[AchievementType.expertPuzzle]!.isUnlocked, isFalse);
+      // 1 easy puzzle
+      achievements = deriveAchievements(const GamificationStats(easyCount: 1));
+      expect(achievements[AchievementType.easy1]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.easy5]!.isUnlocked, isFalse);
 
-      // At expert threshold
-      achievements = deriveAchievements(const GamificationStats(maxDifficultyNormalized: 0.55));
-      expect(achievements[AchievementType.expertPuzzle]!.isUnlocked, isTrue);
-      expect(achievements[AchievementType.extremePuzzle]!.isUnlocked, isFalse);
+      // 5 hard puzzles
+      achievements = deriveAchievements(const GamificationStats(hardCount: 5));
+      expect(achievements[AchievementType.hard1]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.hard5]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.hard10]!.isUnlocked, isFalse);
 
-      // At extreme threshold
-      achievements = deriveAchievements(const GamificationStats(maxDifficultyNormalized: 0.75));
-      expect(achievements[AchievementType.extremePuzzle]!.isUnlocked, isTrue);
+      // 1 extreme puzzle
+      achievements = deriveAchievements(const GamificationStats(extremeCount: 1));
+      expect(achievements[AchievementType.extreme1]!.isUnlocked, isTrue);
+      expect(achievements[AchievementType.extreme3]!.isUnlocked, isFalse);
+
+      // 3 extreme puzzles
+      achievements = deriveAchievements(const GamificationStats(extremeCount: 3));
+      expect(achievements[AchievementType.extreme3]!.isUnlocked, isTrue);
     });
   });
 
@@ -881,7 +888,7 @@ void main() {
       expect(stats.totalCompleted, equals(2));
     });
 
-    test('unlocks difficulty achievements', () async {
+    test('unlocks difficulty tier achievements', () async {
       SharedPreferences.setMockInitialValues({});
 
       final record = PuzzleRecord(
@@ -891,7 +898,7 @@ void main() {
         hintValues: [1],
         completedAt: DateTime.now(),
         moveCount: 50,
-        difficultyForwards: 10000, // Should result in ~0.5 normalized (Hard)
+        difficultyForwards: 10000, // ~0.46 normalized = Hard tier
       );
 
       final tracker = AchievementTracker();
@@ -902,7 +909,8 @@ void main() {
         manualMoves: 50,
       );
 
-      expect(newAchievements.any((a) => a.type == AchievementType.hardPuzzle), isTrue);
+      // Should unlock hard1 (first hard puzzle)
+      expect(newAchievements.any((a) => a.type == AchievementType.hard1), isTrue);
     });
   });
 

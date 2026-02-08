@@ -74,11 +74,16 @@ The Achievements tab tracks your progress across various milestones.
 Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
 
 #### Difficulty Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Hard Solver | Complete a Hard difficulty puzzle |
-| Expert Solver | Complete an Expert difficulty puzzle |
-| Extreme Solver | Complete an Extreme difficulty puzzle |
+
+Each difficulty tier has count-based milestones:
+
+| Tier | Achievements |
+|------|--------------|
+| Easy | Easy Start (1), Easy Going (5), Easy Expert (10) |
+| Medium | Medium Start (1), Medium Minded (5), Medium Master (10) |
+| Hard | Hard Start (1), Hard Worker (5), Hard Core (10) |
+| Expert | Expert Start (1), Expert Mind (5) |
+| Extreme | Extreme Start (1), Extreme Legend (3) |
 
 #### Learning Achievements
 | Achievement | Description |

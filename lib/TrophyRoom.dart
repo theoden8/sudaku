@@ -175,10 +175,17 @@ enum AchievementType {
   constraintMaster,
   constraintOnly9x9,  // Note: 4x4 constraint-only removed (too easy)
   tutorialComplete,
-  // Difficulty-based achievements
-  hardPuzzle,
-  expertPuzzle,
-  extremePuzzle,
+  // Difficulty-based achievements (per tier with count milestones)
+  // Easy tier
+  easy1, easy5, easy10,
+  // Medium tier
+  medium1, medium5, medium10,
+  // Hard tier
+  hard1, hard5, hard10,
+  // Expert tier
+  expert1, expert5,
+  // Extreme tier
+  extreme1, extreme3,
 }
 
 class Achievement {
@@ -332,27 +339,118 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.school_rounded,
       gradientColors: [AppColors.success, AppColors.successLight],
     ),
-    // Difficulty-based achievements
-    AchievementType.hardPuzzle: Achievement(
-      type: AchievementType.hardPuzzle,
-      title: 'Hard Solver',
-      description: 'Complete a Hard difficulty puzzle',
-      icon: Icons.psychology_alt_rounded,
+    // Difficulty-based achievements (tiered with count milestones)
+    // Easy tier
+    AchievementType.easy1: Achievement(
+      type: AchievementType.easy1,
+      title: 'Easy Start',
+      description: 'Complete 1 Easy puzzle',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.easy5: Achievement(
+      type: AchievementType.easy5,
+      title: 'Easy Going',
+      description: 'Complete 5 Easy puzzles',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.easy10: Achievement(
+      type: AchievementType.easy10,
+      title: 'Easy Expert',
+      description: 'Complete 10 Easy puzzles',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+      target: 10,
+      progress: 0,
+    ),
+    // Medium tier
+    AchievementType.medium1: Achievement(
+      type: AchievementType.medium1,
+      title: 'Medium Start',
+      description: 'Complete 1 Medium puzzle',
+      icon: Icons.trending_flat_rounded,
       gradientColors: [AppColors.accent, AppColors.accentLight],
     ),
-    AchievementType.expertPuzzle: Achievement(
-      type: AchievementType.expertPuzzle,
-      title: 'Expert Solver',
-      description: 'Complete an Expert difficulty puzzle',
+    AchievementType.medium5: Achievement(
+      type: AchievementType.medium5,
+      title: 'Medium Minded',
+      description: 'Complete 5 Medium puzzles',
+      icon: Icons.trending_flat_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.medium10: Achievement(
+      type: AchievementType.medium10,
+      title: 'Medium Master',
+      description: 'Complete 10 Medium puzzles',
+      icon: Icons.trending_flat_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+      target: 10,
+      progress: 0,
+    ),
+    // Hard tier
+    AchievementType.hard1: Achievement(
+      type: AchievementType.hard1,
+      title: 'Hard Start',
+      description: 'Complete 1 Hard puzzle',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.hard5: Achievement(
+      type: AchievementType.hard5,
+      title: 'Hard Worker',
+      description: 'Complete 5 Hard puzzles',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.hard10: Achievement(
+      type: AchievementType.hard10,
+      title: 'Hard Core',
+      description: 'Complete 10 Hard puzzles',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+      target: 10,
+      progress: 0,
+    ),
+    // Expert tier
+    AchievementType.expert1: Achievement(
+      type: AchievementType.expert1,
+      title: 'Expert Start',
+      description: 'Complete 1 Expert puzzle',
       icon: Icons.lightbulb_rounded,
       gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
     ),
-    AchievementType.extremePuzzle: Achievement(
-      type: AchievementType.extremePuzzle,
-      title: 'Extreme Solver',
-      description: 'Complete an Extreme difficulty puzzle',
+    AchievementType.expert5: Achievement(
+      type: AchievementType.expert5,
+      title: 'Expert Mind',
+      description: 'Complete 5 Expert puzzles',
+      icon: Icons.lightbulb_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+      target: 5,
+      progress: 0,
+    ),
+    // Extreme tier
+    AchievementType.extreme1: Achievement(
+      type: AchievementType.extreme1,
+      title: 'Extreme Start',
+      description: 'Complete 1 Extreme puzzle',
       icon: Icons.local_fire_department_rounded,
       gradientColors: [AppColors.error, AppColors.gold],
+    ),
+    AchievementType.extreme3: Achievement(
+      type: AchievementType.extreme3,
+      title: 'Extreme Legend',
+      description: 'Complete 3 Extreme puzzles',
+      icon: Icons.local_fire_department_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+      target: 3,
+      progress: 0,
     ),
   };
 }
@@ -360,6 +458,9 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
 // ============================================================================
 // Gamification Stats - Single source of truth for achievements
 // ============================================================================
+
+/// Difficulty tiers for achievement tracking
+enum _DifficultyTier { easy, medium, hard, expert, extreme }
 
 /// Immutable stats that only grow (monotonic). Achievements are derived from this.
 class GamificationStats {
@@ -375,6 +476,12 @@ class GamificationStats {
   final bool usedAllConstraintTypes;    // Ever used all 3 in one puzzle
   final Set<int> constraintOnlySizes;   // Sizes beaten with 0 manual moves
   final bool tutorialCompleted;
+  // Difficulty tier counts
+  final int easyCount;
+  final int mediumCount;
+  final int hardCount;
+  final int expertCount;
+  final int extremeCount;
 
   const GamificationStats({
     this.totalCompleted = 0,
@@ -385,6 +492,11 @@ class GamificationStats {
     this.usedAllConstraintTypes = false,
     this.constraintOnlySizes = const {},
     this.tutorialCompleted = false,
+    this.easyCount = 0,
+    this.mediumCount = 0,
+    this.hardCount = 0,
+    this.expertCount = 0,
+    this.extremeCount = 0,
   });
 
   /// Create updated stats after completing a puzzle
@@ -398,6 +510,14 @@ class GamificationStats {
   }) {
     final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
 
+    // Determine difficulty tier and increment count
+    final tier = _getDifficultyTier(difficultyNormalized);
+    final newEasyCount = (isNewPuzzle && tier == _DifficultyTier.easy) ? easyCount + 1 : easyCount;
+    final newMediumCount = (isNewPuzzle && tier == _DifficultyTier.medium) ? mediumCount + 1 : mediumCount;
+    final newHardCount = (isNewPuzzle && tier == _DifficultyTier.hard) ? hardCount + 1 : hardCount;
+    final newExpertCount = (isNewPuzzle && tier == _DifficultyTier.expert) ? expertCount + 1 : expertCount;
+    final newExtremeCount = (isNewPuzzle && tier == _DifficultyTier.extreme) ? extremeCount + 1 : extremeCount;
+
     return GamificationStats(
       totalCompleted: isNewPuzzle ? totalCompleted + 1 : totalCompleted,
       completedSizes: {...completedSizes, gridSize},
@@ -409,7 +529,22 @@ class GamificationStats {
           ? {...constraintOnlySizes, gridSize}
           : constraintOnlySizes,
       tutorialCompleted: tutorialCompleted,
+      easyCount: newEasyCount,
+      mediumCount: newMediumCount,
+      hardCount: newHardCount,
+      expertCount: newExpertCount,
+      extremeCount: newExtremeCount,
     );
+  }
+
+  static _DifficultyTier _getDifficultyTier(double? normalized) {
+    if (normalized == null) return _DifficultyTier.easy; // Default to easy if unknown
+    // Match thresholds from difficultyLabel
+    if (normalized < 0.15) return _DifficultyTier.easy;
+    if (normalized < 0.35) return _DifficultyTier.medium;
+    if (normalized < 0.55) return _DifficultyTier.hard;
+    if (normalized < 0.75) return _DifficultyTier.expert;
+    return _DifficultyTier.extreme;
   }
 
   /// Mark tutorial as completed
@@ -422,6 +557,11 @@ class GamificationStats {
     usedAllConstraintTypes: usedAllConstraintTypes,
     constraintOnlySizes: constraintOnlySizes,
     tutorialCompleted: true,
+    easyCount: easyCount,
+    mediumCount: mediumCount,
+    hardCount: hardCount,
+    expertCount: expertCount,
+    extremeCount: extremeCount,
   );
 
   static int? _minNullable(int? a, int? b) {
@@ -445,6 +585,11 @@ class GamificationStats {
     'usedAllConstraintTypes': usedAllConstraintTypes,
     'constraintOnlySizes': constraintOnlySizes.toList(),
     'tutorialCompleted': tutorialCompleted,
+    'easyCount': easyCount,
+    'mediumCount': mediumCount,
+    'hardCount': hardCount,
+    'expertCount': expertCount,
+    'extremeCount': extremeCount,
   };
 
   static GamificationStats fromJson(Map<String, dynamic> json) {
@@ -463,6 +608,11 @@ class GamificationStats {
         ((json['constraintOnlySizes'] ?? []) as List).cast<int>(),
       ),
       tutorialCompleted: (json['tutorialCompleted'] ?? false) as bool,
+      easyCount: (json['easyCount'] ?? 0) as int,
+      mediumCount: (json['mediumCount'] ?? 0) as int,
+      hardCount: (json['hardCount'] ?? 0) as int,
+      expertCount: (json['expertCount'] ?? 0) as int,
+      extremeCount: (json['extremeCount'] ?? 0) as int,
     );
   }
 }
@@ -533,17 +683,39 @@ Map<AchievementType, Achievement> deriveAchievements(GamificationStats stats) {
       ? unlocked(AchievementType.tutorialComplete)
       : templates[AchievementType.tutorialComplete]!;
 
-  // Difficulty achievements
-  final maxDiff = stats.maxDifficultyNormalized ?? 0.0;
-  result[AchievementType.hardPuzzle] = maxDiff >= 0.35
-      ? unlocked(AchievementType.hardPuzzle)
-      : templates[AchievementType.hardPuzzle]!;
-  result[AchievementType.expertPuzzle] = maxDiff >= 0.55
-      ? unlocked(AchievementType.expertPuzzle)
-      : templates[AchievementType.expertPuzzle]!;
-  result[AchievementType.extremePuzzle] = maxDiff >= 0.75
-      ? unlocked(AchievementType.extremePuzzle)
-      : templates[AchievementType.extremePuzzle]!;
+  // Difficulty tier achievements
+  // Easy tier
+  result[AchievementType.easy1] = stats.easyCount >= 1
+      ? unlocked(AchievementType.easy1)
+      : templates[AchievementType.easy1]!;
+  result[AchievementType.easy5] = withProgress(AchievementType.easy5, stats.easyCount);
+  result[AchievementType.easy10] = withProgress(AchievementType.easy10, stats.easyCount);
+
+  // Medium tier
+  result[AchievementType.medium1] = stats.mediumCount >= 1
+      ? unlocked(AchievementType.medium1)
+      : templates[AchievementType.medium1]!;
+  result[AchievementType.medium5] = withProgress(AchievementType.medium5, stats.mediumCount);
+  result[AchievementType.medium10] = withProgress(AchievementType.medium10, stats.mediumCount);
+
+  // Hard tier
+  result[AchievementType.hard1] = stats.hardCount >= 1
+      ? unlocked(AchievementType.hard1)
+      : templates[AchievementType.hard1]!;
+  result[AchievementType.hard5] = withProgress(AchievementType.hard5, stats.hardCount);
+  result[AchievementType.hard10] = withProgress(AchievementType.hard10, stats.hardCount);
+
+  // Expert tier
+  result[AchievementType.expert1] = stats.expertCount >= 1
+      ? unlocked(AchievementType.expert1)
+      : templates[AchievementType.expert1]!;
+  result[AchievementType.expert5] = withProgress(AchievementType.expert5, stats.expertCount);
+
+  // Extreme tier
+  result[AchievementType.extreme1] = stats.extremeCount >= 1
+      ? unlocked(AchievementType.extreme1)
+      : templates[AchievementType.extreme1]!;
+  result[AchievementType.extreme3] = withProgress(AchievementType.extreme3, stats.extremeCount);
 
   return result;
 }
