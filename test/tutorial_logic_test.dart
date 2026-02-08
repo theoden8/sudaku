@@ -23,9 +23,7 @@ void main() {
     test('tutorial achievement can be unlocked', () async {
       SharedPreferences.setMockInitialValues({});
 
-      final achievement = await TrophyRoomStorage.unlockAchievement(
-        AchievementType.tutorialComplete
-      );
+      final achievement = await TrophyRoomStorage.markTutorialCompleted();
 
       expect(achievement, isNotNull);
       expect(achievement!.type, equals(AchievementType.tutorialComplete));
@@ -36,7 +34,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       // Unlock
-      await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+      await TrophyRoomStorage.markTutorialCompleted();
 
       // Check it's still unlocked
       final isUnlocked = await TrophyRoomStorage.isAchievementUnlocked(
@@ -46,16 +44,14 @@ void main() {
       expect(isUnlocked, isTrue);
     });
 
-    test('unlocking already unlocked achievement returns null', () async {
+    test('marking tutorial complete twice returns null', () async {
       SharedPreferences.setMockInitialValues({});
 
       // First unlock
-      await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+      await TrophyRoomStorage.markTutorialCompleted();
 
-      // Second unlock should return null
-      final result = await TrophyRoomStorage.unlockAchievement(
-        AchievementType.tutorialComplete
-      );
+      // Second call should return null (already completed)
+      final result = await TrophyRoomStorage.markTutorialCompleted();
 
       expect(result, isNull);
     });
@@ -275,7 +271,7 @@ void main() {
       expect(shouldShowDialog1, isTrue);
 
       // Unlock achievement
-      await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+      await TrophyRoomStorage.markTutorialCompleted();
 
       // Now should skip dialog
       bool shouldShowDialog2 = !await TrophyRoomStorage.isAchievementUnlocked(

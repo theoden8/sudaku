@@ -10,7 +10,7 @@ Tap the trophy icon in the top-right corner of the main menu.
 
 ### Puzzle Difficulty
 
-Puzzle difficulty is estimated using the native solver library and displayed throughout the app:
+Puzzle difficulty is estimated using the native solver library. See [solver.md](solver.md) for technical details.
 
 #### Difficulty Levels
 | Level | Description |
@@ -19,7 +19,7 @@ Puzzle difficulty is estimated using the native solver library and displayed thr
 | Medium | Moderate challenge |
 | Hard | Requires more advanced techniques |
 | Expert | Challenging puzzles |
-| Extreme | Top-tier difficulty (comparable to top44 hard puzzles) |
+| Extreme | Top-tier difficulty |
 
 #### Difficulty Display
 - **App Bar**: Shows difficulty badge next to "SUDOKU" title (can be toggled in Assistant settings)
@@ -48,43 +48,47 @@ Duplicate detection prevents the same puzzle from appearing multiple times.
 
 The Achievements tab tracks your progress across various milestones.
 
+#### Learning Achievements
+| Achievement | Description |
+|-------------|-------------|
+| Quick Learner | Complete the constraint tutorial |
+| Constraint Master | Use all 3 constraint types in one puzzle |
+
+Note: Once the tutorial is completed, the tutorial offer dialog will no longer appear.
+
 #### Completion Achievements
 | Achievement | Description |
 |-------------|-------------|
 | First Steps | Complete your first puzzle |
-| Dedicated | Complete 10 puzzles |
-| Enthusiast | Complete 25 puzzles |
-| Master | Complete 50 puzzles |
+| Getting Hooked | Complete 10 puzzles |
+| Dedicated | Complete 25 puzzles |
+| Sudoku Master | Complete 50 puzzles |
+
+Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
 
 #### Size Achievements
 | Achievement | Description |
 |-------------|-------------|
 | Mini Master | Complete a 4x4 puzzle |
-| Classic Master | Complete a 9x9 puzzle |
-| Grand Master | Complete a 16x16 puzzle |
-| Size Champion | Complete all three sizes |
-
-#### Skill Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Speed Demon | Complete a puzzle in under 2 minutes |
-| Constraint Master | Use all 3 constraint types in one puzzle |
-| Pure Logic | Complete a 4x4 using only constraints |
-| Logic Grandmaster | Complete a 9x9 using only constraints |
+| Classic Champion | Complete a 9x9 puzzle |
+| Challenge Conqueror | Complete a 16x16 puzzle |
+| Versatile Solver | Complete all three sizes |
 
 #### Difficulty Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Hard Solver | Complete a Hard difficulty puzzle |
-| Expert Solver | Complete an Expert difficulty puzzle |
-| Extreme Solver | Complete an Extreme difficulty puzzle |
 
-#### Learning Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Quick Learner | Complete the constraint tutorial |
+Each difficulty tier has count-based milestones plus speed and logic achievements:
 
-Note: Once the tutorial is completed, the tutorial offer dialog will no longer appear.
+| Tier | Count Achievements | Speed Achievement | Logic Achievement |
+|------|--------------------|--------------------|-------------------|
+| Easy | Easy Start (1), Easy Going (5), Easy Expert (10) | Speed Easy | Logic Easy |
+| Medium | Medium Start (1), Medium Minded (5), Medium Master (10) | Speed Medium | Logic Medium |
+| Hard | Hard Start (1), Hard Worker (5), Hard Core (10) | Speed Hard | Logic Hard |
+| Expert | Expert Start (1), Expert Mind (5) | Speed Expert | Logic Expert |
+| Extreme | Extreme Start (1), Extreme Legend (3) | Speed Extreme | Logic Extreme |
+
+**Speed achievements** require completing a puzzle of that difficulty in under 2 minutes.
+
+**Logic achievements** require completing a 9x9+ puzzle of that difficulty using only constraints (no manual cell entries).
 
 ### Puzzle Import
 

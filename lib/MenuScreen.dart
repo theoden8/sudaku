@@ -760,8 +760,22 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
   void _continueSavedPuzzle() async {
     if (_savedPuzzle == null) return;
     final n = _savedPuzzle!['n'] as int;
-    final buffer = (_savedPuzzle!['buffer'] as List).cast<int>();
     final hints = (_savedPuzzle!['hints'] as List).cast<int>();
+
+    // Build buffer from hint values (new format) or use legacy buffer
+    List<int> buffer;
+    if (_savedPuzzle!.containsKey('hintValues')) {
+      // New format: build buffer from hints + hintValues
+      final ne4 = n * n * n * n;
+      buffer = List<int>.filled(ne4, 0);
+      final hintValues = (_savedPuzzle!['hintValues'] as List).cast<int>();
+      for (int i = 0; i < hints.length; i++) {
+        buffer[hints[i]] = hintValues[i];
+      }
+    } else {
+      // Legacy format: use full buffer (backward compatibility)
+      buffer = (_savedPuzzle!['buffer'] as List).cast<int>();
+    }
 
     // Don't clear saved puzzle - let it persist until explicit exit or victory
     Navigator.pushNamed(

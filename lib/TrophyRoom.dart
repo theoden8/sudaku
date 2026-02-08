@@ -171,15 +171,18 @@ enum AchievementType {
   size9x9Master,
   size16x16Master,
   allSizesMaster,
-  speedDemon,
   constraintMaster,
-  constraintOnly4x4,
-  constraintOnly9x9,
   tutorialComplete,
-  // Difficulty-based achievements
-  hardPuzzle,
-  expertPuzzle,
-  extremePuzzle,
+  // Difficulty-based count achievements
+  easy1, easy5, easy10,
+  medium1, medium5, medium10,
+  hard1, hard5, hard10,
+  expert1, expert5,
+  extreme1, extreme3,
+  // Speed achievements per difficulty tier (under 2 minutes)
+  speedEasy, speedMedium, speedHard, speedExpert, speedExtreme,
+  // Constraint-only achievements per difficulty tier (9x9+ only)
+  logicEasy, logicMedium, logicHard, logicExpert, logicExtreme,
 }
 
 class Achievement {
@@ -300,17 +303,10 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
     ),
     AchievementType.allSizesMaster: Achievement(
       type: AchievementType.allSizesMaster,
-      title: 'Size Doesn\'t Matter',
+      title: 'Versatile Solver',
       description: 'Complete puzzles of all sizes',
       icon: Icons.emoji_events_rounded,
       gradientColors: [AppColors.gold, AppColors.warning],
-    ),
-    AchievementType.speedDemon: Achievement(
-      type: AchievementType.speedDemon,
-      title: 'Speed Demon',
-      description: 'Complete a puzzle in under 2 minutes',
-      icon: Icons.speed_rounded,
-      gradientColors: [AppColors.error, AppColors.errorLight],
     ),
     AchievementType.constraintMaster: Achievement(
       type: AchievementType.constraintMaster,
@@ -319,20 +315,6 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.rule_rounded,
       gradientColors: [AppColors.primaryPurple, AppColors.secondaryPurple],
     ),
-    AchievementType.constraintOnly4x4: Achievement(
-      type: AchievementType.constraintOnly4x4,
-      title: 'Pure Logic',
-      description: 'Complete a 4x4 puzzle using only constraints',
-      icon: Icons.auto_fix_high_rounded,
-      gradientColors: [AppColors.constraintPurple, AppColors.gold],
-    ),
-    AchievementType.constraintOnly9x9: Achievement(
-      type: AchievementType.constraintOnly9x9,
-      title: 'Logic Grandmaster',
-      description: 'Complete a 9x9 puzzle using only constraints',
-      icon: Icons.psychology_rounded,
-      gradientColors: [AppColors.gold, AppColors.primaryPurple],
-    ),
     AchievementType.tutorialComplete: Achievement(
       type: AchievementType.tutorialComplete,
       title: 'Quick Learner',
@@ -340,29 +322,525 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.school_rounded,
       gradientColors: [AppColors.success, AppColors.successLight],
     ),
-    // Difficulty-based achievements
-    AchievementType.hardPuzzle: Achievement(
-      type: AchievementType.hardPuzzle,
-      title: 'Hard Solver',
-      description: 'Complete a Hard difficulty puzzle',
-      icon: Icons.psychology_alt_rounded,
+    // Difficulty-based achievements (tiered with count milestones)
+    // Easy tier
+    AchievementType.easy1: Achievement(
+      type: AchievementType.easy1,
+      title: 'Easy Start',
+      description: 'Complete 1 Easy puzzle',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.easy5: Achievement(
+      type: AchievementType.easy5,
+      title: 'Easy Going',
+      description: 'Complete 5 Easy puzzles',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.easy10: Achievement(
+      type: AchievementType.easy10,
+      title: 'Easy Expert',
+      description: 'Complete 10 Easy puzzles',
+      icon: Icons.sentiment_satisfied_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+      target: 10,
+      progress: 0,
+    ),
+    // Medium tier
+    AchievementType.medium1: Achievement(
+      type: AchievementType.medium1,
+      title: 'Medium Start',
+      description: 'Complete 1 Medium puzzle',
+      icon: Icons.trending_flat_rounded,
       gradientColors: [AppColors.accent, AppColors.accentLight],
     ),
-    AchievementType.expertPuzzle: Achievement(
-      type: AchievementType.expertPuzzle,
-      title: 'Expert Solver',
-      description: 'Complete an Expert difficulty puzzle',
+    AchievementType.medium5: Achievement(
+      type: AchievementType.medium5,
+      title: 'Medium Minded',
+      description: 'Complete 5 Medium puzzles',
+      icon: Icons.trending_flat_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.medium10: Achievement(
+      type: AchievementType.medium10,
+      title: 'Medium Master',
+      description: 'Complete 10 Medium puzzles',
+      icon: Icons.trending_flat_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+      target: 10,
+      progress: 0,
+    ),
+    // Hard tier
+    AchievementType.hard1: Achievement(
+      type: AchievementType.hard1,
+      title: 'Hard Start',
+      description: 'Complete 1 Hard puzzle',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.hard5: Achievement(
+      type: AchievementType.hard5,
+      title: 'Hard Worker',
+      description: 'Complete 5 Hard puzzles',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+      target: 5,
+      progress: 0,
+    ),
+    AchievementType.hard10: Achievement(
+      type: AchievementType.hard10,
+      title: 'Hard Core',
+      description: 'Complete 10 Hard puzzles',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+      target: 10,
+      progress: 0,
+    ),
+    // Expert tier
+    AchievementType.expert1: Achievement(
+      type: AchievementType.expert1,
+      title: 'Expert Start',
+      description: 'Complete 1 Expert puzzle',
       icon: Icons.lightbulb_rounded,
       gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
     ),
-    AchievementType.extremePuzzle: Achievement(
-      type: AchievementType.extremePuzzle,
-      title: 'Extreme Solver',
-      description: 'Complete an Extreme difficulty puzzle',
+    AchievementType.expert5: Achievement(
+      type: AchievementType.expert5,
+      title: 'Expert Mind',
+      description: 'Complete 5 Expert puzzles',
+      icon: Icons.lightbulb_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+      target: 5,
+      progress: 0,
+    ),
+    // Extreme tier
+    AchievementType.extreme1: Achievement(
+      type: AchievementType.extreme1,
+      title: 'Extreme Start',
+      description: 'Complete 1 Extreme puzzle',
       icon: Icons.local_fire_department_rounded,
       gradientColors: [AppColors.error, AppColors.gold],
     ),
+    AchievementType.extreme3: Achievement(
+      type: AchievementType.extreme3,
+      title: 'Extreme Legend',
+      description: 'Complete 3 Extreme puzzles',
+      icon: Icons.local_fire_department_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+      target: 3,
+      progress: 0,
+    ),
+    // Speed achievements per difficulty tier (under 2 minutes)
+    AchievementType.speedEasy: Achievement(
+      type: AchievementType.speedEasy,
+      title: 'Speed Demon (Easy)',
+      description: 'Complete an Easy puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.speedMedium: Achievement(
+      type: AchievementType.speedMedium,
+      title: 'Speed Demon (Medium)',
+      description: 'Complete a Medium puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+    ),
+    AchievementType.speedHard: Achievement(
+      type: AchievementType.speedHard,
+      title: 'Speed Demon (Hard)',
+      description: 'Complete a Hard puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.speedExpert: Achievement(
+      type: AchievementType.speedExpert,
+      title: 'Speed Demon (Expert)',
+      description: 'Complete an Expert puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ),
+    AchievementType.speedExtreme: Achievement(
+      type: AchievementType.speedExtreme,
+      title: 'Speed Demon (Extreme)',
+      description: 'Complete an Extreme puzzle in under 2 minutes',
+      icon: Icons.speed_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+    ),
+    // Logic achievements per difficulty tier (constraint-only on 9x9+)
+    AchievementType.logicEasy: Achievement(
+      type: AchievementType.logicEasy,
+      title: 'Logic Master (Easy)',
+      description: 'Complete an Easy 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    AchievementType.logicMedium: Achievement(
+      type: AchievementType.logicMedium,
+      title: 'Logic Master (Medium)',
+      description: 'Complete a Medium 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+    ),
+    AchievementType.logicHard: Achievement(
+      type: AchievementType.logicHard,
+      title: 'Logic Master (Hard)',
+      description: 'Complete a Hard 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.warning, AppColors.gold],
+    ),
+    AchievementType.logicExpert: Achievement(
+      type: AchievementType.logicExpert,
+      title: 'Logic Master (Expert)',
+      description: 'Complete an Expert 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ),
+    AchievementType.logicExtreme: Achievement(
+      type: AchievementType.logicExtreme,
+      title: 'Logic Master (Extreme)',
+      description: 'Complete an Extreme 9x9+ using only constraints',
+      icon: Icons.psychology_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
+    ),
   };
+}
+
+// ============================================================================
+// Gamification Stats - Single source of truth for achievements
+// ============================================================================
+
+/// Difficulty tiers for achievement tracking
+enum _DifficultyTier { easy, medium, hard, expert, extreme }
+
+/// Immutable stats that only grow (monotonic). Achievements are derived from this.
+class GamificationStats {
+  final int totalCompleted;
+  final Set<int> completedSizes;        // {2, 3, 4} for 4x4, 9x9, 16x16
+  final Set<String> solvedPuzzleIds;    // Content IDs for duplicate detection
+
+  // High-water marks (monotonic - only increase)
+  final int? fastestTimeSeconds;        // Best completion time ever
+  final double? maxDifficultyNormalized; // Highest difficulty beaten
+
+  // Boolean flags (once true, stays true)
+  final bool usedAllConstraintTypes;    // Ever used all 3 in one puzzle
+  final Set<int> constraintOnlySizes;   // Sizes beaten with 0 manual moves
+  final bool tutorialCompleted;
+  // Difficulty tier counts
+  final int easyCount;
+  final int mediumCount;
+  final int hardCount;
+  final int expertCount;
+  final int extremeCount;
+  // Per-tier skill achievements (stored as tier index: 0=easy, 1=medium, 2=hard, 3=expert, 4=extreme)
+  final Set<int> speedTiers;    // Tiers where completed in under 2 minutes
+  final Set<int> logicTiers;    // Tiers where completed with constraint-only (9x9+ only)
+
+  const GamificationStats({
+    this.totalCompleted = 0,
+    this.completedSizes = const {},
+    this.solvedPuzzleIds = const {},
+    this.fastestTimeSeconds,
+    this.maxDifficultyNormalized,
+    this.usedAllConstraintTypes = false,
+    this.constraintOnlySizes = const {},
+    this.tutorialCompleted = false,
+    this.easyCount = 0,
+    this.mediumCount = 0,
+    this.hardCount = 0,
+    this.expertCount = 0,
+    this.extremeCount = 0,
+    this.speedTiers = const {},
+    this.logicTiers = const {},
+  });
+
+  /// Create updated stats after completing a puzzle
+  GamificationStats recordCompletion({
+    required String contentId,
+    required int gridSize,
+    int? timeSeconds,
+    double? difficultyNormalized,
+    bool usedAllConstraints = false,
+    bool wasConstraintOnly = false,
+  }) {
+    final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
+
+    // Determine difficulty tier and increment count
+    final tier = _getDifficultyTier(difficultyNormalized);
+    final tierIndex = tier.index;
+    final newEasyCount = (isNewPuzzle && tier == _DifficultyTier.easy) ? easyCount + 1 : easyCount;
+    final newMediumCount = (isNewPuzzle && tier == _DifficultyTier.medium) ? mediumCount + 1 : mediumCount;
+    final newHardCount = (isNewPuzzle && tier == _DifficultyTier.hard) ? hardCount + 1 : hardCount;
+    final newExpertCount = (isNewPuzzle && tier == _DifficultyTier.expert) ? expertCount + 1 : expertCount;
+    final newExtremeCount = (isNewPuzzle && tier == _DifficultyTier.extreme) ? extremeCount + 1 : extremeCount;
+
+    // Track speed achievement (under 2 minutes = 120 seconds)
+    final isSpeedRun = timeSeconds != null && timeSeconds < 120;
+    final newSpeedTiers = isSpeedRun ? {...speedTiers, tierIndex} : speedTiers;
+
+    // Track logic achievement (constraint-only on 9x9+ puzzles)
+    final isLogicRun = wasConstraintOnly && gridSize >= 3; // 3 = 9x9
+    final newLogicTiers = isLogicRun ? {...logicTiers, tierIndex} : logicTiers;
+
+    return GamificationStats(
+      totalCompleted: isNewPuzzle ? totalCompleted + 1 : totalCompleted,
+      completedSizes: {...completedSizes, gridSize},
+      solvedPuzzleIds: {...solvedPuzzleIds, contentId},
+      fastestTimeSeconds: _minNullable(fastestTimeSeconds, timeSeconds),
+      maxDifficultyNormalized: _maxNullable(maxDifficultyNormalized, difficultyNormalized),
+      usedAllConstraintTypes: usedAllConstraintTypes || usedAllConstraints,
+      constraintOnlySizes: wasConstraintOnly
+          ? {...constraintOnlySizes, gridSize}
+          : constraintOnlySizes,
+      tutorialCompleted: tutorialCompleted,
+      easyCount: newEasyCount,
+      mediumCount: newMediumCount,
+      hardCount: newHardCount,
+      expertCount: newExpertCount,
+      extremeCount: newExtremeCount,
+      speedTiers: newSpeedTiers,
+      logicTiers: newLogicTiers,
+    );
+  }
+
+  static _DifficultyTier _getDifficultyTier(double? normalized) {
+    if (normalized == null) return _DifficultyTier.easy; // Default to easy if unknown
+    // Match thresholds from difficultyLabel
+    if (normalized < 0.15) return _DifficultyTier.easy;
+    if (normalized < 0.35) return _DifficultyTier.medium;
+    if (normalized < 0.55) return _DifficultyTier.hard;
+    if (normalized < 0.75) return _DifficultyTier.expert;
+    return _DifficultyTier.extreme;
+  }
+
+  /// Mark tutorial as completed
+  GamificationStats withTutorialCompleted() => GamificationStats(
+    totalCompleted: totalCompleted,
+    completedSizes: completedSizes,
+    solvedPuzzleIds: solvedPuzzleIds,
+    fastestTimeSeconds: fastestTimeSeconds,
+    maxDifficultyNormalized: maxDifficultyNormalized,
+    usedAllConstraintTypes: usedAllConstraintTypes,
+    constraintOnlySizes: constraintOnlySizes,
+    tutorialCompleted: true,
+    easyCount: easyCount,
+    mediumCount: mediumCount,
+    hardCount: hardCount,
+    expertCount: expertCount,
+    extremeCount: extremeCount,
+    speedTiers: speedTiers,
+    logicTiers: logicTiers,
+  );
+
+  static int? _minNullable(int? a, int? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a < b ? a : b;
+  }
+
+  static double? _maxNullable(double? a, double? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a > b ? a : b;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'totalCompleted': totalCompleted,
+    'completedSizes': completedSizes.toList(),
+    'solvedPuzzleIds': solvedPuzzleIds.toList(),
+    'fastestTimeSeconds': fastestTimeSeconds,
+    'maxDifficultyNormalized': maxDifficultyNormalized,
+    'usedAllConstraintTypes': usedAllConstraintTypes,
+    'constraintOnlySizes': constraintOnlySizes.toList(),
+    'tutorialCompleted': tutorialCompleted,
+    'easyCount': easyCount,
+    'mediumCount': mediumCount,
+    'hardCount': hardCount,
+    'expertCount': expertCount,
+    'extremeCount': extremeCount,
+    'speedTiers': speedTiers.toList(),
+    'logicTiers': logicTiers.toList(),
+  };
+
+  static GamificationStats fromJson(Map<String, dynamic> json) {
+    return GamificationStats(
+      totalCompleted: (json['totalCompleted'] ?? 0) as int,
+      completedSizes: Set<int>.from(
+        ((json['completedSizes'] ?? []) as List).cast<int>(),
+      ),
+      solvedPuzzleIds: Set<String>.from(
+        ((json['solvedPuzzleIds'] ?? []) as List).cast<String>(),
+      ),
+      fastestTimeSeconds: json['fastestTimeSeconds'] as int?,
+      maxDifficultyNormalized: (json['maxDifficultyNormalized'] as num?)?.toDouble(),
+      usedAllConstraintTypes: (json['usedAllConstraintTypes'] ?? false) as bool,
+      constraintOnlySizes: Set<int>.from(
+        ((json['constraintOnlySizes'] ?? []) as List).cast<int>(),
+      ),
+      tutorialCompleted: (json['tutorialCompleted'] ?? false) as bool,
+      easyCount: (json['easyCount'] ?? 0) as int,
+      mediumCount: (json['mediumCount'] ?? 0) as int,
+      hardCount: (json['hardCount'] ?? 0) as int,
+      expertCount: (json['expertCount'] ?? 0) as int,
+      extremeCount: (json['extremeCount'] ?? 0) as int,
+      speedTiers: Set<int>.from(
+        ((json['speedTiers'] ?? []) as List).cast<int>(),
+      ),
+      logicTiers: Set<int>.from(
+        ((json['logicTiers'] ?? []) as List).cast<int>(),
+      ),
+    );
+  }
+}
+
+/// Derive achievements from stats - pure function, no side effects
+Map<AchievementType, Achievement> deriveAchievements(GamificationStats stats) {
+  final templates = getDefaultAchievements();
+  final result = <AchievementType, Achievement>{};
+
+  // Helper to mark achievement as unlocked
+  Achievement unlocked(AchievementType type) => templates[type]!.copyWith(
+    unlockedAt: DateTime.fromMillisecondsSinceEpoch(0), // Placeholder time
+  );
+
+  // Helper to set progress on count-based achievements
+  Achievement withProgress(AchievementType type, int progress) {
+    final template = templates[type]!;
+    final isUnlocked = template.target != null && progress >= template.target!;
+    return template.copyWith(
+      progress: progress,
+      unlockedAt: isUnlocked ? DateTime.fromMillisecondsSinceEpoch(0) : null,
+    );
+  }
+
+  // Count-based achievements (4x4 doesn't count - too easy)
+  final hasCompleted9x9OrLarger = stats.completedSizes.contains(3) || stats.completedSizes.contains(4);
+  result[AchievementType.firstSolve] = hasCompleted9x9OrLarger
+      ? unlocked(AchievementType.firstSolve)
+      : templates[AchievementType.firstSolve]!;
+
+  result[AchievementType.tenPuzzles] = withProgress(
+    AchievementType.tenPuzzles, stats.totalCompleted);
+  result[AchievementType.twentyFivePuzzles] = withProgress(
+    AchievementType.twentyFivePuzzles, stats.totalCompleted);
+  result[AchievementType.fiftyPuzzles] = withProgress(
+    AchievementType.fiftyPuzzles, stats.totalCompleted);
+
+  // Size-based achievements
+  result[AchievementType.size4x4Master] = stats.completedSizes.contains(2)
+      ? unlocked(AchievementType.size4x4Master)
+      : templates[AchievementType.size4x4Master]!;
+  result[AchievementType.size9x9Master] = stats.completedSizes.contains(3)
+      ? unlocked(AchievementType.size9x9Master)
+      : templates[AchievementType.size9x9Master]!;
+  result[AchievementType.size16x16Master] = stats.completedSizes.contains(4)
+      ? unlocked(AchievementType.size16x16Master)
+      : templates[AchievementType.size16x16Master]!;
+  result[AchievementType.allSizesMaster] = stats.completedSizes.containsAll([2, 3, 4])
+      ? unlocked(AchievementType.allSizesMaster)
+      : templates[AchievementType.allSizesMaster]!;
+
+  // Speed achievement
+  // Constraint achievements
+  result[AchievementType.constraintMaster] = stats.usedAllConstraintTypes
+      ? unlocked(AchievementType.constraintMaster)
+      : templates[AchievementType.constraintMaster]!;
+
+  // Tutorial achievement
+  result[AchievementType.tutorialComplete] = stats.tutorialCompleted
+      ? unlocked(AchievementType.tutorialComplete)
+      : templates[AchievementType.tutorialComplete]!;
+
+  // Difficulty tier achievements
+  // Easy tier
+  result[AchievementType.easy1] = stats.easyCount >= 1
+      ? unlocked(AchievementType.easy1)
+      : templates[AchievementType.easy1]!;
+  result[AchievementType.easy5] = withProgress(AchievementType.easy5, stats.easyCount);
+  result[AchievementType.easy10] = withProgress(AchievementType.easy10, stats.easyCount);
+
+  // Medium tier
+  result[AchievementType.medium1] = stats.mediumCount >= 1
+      ? unlocked(AchievementType.medium1)
+      : templates[AchievementType.medium1]!;
+  result[AchievementType.medium5] = withProgress(AchievementType.medium5, stats.mediumCount);
+  result[AchievementType.medium10] = withProgress(AchievementType.medium10, stats.mediumCount);
+
+  // Hard tier
+  result[AchievementType.hard1] = stats.hardCount >= 1
+      ? unlocked(AchievementType.hard1)
+      : templates[AchievementType.hard1]!;
+  result[AchievementType.hard5] = withProgress(AchievementType.hard5, stats.hardCount);
+  result[AchievementType.hard10] = withProgress(AchievementType.hard10, stats.hardCount);
+
+  // Expert tier
+  result[AchievementType.expert1] = stats.expertCount >= 1
+      ? unlocked(AchievementType.expert1)
+      : templates[AchievementType.expert1]!;
+  result[AchievementType.expert5] = withProgress(AchievementType.expert5, stats.expertCount);
+
+  // Extreme tier
+  result[AchievementType.extreme1] = stats.extremeCount >= 1
+      ? unlocked(AchievementType.extreme1)
+      : templates[AchievementType.extreme1]!;
+  result[AchievementType.extreme3] = withProgress(AchievementType.extreme3, stats.extremeCount);
+
+  // Speed achievements per tier (tier indices: 0=easy, 1=medium, 2=hard, 3=expert, 4=extreme)
+  result[AchievementType.speedEasy] = stats.speedTiers.contains(0)
+      ? unlocked(AchievementType.speedEasy)
+      : templates[AchievementType.speedEasy]!;
+  result[AchievementType.speedMedium] = stats.speedTiers.contains(1)
+      ? unlocked(AchievementType.speedMedium)
+      : templates[AchievementType.speedMedium]!;
+  result[AchievementType.speedHard] = stats.speedTiers.contains(2)
+      ? unlocked(AchievementType.speedHard)
+      : templates[AchievementType.speedHard]!;
+  result[AchievementType.speedExpert] = stats.speedTiers.contains(3)
+      ? unlocked(AchievementType.speedExpert)
+      : templates[AchievementType.speedExpert]!;
+  result[AchievementType.speedExtreme] = stats.speedTiers.contains(4)
+      ? unlocked(AchievementType.speedExtreme)
+      : templates[AchievementType.speedExtreme]!;
+
+  // Logic achievements per tier (constraint-only on 9x9+)
+  result[AchievementType.logicEasy] = stats.logicTiers.contains(0)
+      ? unlocked(AchievementType.logicEasy)
+      : templates[AchievementType.logicEasy]!;
+  result[AchievementType.logicMedium] = stats.logicTiers.contains(1)
+      ? unlocked(AchievementType.logicMedium)
+      : templates[AchievementType.logicMedium]!;
+  result[AchievementType.logicHard] = stats.logicTiers.contains(2)
+      ? unlocked(AchievementType.logicHard)
+      : templates[AchievementType.logicHard]!;
+  result[AchievementType.logicExpert] = stats.logicTiers.contains(3)
+      ? unlocked(AchievementType.logicExpert)
+      : templates[AchievementType.logicExpert]!;
+  result[AchievementType.logicExtreme] = stats.logicTiers.contains(4)
+      ? unlocked(AchievementType.logicExtreme)
+      : templates[AchievementType.logicExtreme]!;
+
+  return result;
+}
+
+/// Get list of newly unlocked achievements by comparing old and new stats
+List<Achievement> getNewlyUnlocked(GamificationStats oldStats, GamificationStats newStats) {
+  final oldAchievements = deriveAchievements(oldStats);
+  final newAchievements = deriveAchievements(newStats);
+
+  final newlyUnlocked = <Achievement>[];
+  for (final type in AchievementType.values) {
+    final wasUnlocked = oldAchievements[type]?.isUnlocked ?? false;
+    final isNowUnlocked = newAchievements[type]?.isUnlocked ?? false;
+    if (!wasUnlocked && isNowUnlocked) {
+      newlyUnlocked.add(newAchievements[type]!);
+    }
+  }
+  return newlyUnlocked;
 }
 
 // ============================================================================
@@ -371,10 +849,9 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
 
 class TrophyRoomStorage {
   static const String _puzzleRecordsKey = 'trophyRoom_puzzleRecords';
-  static const String _achievementsKey = 'trophyRoom_achievements';
   static const String _statsKey = 'trophyRoom_stats';
 
-  // Puzzle Records
+  // Puzzle Records (visible history - can be deleted)
   static Future<List<PuzzleRecord>> loadPuzzleRecords() async {
     final prefs = await SharedPreferences.getInstance();
     final json = prefs.getString(_puzzleRecordsKey);
@@ -412,90 +889,51 @@ class TrophyRoomStorage {
     final records = await loadPuzzleRecords();
     records.removeWhere((r) => r.id == id);
     await savePuzzleRecords(records);
+    // Note: Stats are NOT modified when deleting a puzzle record
+    // This preserves achievement progress
   }
 
-  // Achievements
-  static Future<Map<AchievementType, Achievement>> loadAchievements() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_achievementsKey);
-    final defaults = getDefaultAchievements();
-
-    if (json == null) return defaults;
-
-    try {
-      final savedMap = jsonDecode(json) as Map<String, dynamic>;
-      final result = <AchievementType, Achievement>{};
-
-      for (final type in AchievementType.values) {
-        final template = defaults[type]!;
-        final key = type.name;
-        if (savedMap.containsKey(key)) {
-          result[type] = Achievement.fromJson(
-            savedMap[key] as Map<String, dynamic>,
-            template,
-          );
-        } else {
-          result[type] = template;
-        }
-      }
-      return result;
-    } catch (e) {
-      return defaults;
-    }
-  }
-
-  static Future<void> saveAchievements(Map<AchievementType, Achievement> achievements) async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = <String, dynamic>{};
-    for (final entry in achievements.entries) {
-      // Use enum name for migration safety (not index)
-      map[entry.key.name] = entry.value.toJson();
-    }
-    await prefs.setString(_achievementsKey, jsonEncode(map));
-  }
-
-  // Stats
-  static Future<Map<String, dynamic>> loadStats() async {
+  // Stats (permanent, monotonic)
+  static Future<GamificationStats> loadStats() async {
     final prefs = await SharedPreferences.getInstance();
     final json = prefs.getString(_statsKey);
-    if (json == null) {
-      return {
-        'totalCompleted': 0,
-        'completedSizes': <int>[],
-      };
-    }
+    if (json == null) return const GamificationStats();
+
     try {
-      return jsonDecode(json) as Map<String, dynamic>;
+      return GamificationStats.fromJson(jsonDecode(json) as Map<String, dynamic>);
     } catch (e) {
-      return {
-        'totalCompleted': 0,
-        'completedSizes': <int>[],
-      };
+      return const GamificationStats();
     }
   }
 
-  static Future<void> saveStats(Map<String, dynamic> stats) async {
+  static Future<void> saveStats(GamificationStats stats) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_statsKey, jsonEncode(stats));
+    await prefs.setString(_statsKey, jsonEncode(stats.toJson()));
+  }
+
+  // Convenience: Load achievements derived from stats
+  static Future<Map<AchievementType, Achievement>> loadAchievements() async {
+    final stats = await loadStats();
+    return deriveAchievements(stats);
   }
 
   /// Check if a specific achievement is unlocked
   static Future<bool> isAchievementUnlocked(AchievementType type) async {
-    final achievements = await loadAchievements();
+    final stats = await loadStats();
+    final achievements = deriveAchievements(stats);
     return achievements[type]?.isUnlocked ?? false;
   }
 
-  /// Unlock a specific achievement directly (for non-puzzle achievements like tutorial)
-  static Future<Achievement?> unlockAchievement(AchievementType type) async {
-    final achievements = await loadAchievements();
-    if (achievements[type]!.isUnlocked) {
-      return null; // Already unlocked
-    }
-    achievements[type] = achievements[type]!.copyWith(
-      unlockedAt: DateTime.now(),
-    );
-    await saveAchievements(achievements);
-    return achievements[type];
+  /// Mark tutorial as completed
+  static Future<Achievement?> markTutorialCompleted() async {
+    final oldStats = await loadStats();
+    if (oldStats.tutorialCompleted) return null; // Already completed
+
+    final newStats = oldStats.withTutorialCompleted();
+    await saveStats(newStats);
+
+    final achievements = deriveAchievements(newStats);
+    return achievements[AchievementType.tutorialComplete];
   }
 }
 
@@ -504,7 +942,7 @@ class TrophyRoomStorage {
 // ============================================================================
 
 class AchievementTracker {
-  /// Check and unlock achievements after puzzle completion.
+  /// Check and update stats after puzzle completion.
   /// Returns list of newly unlocked achievements.
   Future<List<Achievement>> checkAchievements({
     required PuzzleRecord completedPuzzle,
@@ -512,116 +950,23 @@ class AchievementTracker {
     required int constraintTypesUsed,
     required int manualMoves,
   }) async {
-    final newlyUnlocked = <Achievement>[];
-    final achievements = await TrophyRoomStorage.loadAchievements();
-    final stats = await TrophyRoomStorage.loadStats();
+    // Load current stats
+    final oldStats = await TrophyRoomStorage.loadStats();
 
-    // Check if this puzzle was already solved (by content ID)
-    final solvedPuzzleIds = Set<String>.from(
-      ((stats['solvedPuzzleIds'] ?? []) as List).cast<String>(),
+    // Update stats with this completion
+    final newStats = oldStats.recordCompletion(
+      contentId: completedPuzzle.contentId,
+      gridSize: completedPuzzle.n,
+      timeSeconds: timeSpent?.inSeconds,
+      difficultyNormalized: completedPuzzle.difficultyNormalized,
+      usedAllConstraints: constraintTypesUsed >= 3,
+      wasConstraintOnly: manualMoves == 0,
     );
-    final contentId = completedPuzzle.contentId;
-    final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
 
-    // Update stats only for new puzzles
-    final totalCompleted = isNewPuzzle
-        ? ((stats['totalCompleted'] ?? 0) as int) + 1
-        : (stats['totalCompleted'] ?? 0) as int;
-    final completedSizes = Set<int>.from(
-      ((stats['completedSizes'] ?? []) as List).cast<int>(),
-    )..add(completedPuzzle.n);
-    if (isNewPuzzle) {
-      solvedPuzzleIds.add(contentId);
-    }
+    // Save updated stats
+    await TrophyRoomStorage.saveStats(newStats);
 
-    // Helper to unlock achievement
-    void unlock(AchievementType type) {
-      if (!achievements[type]!.isUnlocked) {
-        achievements[type] = achievements[type]!.copyWith(
-          unlockedAt: DateTime.now(),
-        );
-        newlyUnlocked.add(achievements[type]!);
-      }
-    }
-
-    // Helper to update progress
-    void updateProgress(AchievementType type, int progress) {
-      final current = achievements[type]!;
-      achievements[type] = current.copyWith(progress: progress);
-      if (current.target != null && progress >= current.target! && !current.isUnlocked) {
-        unlock(type);
-      }
-    }
-
-    // Check first solve
-    if (totalCompleted == 1) {
-      unlock(AchievementType.firstSolve);
-    }
-
-    // Check count-based achievements
-    updateProgress(AchievementType.tenPuzzles, totalCompleted);
-    updateProgress(AchievementType.twentyFivePuzzles, totalCompleted);
-    updateProgress(AchievementType.fiftyPuzzles, totalCompleted);
-
-    // Check size-based achievements
-    if (completedPuzzle.n == 2) {
-      unlock(AchievementType.size4x4Master);
-    } else if (completedPuzzle.n == 3) {
-      unlock(AchievementType.size9x9Master);
-    } else if (completedPuzzle.n == 4) {
-      unlock(AchievementType.size16x16Master);
-    }
-
-    // Check all sizes
-    if (completedSizes.containsAll([2, 3, 4])) {
-      unlock(AchievementType.allSizesMaster);
-    }
-
-    // Check speed demon (under 2 minutes)
-    if (timeSpent != null && timeSpent.inSeconds < 120) {
-      unlock(AchievementType.speedDemon);
-    }
-
-    // Check constraint master (all 3 types used)
-    if (constraintTypesUsed >= 3) {
-      unlock(AchievementType.constraintMaster);
-    }
-
-    // Check constraint-only 4x4 (solved without manual cell entries)
-    if (completedPuzzle.n == 2 && manualMoves == 0) {
-      unlock(AchievementType.constraintOnly4x4);
-    }
-
-    // Check constraint-only 9x9 (solved without manual cell entries)
-    if (completedPuzzle.n == 3 && manualMoves == 0) {
-      unlock(AchievementType.constraintOnly9x9);
-    }
-
-    // Check difficulty-based achievements
-    final diffNorm = completedPuzzle.difficultyNormalized;
-    if (diffNorm != null) {
-      // Hard: normalized >= 0.35
-      if (diffNorm >= 0.35) {
-        unlock(AchievementType.hardPuzzle);
-      }
-      // Expert: normalized >= 0.55
-      if (diffNorm >= 0.55) {
-        unlock(AchievementType.expertPuzzle);
-      }
-      // Extreme: normalized >= 0.75
-      if (diffNorm >= 0.75) {
-        unlock(AchievementType.extremePuzzle);
-      }
-    }
-
-    // Save updates
-    await TrophyRoomStorage.saveAchievements(achievements);
-    await TrophyRoomStorage.saveStats({
-      'totalCompleted': totalCompleted,
-      'completedSizes': completedSizes.toList(),
-      'solvedPuzzleIds': solvedPuzzleIds.toList(),
-    });
-
-    return newlyUnlocked;
+    // Return newly unlocked achievements
+    return getNewlyUnlocked(oldStats, newStats);
   }
 }

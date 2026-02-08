@@ -332,15 +332,11 @@ class SudokuScreenState extends State<SudokuScreen> {
       return data;
     }).toList();
 
-    // Serialize eliminator state
-    final eliminatorData = <Map<String, dynamic>>[];
-    for (int i = 0; i < sd!.assist.elim.length; i++) {
-      eliminatorData.add({
-        'condition': sd!.assist.elim.conditions[i].getBuffer(),
-        'forbidden': _serializeSudokuDomain(sd!.assist.elim.forbiddenValues[i]),
-      });
-    }
+    // Extract hint values
+    final hintIndices = sd!.hints.asIntIterable().toList();
+    final hintValues = hintIndices.map((i) => sd!.buf[i]).toList();
 
+    // Serialize manual changes (non-assisted only)
     // Only save manual changes (not assisted ones)
     final manualChanges = sd!.changes.where((c) => !c.assisted).toList();
     final changesData = manualChanges.map((c) => {
@@ -375,24 +371,14 @@ class SudokuScreenState extends State<SudokuScreen> {
       'showDifficultyNumbers': sd!.assist.showDifficultyNumbers,
       // Constraints
       'constraints': constraintsData,
-      // Eliminator
-      'eliminator': eliminatorData,
     };
     await prefs.setString(_savedPuzzleKey, jsonEncode(state));
-  }
-
-  List<List<int>> _serializeSudokuDomain(SudokuDomain sdom) {
-    final result = <List<int>>[];
-    for (int i = 0; i < sd!.ne4; i++) {
-      result.add(sdom[i].asBitArray().asIntIterable().toList());
-    }
-    return result;
   }
 
   void _restoreFullState(Map<String, dynamic> state) {
     if (sd == null) return;
 
-    // Restore assistant settings
+    // Restore assistant settings FIRST (so propagation uses correct settings)
     if (state.containsKey('autoComplete')) {
       sd!.assist.autoComplete = state['autoComplete'] as bool;
     }
@@ -455,28 +441,12 @@ class SudokuScreenState extends State<SudokuScreen> {
       }
     }
 
-    // Restore eliminator state
-    if (state.containsKey('eliminator')) {
-      final elimData = state['eliminator'] as List;
-      for (final eData in elimData) {
-        final data = eData as Map<String, dynamic>;
-        final conditionBuf = (data['condition'] as List).cast<int>();
-        final forbiddenData = data['forbidden'] as List;
-
-        // Create condition buffer
-        final condition = SudokuBuffer(sd!.ne4);
-        condition.setBuffer(conditionBuf);
-        sd!.assist.elim.conditions.add(condition);
-
-        // Create forbidden values domain
-        final forbidden = SudokuDomain(sd!);
-        for (int i = 0; i < sd!.ne4 && i < forbiddenData.length; i++) {
-          final bits = (forbiddenData[i] as List).cast<int>();
-          if (bits.isNotEmpty) {
-            forbidden[i].setBits(bits);
-          }
-        }
-        sd!.assist.elim.forbiddenValues.add(forbidden);
+    // Replay manual changes LAST (triggers propagation with correct settings)
+    if (state.containsKey('manualChanges')) {
+      final changes = state['manualChanges'] as List;
+      for (final change in changes) {
+        final data = change as Map<String, dynamic>;
+        sd!.setManualChange(data['v'] as int, data['val'] as int);
       }
     }
 
@@ -1536,9 +1506,63 @@ class SudokuScreenState extends State<SudokuScreen> {
       sd!.assist.autoComplete = this._tutorialSavedAutoComplete!;
       this._tutorialSavedAutoComplete = null;
     }
-    // Unlock tutorial achievement
-    await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+    // Mark tutorial as completed (updates stats, achievement derived from that)
+    final achievement = await TrophyRoomStorage.markTutorialCompleted();
     this.runSetState();
+
+    // Show achievement notification if newly unlocked
+    if (achievement != null && mounted) {
+      _showAchievementNotification(achievement);
+    }
+  }
+
+  void _showAchievementNotification(Achievement achievement) {
+    final theme = widget.sudokuThemeFunc(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: theme.dialogBackgroundColor,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+        content: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(colors: achievement.gradientColors),
+              ),
+              child: Icon(achievement.icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Achievement Unlocked!',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.mutedSecondary,
+                    ),
+                  ),
+                  Text(
+                    achievement.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: theme.dialogTitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {
