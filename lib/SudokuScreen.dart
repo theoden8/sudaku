@@ -144,7 +144,9 @@ class OneofInteraction extends ConstraintInteraction {
     if(val == null) {
       return;
     }
-    sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect!, val));
+    final constraint = ConstraintOneOf(sd, self._multiSelect!, val);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -155,7 +157,9 @@ class EqualInteraction extends ConstraintInteraction {
 
   @override
   Future<void> onSelection() async {
-    sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect!));
+    final constraint = ConstraintEqual(sd, this.self._multiSelect!);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -170,7 +174,9 @@ class AlldiffInteraction extends ConstraintInteraction {
     if(selection == null || selection.cardinality != self._multiSelect!.cardinality) {
       return;
     }
-    sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect!, selection));
+    final constraint = ConstraintAllDiff(sd, self._multiSelect!, selection);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -211,6 +217,9 @@ class SudokuScreenState extends State<SudokuScreen> {
   // Difficulty tracking
   int? _currentDifficultyForwards;
   bool _difficultyLoading = false;
+
+  // Track last constraint added by user in current session (not restored)
+  Constraint? _lastUserAddedConstraint;
 
   void runSetState() {
     setState((){});
@@ -1806,16 +1815,14 @@ class SudokuScreenState extends State<SudokuScreen> {
       return _makeConstraintChoices(ctx);
     }
 
-    // Get the last added constraint (if any) to show it even when satisfied
     final allConstraints = sd!.assist.constraints;
-    final lastConstraint = allConstraints.isNotEmpty ? allConstraints.last : null;
     final hasEmptyCells = !sd!.checkIsComplete();
 
     var constraints = allConstraints.where((Constraint c) {
       // Always show non-successful constraints (violated, insufficient, not run)
       if (c.status != Constraint.SUCCESS) return true;
-      // Also show last added constraint if puzzle has empty cells
-      if (hasEmptyCells && c == lastConstraint) return true;
+      // Also show last user-added constraint (this session) if puzzle has empty cells
+      if (hasEmptyCells && c == _lastUserAddedConstraint) return true;
       return false;
     }).toList();
 
@@ -1953,6 +1960,9 @@ class SudokuScreenState extends State<SudokuScreen> {
                     onPressed: () {
                       if(this._selectedConstraint == constraint) {
                         this._selectedConstraint = null;
+                      }
+                      if(this._lastUserAddedConstraint == constraint) {
+                        this._lastUserAddedConstraint = null;
                       }
                       sd!.assist.constraints.remove(constraint);
                       this.runAssistant(reapply: true);
