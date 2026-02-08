@@ -510,9 +510,7 @@ class Eliminator extends DomainFilterer {
   }
 
   bool checkCondition(int index) {
-    return Iterable<bool>.generate(this.length, (ind) =>
-      this.conditions[ind].match(sd.buf)
-    ).every((b) => b);
+    return this.conditions[index].match(sd.buf);
   }
 
   Iterable<int> iterateActiveConditions() sync* {
