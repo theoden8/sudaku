@@ -2501,20 +2501,22 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
-    // Build difficulty badge for app bar (hide on narrow screens)
+    // Build difficulty badge for app bar (scale based on available width)
     final screenWidth = MediaQuery.of(ctx).size.width;
-    final showBadge = screenWidth > 360; // Hide on very narrow screens
+    // Scale factor: 1.0 at 400px+, down to 0.7 at 280px
+    final scale = ((screenWidth - 280) / 120).clamp(0.7, 1.0);
+
     Widget? difficultyBadge;
-    if (showBadge && sd != null && sd!.assist.showDifficulty) {
+    if (sd != null && sd!.assist.showDifficulty) {
       final norm = _getDifficultyNormalized(_currentDifficultyForwards);
       if (_difficultyLoading) {
         difficultyBadge = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 4 * scale),
           child: SizedBox(
-            width: 14,
-            height: 14,
+            width: 14 * scale,
+            height: 14 * scale,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
+              strokeWidth: 2 * scale,
               color: theme.mutedPrimary,
             ),
           ),
@@ -2524,17 +2526,17 @@ class SudokuScreenState extends State<SudokuScreen> {
             ? _currentDifficultyForwards.toString()
             : _getDifficultyLabel(norm);
         difficultyBadge = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12 * scale),
             color: _getDifficultyColor(norm),
           ),
           child: Text(
             displayText,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 11,
+              fontSize: 11 * scale,
             ),
           ),
         );
@@ -2544,26 +2546,23 @@ class SudokuScreenState extends State<SudokuScreen> {
     var appBar = AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      title: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'SUDOKU',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 24,
-                letterSpacing: 3,
-                color: theme.dialogTitleColor,
-              ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'SUDOKU',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 24 * scale,
+              letterSpacing: 3 * scale,
+              color: theme.dialogTitleColor,
             ),
-            if (difficultyBadge != null) ...[
-              const SizedBox(width: 12),
-              difficultyBadge,
-            ],
+          ),
+          if (difficultyBadge != null) ...[
+            SizedBox(width: 12 * scale),
+            difficultyBadge,
           ],
-        ),
+        ],
       ),
       centerTitle: true,
       leading: const SizedBox.shrink(),
