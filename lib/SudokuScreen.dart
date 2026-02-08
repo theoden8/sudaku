@@ -1422,6 +1422,7 @@ class SudokuScreenState extends State<SudokuScreen> {
           elevation: 4.0,
           // In demo mode, keep SnackBar visible indefinitely for screenshots
           duration: sd!.isDemo ? const Duration(days: 1) : const Duration(seconds: 4),
+          backgroundColor: Colors.grey[200],
           content: Text(
             constr.toString(),
             textAlign: TextAlign.center,
