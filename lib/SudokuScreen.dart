@@ -290,6 +290,13 @@ class SudokuScreenState extends State<SudokuScreen> {
       if (settings.containsKey('showDifficultyNumbers')) {
         sd!.assist.showDifficultyNumbers = settings['showDifficultyNumbers'] as bool;
       }
+      // Propagate default constraints if settings enabled them
+      // Use post-frame callback to ensure puzzle is fully loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (sd != null && mounted) {
+          runAssistant();
+        }
+      });
     } catch (e) {
       // Invalid settings, ignore
     }
@@ -1799,8 +1806,17 @@ class SudokuScreenState extends State<SudokuScreen> {
       return _makeConstraintChoices(ctx);
     }
 
-    var constraints = sd!.assist.constraints.where((Constraint c) {
-      return c.status != Constraint.SUCCESS;
+    // Get the last added constraint (if any) to show it even when satisfied
+    final allConstraints = sd!.assist.constraints;
+    final lastConstraint = allConstraints.isNotEmpty ? allConstraints.last : null;
+    final hasEmptyCells = !sd!.checkIsComplete();
+
+    var constraints = allConstraints.where((Constraint c) {
+      // Always show non-successful constraints (violated, insufficient, not run)
+      if (c.status != Constraint.SUCCESS) return true;
+      // Also show last added constraint if puzzle has empty cells
+      if (hasEmptyCells && c == lastConstraint) return true;
+      return false;
     }).toList();
 
     // Theme-aware muted colors
