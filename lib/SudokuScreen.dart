@@ -1818,25 +1818,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     final allConstraints = sd!.assist.constraints;
     final hasEmptyCells = !sd!.checkIsComplete();
 
-    // Check if we're in a deadend (any empty cell has no valid values)
-    bool hasDeadend = false;
-    if (hasEmptyCells) {
-      final totalDomain = sd!.assist.getTotalDomain();
-      for (int i = 0; i < sd!.ne4; i++) {
-        if (sd![i] == 0 && totalDomain[i].isEmpty) {
-          hasDeadend = true;
-          break;
-        }
-      }
-    }
-
+    // Show all constraints if puzzle isn't complete, hide only SUCCESS ones when complete
     var constraints = allConstraints.where((Constraint c) {
       // Always show non-successful constraints (violated, insufficient, not run)
       if (c.status != Constraint.SUCCESS) return true;
-      // Show all constraints if there's a deadend (so user can delete the problematic one)
-      if (hasDeadend) return true;
-      // Also show last user-added constraint (this session) if puzzle has empty cells
-      if (hasEmptyCells && c == _lastUserAddedConstraint) return true;
+      // Show all constraints while puzzle has empty cells
+      if (hasEmptyCells) return true;
       return false;
     }).toList();
 
