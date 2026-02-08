@@ -1,3 +1,9 @@
 ## changes
 
-* slightly improved layout
+* added Trophy Room with achievements and puzzle history
+* difficulty levels: Easy, Medium, Hard, Expert, Extreme
+* live difficulty indicator shows puzzle complexity as you solve
+* puzzle import/export using dot notation
+* puzzle state persistence - resume where you left off
+* fixed dead-end detection in constraint solver
+* improved layout
