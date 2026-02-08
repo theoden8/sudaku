@@ -208,6 +208,7 @@ class SudokuScreenState extends State<SudokuScreen> {
   void runSetState() {
     setState((){});
     _autoSavePuzzleState();
+    _saveAssistantSettings(); // Save settings globally
     // Update live difficulty if enabled
     if (sd != null && sd!.assist.showDifficulty && sd!.assist.showLiveDifficulty) {
       _estimateDifficulty(isInitial: false);
@@ -227,6 +228,62 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   // Persistence keys
   static const String _savedPuzzleKey = 'savedPuzzle';
+  static const String _assistantSettingsKey = 'assistantSettings';
+
+  /// Save assistant settings as global preferences
+  Future<void> _saveAssistantSettings() async {
+    if (sd == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final settings = {
+      'autoComplete': sd!.assist.autoComplete,
+      'useDefaultConstraints': sd!.assist.useDefaultConstraints,
+      'hintAvailable': sd!.assist.hintAvailable,
+      'hintConstrained': sd!.assist.hintConstrained,
+      'hintContradictions': sd!.assist.hintContradictions,
+      'showDifficulty': sd!.assist.showDifficulty,
+      'showLiveDifficulty': sd!.assist.showLiveDifficulty,
+      'showDifficultyNumbers': sd!.assist.showDifficultyNumbers,
+    };
+    await prefs.setString(_assistantSettingsKey, jsonEncode(settings));
+  }
+
+  /// Restore assistant settings from global preferences
+  Future<void> _restoreAssistantSettings() async {
+    if (sd == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final settingsJson = prefs.getString(_assistantSettingsKey);
+    if (settingsJson == null) return;
+
+    try {
+      final settings = jsonDecode(settingsJson) as Map<String, dynamic>;
+      if (settings.containsKey('autoComplete')) {
+        sd!.assist.autoComplete = settings['autoComplete'] as bool;
+      }
+      if (settings.containsKey('useDefaultConstraints')) {
+        sd!.assist.useDefaultConstraints = settings['useDefaultConstraints'] as bool;
+      }
+      if (settings.containsKey('hintAvailable')) {
+        sd!.assist.hintAvailable = settings['hintAvailable'] as bool;
+      }
+      if (settings.containsKey('hintConstrained')) {
+        sd!.assist.hintConstrained = settings['hintConstrained'] as bool;
+      }
+      if (settings.containsKey('hintContradictions')) {
+        sd!.assist.hintContradictions = settings['hintContradictions'] as bool;
+      }
+      if (settings.containsKey('showDifficulty')) {
+        sd!.assist.showDifficulty = settings['showDifficulty'] as bool;
+      }
+      if (settings.containsKey('showLiveDifficulty')) {
+        sd!.assist.showLiveDifficulty = settings['showLiveDifficulty'] as bool;
+      }
+      if (settings.containsKey('showDifficultyNumbers')) {
+        sd!.assist.showDifficultyNumbers = settings['showDifficultyNumbers'] as bool;
+      }
+    } catch (e) {
+      // Invalid settings, ignore
+    }
+  }
 
   Future<void> _savePuzzleState() async {
     if (sd == null) return;
@@ -2414,11 +2471,15 @@ class SudokuScreenState extends State<SudokuScreen> {
         if (args.addDemoConstraints) {
           setupDemoConstraints(sd!);
         }
+        // Restore global assistant settings for demo mode
+        _restoreAssistantSettings();
       } else {
         // Normal mode: load random puzzle
         sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
           this.runSetState();
         });
+        // Restore global assistant settings for new puzzles
+        _restoreAssistantSettings();
       }
       this._multiSelect = BitArray(sd!.ne4);
       // Initial difficulty estimation
