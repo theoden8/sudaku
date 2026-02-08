@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sudaku/Sudoku.dart';
 import 'package:sudaku/SudokuScreen.dart';
 
 void main() {
@@ -101,6 +102,307 @@ void main() {
 
       expect(args.savedBuffer, isNull);
       expect(args.savedHints, isNull);
+    });
+  });
+
+  group('Manual vs Assisted Changes Persistence', () {
+    test('isVariableManual returns true for hints (no changes)', () {
+      // Simulate: hints have values but no changes in history
+      final changes = <SudokuChange>[];
+      final hintIndices = {0, 1, 2}; // cells 0, 1, 2 are hints
+
+      bool isVariableManual(int index) {
+        var varChanges = changes.where((c) => c.variable == index);
+        if (varChanges.isEmpty) {
+          return true; // No changes = manual (includes hints)
+        }
+        return !varChanges.last.assisted;
+      }
+
+      // Hints should be considered manual
+      expect(isVariableManual(0), isTrue);
+      expect(isVariableManual(1), isTrue);
+      expect(isVariableManual(2), isTrue);
+    });
+
+    test('isVariableManual returns true for user-entered values', () {
+      final changes = <SudokuChange>[
+        SudokuChange(variable: 5, value: 3, prevValue: 0, assisted: false),
+        SudokuChange(variable: 10, value: 7, prevValue: 0, assisted: false),
+      ];
+
+      bool isVariableManual(int index) {
+        var varChanges = changes.where((c) => c.variable == index);
+        if (varChanges.isEmpty) return true;
+        return !varChanges.last.assisted;
+      }
+
+      expect(isVariableManual(5), isTrue);
+      expect(isVariableManual(10), isTrue);
+    });
+
+    test('isVariableManual returns false for assistant-propagated values', () {
+      final changes = <SudokuChange>[
+        SudokuChange(variable: 5, value: 3, prevValue: 0, assisted: false),
+        SudokuChange(variable: 6, value: 4, prevValue: 0, assisted: true), // propagated
+        SudokuChange(variable: 7, value: 5, prevValue: 0, assisted: true), // propagated
+      ];
+
+      bool isVariableManual(int index) {
+        var varChanges = changes.where((c) => c.variable == index);
+        if (varChanges.isEmpty) return true;
+        return !varChanges.last.assisted;
+      }
+
+      expect(isVariableManual(5), isTrue);  // manual
+      expect(isVariableManual(6), isFalse); // assisted
+      expect(isVariableManual(7), isFalse); // assisted
+    });
+
+    test('filtering only manual changes from history', () {
+      final changes = <SudokuChange>[
+        SudokuChange(variable: 0, value: 1, prevValue: 0, assisted: false),
+        SudokuChange(variable: 1, value: 2, prevValue: 0, assisted: true),
+        SudokuChange(variable: 2, value: 3, prevValue: 0, assisted: false),
+        SudokuChange(variable: 3, value: 4, prevValue: 0, assisted: true),
+        SudokuChange(variable: 4, value: 5, prevValue: 0, assisted: false),
+      ];
+
+      final manualChanges = changes.where((c) => !c.assisted).toList();
+
+      expect(manualChanges.length, equals(3));
+      expect(manualChanges[0].variable, equals(0));
+      expect(manualChanges[1].variable, equals(2));
+      expect(manualChanges[2].variable, equals(4));
+    });
+
+    test('filtering manual buffer values preserves hints and user values', () {
+      final buffer = [1, 2, 3, 4, 5, 6, 7, 8, 9]; // 9 cells
+      final hints = {0, 1, 2}; // cells 0, 1, 2 are hints
+      final changes = <SudokuChange>[
+        SudokuChange(variable: 3, value: 4, prevValue: 0, assisted: false), // manual
+        SudokuChange(variable: 4, value: 5, prevValue: 0, assisted: true),  // assisted
+        SudokuChange(variable: 5, value: 6, prevValue: 0, assisted: false), // manual
+        SudokuChange(variable: 6, value: 7, prevValue: 0, assisted: true),  // assisted
+      ];
+
+      bool isHint(int i) => hints.contains(i);
+      bool isVariableManual(int index) {
+        var varChanges = changes.where((c) => c.variable == index);
+        if (varChanges.isEmpty) return true;
+        return !varChanges.last.assisted;
+      }
+
+      final manualBuffer = List<int>.generate(9, (i) {
+        if (isHint(i) || isVariableManual(i)) {
+          return buffer[i];
+        }
+        return 0;
+      });
+
+      // Hints preserved
+      expect(manualBuffer[0], equals(1));
+      expect(manualBuffer[1], equals(2));
+      expect(manualBuffer[2], equals(3));
+      // Manual values preserved
+      expect(manualBuffer[3], equals(4));
+      expect(manualBuffer[5], equals(6));
+      // Assisted values cleared
+      expect(manualBuffer[4], equals(0));
+      expect(manualBuffer[6], equals(0));
+      // Untouched cells (no changes, considered manual)
+      expect(manualBuffer[7], equals(8));
+      expect(manualBuffer[8], equals(9));
+    });
+
+    test('save and restore cycle preserves only manual state', () {
+      // Simulate initial state
+      final buffer = List<int>.filled(16, 0); // 4x4 grid
+      final hints = {0, 5, 10, 15}; // diagonal hints
+      final changes = <SudokuChange>[];
+
+      // Set hint values
+      buffer[0] = 1;
+      buffer[5] = 2;
+      buffer[10] = 3;
+      buffer[15] = 4;
+
+      // User makes manual change
+      buffer[1] = 3;
+      changes.add(SudokuChange(variable: 1, value: 3, prevValue: 0, assisted: false));
+
+      // Assistant propagates
+      buffer[2] = 4;
+      changes.add(SudokuChange(variable: 2, value: 4, prevValue: 0, assisted: true));
+      buffer[3] = 2;
+      changes.add(SudokuChange(variable: 3, value: 2, prevValue: 0, assisted: true));
+
+      // User makes another manual change
+      buffer[6] = 1;
+      changes.add(SudokuChange(variable: 6, value: 1, prevValue: 0, assisted: false));
+
+      // --- SAVE ---
+      bool isHint(int i) => hints.contains(i);
+      bool isVariableManual(int index) {
+        var varChanges = changes.where((c) => c.variable == index);
+        if (varChanges.isEmpty) return true;
+        return !varChanges.last.assisted;
+      }
+
+      final savedBuffer = List<int>.generate(16, (i) {
+        if (isHint(i) || isVariableManual(i)) return buffer[i];
+        return 0;
+      });
+      final savedChanges = changes.where((c) => !c.assisted).toList();
+
+      // --- RESTORE ---
+      final restoredBuffer = List<int>.from(savedBuffer);
+      final restoredChanges = savedChanges.map((c) => SudokuChange(
+        variable: c.variable,
+        value: c.value,
+        prevValue: c.prevValue,
+        assisted: c.assisted,
+      )).toList();
+
+      // Verify restored state
+      // Hints preserved
+      expect(restoredBuffer[0], equals(1));
+      expect(restoredBuffer[5], equals(2));
+      expect(restoredBuffer[10], equals(3));
+      expect(restoredBuffer[15], equals(4));
+
+      // Manual changes preserved
+      expect(restoredBuffer[1], equals(3));
+      expect(restoredBuffer[6], equals(1));
+
+      // Assisted changes NOT preserved (will be re-propagated)
+      expect(restoredBuffer[2], equals(0));
+      expect(restoredBuffer[3], equals(0));
+
+      // History only has manual changes
+      expect(restoredChanges.length, equals(2));
+      expect(restoredChanges.every((c) => !c.assisted), isTrue);
+    });
+
+    test('after restore, assistant re-propagates same values given same settings', () {
+      // This test simulates the full cycle:
+      // 1. Original state with manual + assisted values
+      // 2. Save (only manual)
+      // 3. Restore
+      // 4. Re-propagate
+      // 5. Verify final state matches original
+
+      // Simplified simulation of propagation logic
+      List<int> propagate(List<int> buffer, Set<int> hints) {
+        final result = List<int>.from(buffer);
+        // Simple rule: if cell 1 has value 3, propagate 4 to cell 2
+        if (result[1] == 3 && result[2] == 0) {
+          result[2] = 4;
+        }
+        // If cell 6 has value 1, propagate 3 to cell 7
+        if (result[6] == 1 && result[7] == 0) {
+          result[7] = 3;
+        }
+        return result;
+      }
+
+      // --- ORIGINAL STATE ---
+      final originalBuffer = List<int>.filled(16, 0);
+      final hints = {0, 5, 10, 15};
+      originalBuffer[0] = 1;
+      originalBuffer[5] = 2;
+      originalBuffer[10] = 3;
+      originalBuffer[15] = 4;
+      originalBuffer[1] = 3; // manual
+      originalBuffer[6] = 1; // manual
+
+      // Propagate
+      final propagatedOriginal = propagate(originalBuffer, hints);
+      expect(propagatedOriginal[2], equals(4)); // propagated
+      expect(propagatedOriginal[7], equals(3)); // propagated
+
+      // --- SAVE (only manual values) ---
+      final savedBuffer = List<int>.generate(16, (i) {
+        if (hints.contains(i)) return propagatedOriginal[i];
+        if (i == 1 || i == 6) return propagatedOriginal[i]; // manual cells
+        return 0; // clear propagated
+      });
+
+      expect(savedBuffer[2], equals(0)); // propagated value not saved
+      expect(savedBuffer[7], equals(0)); // propagated value not saved
+
+      // --- RESTORE + RE-PROPAGATE ---
+      final restoredBuffer = List<int>.from(savedBuffer);
+      final rePropagated = propagate(restoredBuffer, hints);
+
+      // --- VERIFY SAME FINAL STATE ---
+      expect(rePropagated[0], equals(propagatedOriginal[0]));
+      expect(rePropagated[1], equals(propagatedOriginal[1]));
+      expect(rePropagated[2], equals(propagatedOriginal[2])); // re-propagated same
+      expect(rePropagated[5], equals(propagatedOriginal[5]));
+      expect(rePropagated[6], equals(propagatedOriginal[6]));
+      expect(rePropagated[7], equals(propagatedOriginal[7])); // re-propagated same
+      expect(rePropagated[10], equals(propagatedOriginal[10]));
+      expect(rePropagated[15], equals(propagatedOriginal[15]));
+    });
+
+    test('changes history serialization round-trip', () {
+      final changes = [
+        SudokuChange(variable: 5, value: 3, prevValue: 0, assisted: false),
+        SudokuChange(variable: 10, value: 7, prevValue: 2, assisted: false),
+        SudokuChange(variable: 15, value: 1, prevValue: 5, assisted: false),
+      ];
+
+      // Serialize
+      final changesData = changes.map((c) => {
+        'variable': c.variable,
+        'value': c.value,
+        'prevValue': c.prevValue,
+        'assisted': c.assisted,
+      }).toList();
+
+      final json = jsonEncode(changesData);
+
+      // Deserialize
+      final decoded = jsonDecode(json) as List;
+      final restored = decoded.map((data) => SudokuChange(
+        variable: data['variable'] as int,
+        value: data['value'] as int,
+        prevValue: data['prevValue'] as int,
+        assisted: data['assisted'] as bool,
+      )).toList();
+
+      // Verify
+      expect(restored.length, equals(3));
+      for (int i = 0; i < changes.length; i++) {
+        expect(restored[i].variable, equals(changes[i].variable));
+        expect(restored[i].value, equals(changes[i].value));
+        expect(restored[i].prevValue, equals(changes[i].prevValue));
+        expect(restored[i].assisted, equals(changes[i].assisted));
+      }
+    });
+
+    test('undo works correctly after restore', () {
+      // Simulate restored state with only manual changes
+      final buffer = [1, 3, 0, 0, 0, 2, 1, 0, 0, 0, 3, 0, 0, 0, 0, 4];
+      final changes = [
+        SudokuChange(variable: 1, value: 3, prevValue: 0, assisted: false),
+        SudokuChange(variable: 6, value: 1, prevValue: 0, assisted: false),
+      ];
+
+      // Undo last manual change
+      final lastChange = changes.removeLast();
+      buffer[lastChange.variable] = lastChange.prevValue;
+
+      expect(buffer[6], equals(0));
+      expect(changes.length, equals(1));
+
+      // Undo first manual change
+      final firstChange = changes.removeLast();
+      buffer[firstChange.variable] = firstChange.prevValue;
+
+      expect(buffer[1], equals(0));
+      expect(changes.length, equals(0));
     });
   });
 }

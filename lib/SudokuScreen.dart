@@ -144,7 +144,9 @@ class OneofInteraction extends ConstraintInteraction {
     if(val == null) {
       return;
     }
-    sd.assist.addConstraint(ConstraintOneOf(sd, self._multiSelect!, val));
+    final constraint = ConstraintOneOf(sd, self._multiSelect!, val);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -155,7 +157,9 @@ class EqualInteraction extends ConstraintInteraction {
 
   @override
   Future<void> onSelection() async {
-    sd.assist.addConstraint(ConstraintEqual(sd, this.self._multiSelect!));
+    final constraint = ConstraintEqual(sd, this.self._multiSelect!);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -170,7 +174,9 @@ class AlldiffInteraction extends ConstraintInteraction {
     if(selection == null || selection.cardinality != self._multiSelect!.cardinality) {
       return;
     }
-    sd.assist.addConstraint(ConstraintAllDiff(sd, self._multiSelect!, selection));
+    final constraint = ConstraintAllDiff(sd, self._multiSelect!, selection);
+    sd.assist.addConstraint(constraint);
+    self._lastUserAddedConstraint = constraint;
     self.runAssistant();
     this.finishOnSelection();
   }
@@ -211,6 +217,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   // Difficulty tracking
   int? _currentDifficultyForwards;
   bool _difficultyLoading = false;
+
+  // Track last constraint added by user in current session (not restored)
+  Constraint? _lastUserAddedConstraint;
+
+  // Track if this puzzle has already been won (don't show victory again)
+  bool _puzzleAlreadyWon = false;
 
   void runSetState() {
     setState((){});
@@ -290,6 +302,13 @@ class SudokuScreenState extends State<SudokuScreen> {
       if (settings.containsKey('showDifficultyNumbers')) {
         sd!.assist.showDifficultyNumbers = settings['showDifficultyNumbers'] as bool;
       }
+      // Propagate default constraints if settings enabled them
+      // Use post-frame callback to ensure puzzle is fully loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (sd != null && mounted) {
+          runAssistant();
+        }
+      });
     } catch (e) {
       // Invalid settings, ignore
     }
@@ -322,10 +341,29 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
+    // Only save manual changes (not assisted ones)
+    final manualChanges = sd!.changes.where((c) => !c.assisted).toList();
+    final changesData = manualChanges.map((c) => {
+      'variable': c.variable,
+      'value': c.value,
+      'prevValue': c.prevValue,
+      'assisted': c.assisted,
+    }).toList();
+
+    // Only save manual values (hints + user-entered), not assistant-propagated ones
+    final manualBuffer = List<int>.generate(sd!.ne4, (i) {
+      if (sd!.isHint(i) || sd!.isVariableManual(i)) {
+        return sd![i];
+      }
+      return 0;
+    });
+
     final state = {
       'n': sd!.n,
-      'buffer': sd!.buf.getBuffer(),
+      'buffer': manualBuffer,
       'hints': sd!.hints.asIntIterable().toList(),
+      'changes': changesData,
+      'puzzleAlreadyWon': _puzzleAlreadyWon,
       // Assistant settings
       'autoComplete': sd!.assist.autoComplete,
       'useDefaultConstraints': sd!.assist.useDefaultConstraints,
@@ -380,6 +418,21 @@ class SudokuScreenState extends State<SudokuScreen> {
       sd!.assist.showDifficultyNumbers = state['showDifficultyNumbers'] as bool;
     }
 
+    // Restore changes history
+    if (state.containsKey('changes')) {
+      final changesData = state['changes'] as List;
+      sd!.changes.clear();
+      for (final cData in changesData) {
+        final data = cData as Map<String, dynamic>;
+        sd!.changes.add(SudokuChange(
+          variable: data['variable'] as int,
+          value: data['value'] as int,
+          prevValue: data['prevValue'] as int,
+          assisted: data['assisted'] as bool,
+        ));
+      }
+    }
+
     // Restore constraints
     if (state.containsKey('constraints')) {
       final constraintsData = state['constraints'] as List;
@@ -428,6 +481,19 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
 
     sd!.assist.updateCurrentCondition();
+
+    // Restore puzzleAlreadyWon flag
+    if (state.containsKey('puzzleAlreadyWon')) {
+      _puzzleAlreadyWon = state['puzzleAlreadyWon'] as bool;
+    }
+
+    // Re-run assistant to propagate values and apply constraints
+    // (we only save manual values, so assistant needs to re-propagate)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (sd != null && mounted) {
+        runAssistant();
+      }
+    });
   }
 
   static Future<Map<String, dynamic>?> loadSavedPuzzle() async {
@@ -706,7 +772,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   void _checkVictoryConditions() async {
+    // Don't show victory if puzzle was already won
+    if (_puzzleAlreadyWon) {
+      return;
+    }
     if(sd!.checkIsComplete() && sd!.check()) {
+      _puzzleAlreadyWon = true;
       this._showVictoryDialog();
     }
   }
@@ -1799,8 +1870,16 @@ class SudokuScreenState extends State<SudokuScreen> {
       return _makeConstraintChoices(ctx);
     }
 
-    var constraints = sd!.assist.constraints.where((Constraint c) {
-      return c.status != Constraint.SUCCESS;
+    final allConstraints = sd!.assist.constraints;
+    final hasEmptyCells = !sd!.checkIsComplete();
+
+    // Show all constraints if puzzle isn't complete, hide only SUCCESS ones when complete
+    var constraints = allConstraints.where((Constraint c) {
+      // Always show non-successful constraints (violated, insufficient, not run)
+      if (c.status != Constraint.SUCCESS) return true;
+      // Show all constraints while puzzle has empty cells
+      if (hasEmptyCells) return true;
+      return false;
     }).toList();
 
     // Theme-aware muted colors
@@ -1937,6 +2016,9 @@ class SudokuScreenState extends State<SudokuScreen> {
                     onPressed: () {
                       if(this._selectedConstraint == constraint) {
                         this._selectedConstraint = null;
+                      }
+                      if(this._lastUserAddedConstraint == constraint) {
+                        this._lastUserAddedConstraint = null;
                       }
                       sd!.assist.constraints.remove(constraint);
                       this.runAssistant(reapply: true);
