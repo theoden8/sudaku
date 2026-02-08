@@ -338,9 +338,18 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
+    // Only save manual values (hints + user-entered), not assistant-propagated ones
+    final manualBuffer = List<int>.generate(sd!.ne4, (i) {
+      // Keep hints and manually entered values, clear assistant-propagated ones
+      if (sd!.isHint(i) || sd!.isVariableManual(i)) {
+        return sd![i];
+      }
+      return 0;
+    });
+
     final state = {
       'n': sd!.n,
-      'buffer': sd!.buf.getBuffer(),
+      'buffer': manualBuffer,
       'hints': sd!.hints.asIntIterable().toList(),
       // Assistant settings
       'autoComplete': sd!.assist.autoComplete,
@@ -444,6 +453,13 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
 
     sd!.assist.updateCurrentCondition();
+
+    // Re-run assistant to propagate values (since we only saved manual values)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (sd != null && mounted) {
+        runAssistant();
+      }
+    });
   }
 
   static Future<Map<String, dynamic>?> loadSavedPuzzle() async {
