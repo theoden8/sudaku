@@ -61,6 +61,9 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
+  // Make hit test warnings fatal to catch layout issues
+  WidgetController.hitTestWarningShouldBeFatal = true;
+
   // Clear any leftover demo data before all tests
   setUpAll(() async {
     await clearDemoData();
