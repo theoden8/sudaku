@@ -16,6 +16,7 @@ typedef SdDifficultyNative = Int32 Function(
     Pointer<Uint8> table,
     Int32 n,
     Int32 numSamples,
+    Uint32 seed,
     Pointer<Int32> outMinFwd,
     Pointer<Int32> outMaxFwd,
     Pointer<Int32> outAvgFwd,
@@ -26,6 +27,7 @@ typedef SdDifficulty = int Function(
     Pointer<Uint8> table,
     int n,
     int numSamples,
+    int seed,
     Pointer<Int32> outMinFwd,
     Pointer<Int32> outMaxFwd,
     Pointer<Int32> outAvgFwd,
@@ -119,9 +121,21 @@ class SudokuNative {
     }
   }
 
+  /// Compute a hash seed from puzzle content for deterministic results
+  static int _hashPuzzle(List<int> table) {
+    // Simple hash combining all values
+    int hash = 0x811c9dc5; // FNV-1a offset basis
+    for (final val in table) {
+      hash ^= val;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF; // FNV-1a prime
+    }
+    return hash;
+  }
+
   /// Estimate puzzle difficulty
   ///
   /// Returns a map with min/max/avg forwards and backtracks
+  /// Uses a hash of the solved puzzle as seed for deterministic results
   static Map<String, int>? estimateDifficulty(List<int> table, int n, {int numSamples = 10}) {
     _ensureLoaded();
 
@@ -129,6 +143,16 @@ class SudokuNative {
     if (table.length != ne4) {
       throw ArgumentError('Table length must be $ne4 for n=$n');
     }
+
+    // First solve the puzzle to get the complete solution for hashing
+    final solvedCopy = List<int>.from(table);
+    final solveResult = solve(solvedCopy, n);
+    if (solveResult != 1) {
+      return null; // Invalid puzzle
+    }
+
+    // Hash the solved puzzle for deterministic seeding
+    final seed = _hashPuzzle(solvedCopy);
 
     final tablePtr = calloc<Uint8>(ne4);
     final minFwdPtr = calloc<Int32>(1);
@@ -144,7 +168,7 @@ class SudokuNative {
       }
 
       final result = _difficulty!(
-        tablePtr, n, numSamples,
+        tablePtr, n, numSamples, seed,
         minFwdPtr, maxFwdPtr, avgFwdPtr,
         minBtPtr, maxBtPtr, avgBtPtr,
       );

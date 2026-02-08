@@ -470,12 +470,13 @@ typedef struct {
  *   table: puzzle values (0 = empty, 1-n^2 = filled)
  *   n: box size (2 for 4x4, 3 for 9x9, 4 for 16x16)
  *   num_samples: number of isomorphic versions to test
+ *   seed: random seed for reproducibility (0 = use time)
  *   out_stats: pointer to stats struct to fill
  *
  * Returns: 1 on success, 0 if puzzle is invalid/multiple solutions
  */
 int estimate_difficulty(const uint8_t *table, int32_t n, int32_t num_samples,
-                        difficulty_stats_t *out_stats) {
+                        uint32_t seed, difficulty_stats_t *out_stats) {
   sz_t ne4 = n * n * n * n;
 
   val_t *shuffled = malloc(sizeof(val_t) * ne4);
@@ -486,7 +487,7 @@ int estimate_difficulty(const uint8_t *table, int32_t n, int32_t num_samples,
   int32_t min_backtracks = INT32_MAX, max_backtracks = 0;
   int32_t valid_samples = 0;
 
-  uint32_t base_seed = (uint32_t)time(NULL);
+  uint32_t base_seed = seed ? seed : (uint32_t)time(NULL);
 
   for(int32_t i = 0; i < num_samples; ++i) {
     apply_isomorphism((val_t *)table, shuffled, n, base_seed + i * 12345);
@@ -711,11 +712,11 @@ EXPORT int32_t sd_generate(uint8_t *out_table, int32_t n, uint32_t seed, float d
   return generate_puzzle(out_table, n, seed, difficulty, timeout_ms);
 }
 
-EXPORT int sd_difficulty(const uint8_t *table, int32_t n, int32_t num_samples,
+EXPORT int sd_difficulty(const uint8_t *table, int32_t n, int32_t num_samples, uint32_t seed,
                          int32_t *out_min_fwd, int32_t *out_max_fwd, int32_t *out_avg_fwd,
                          int32_t *out_min_bt, int32_t *out_max_bt, int32_t *out_avg_bt) {
   difficulty_stats_t stats;
-  int result = estimate_difficulty(table, n, num_samples, &stats);
+  int result = estimate_difficulty(table, n, num_samples, seed, &stats);
   if(result && stats.samples > 0) {
     *out_min_fwd = stats.min_forwards;
     *out_max_fwd = stats.max_forwards;

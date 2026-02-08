@@ -116,5 +116,24 @@ void main() {
 
       expect(puzzle1, isNot(equals(puzzle2)));
     });
+
+    test('Difficulty estimation is deterministic for same puzzle', () {
+      // Generate a puzzle
+      final puzzle = SudokuNative.generate(n: 3, seed: 77777, difficulty: 1.0);
+
+      // Estimate difficulty multiple times
+      final stats1 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
+      final stats2 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
+      final stats3 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
+
+      // Results should be identical (deterministic)
+      expect(stats1, isNotNull);
+      expect(stats2, isNotNull);
+      expect(stats3, isNotNull);
+      expect(stats1!['avgForwards'], stats2!['avgForwards']);
+      expect(stats2['avgForwards'], stats3!['avgForwards']);
+      expect(stats1['minForwards'], stats2['minForwards']);
+      expect(stats1['maxForwards'], stats2['maxForwards']);
+    });
   });
 }

@@ -433,7 +433,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         puzzleBuffer = List.generate(sd!.ne4, (i) => sd![i]);
       }
 
-      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 3);
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 5);
       if (mounted) {
         setState(() {
           _currentDifficultyForwards = stats?['avgForwards'];
@@ -467,7 +467,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       for (int i = 0; i < hints.length; i++) {
         puzzleBuffer[hints[i]] = hintValues[i];
       }
-      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 5);
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 10);
       difficultyForwards = stats?['avgForwards'];
     } catch (e) {
       // Native library might not be available on all platforms
