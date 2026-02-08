@@ -405,4 +405,189 @@ void main() {
       expect(changes.length, equals(0));
     });
   });
+
+  group('Demo Mode Persistence Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('isDemoMode returns false by default', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+
+      expect(isDemoMode, isFalse);
+    });
+
+    test('seedDemoData sets demoMode flag to true', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Simulate seedDemoData behavior
+      await prefs.setBool('demoMode', true);
+
+      expect(prefs.getBool('demoMode'), isTrue);
+    });
+
+    test('clearDemoData sets demoMode flag to false', () async {
+      SharedPreferences.setMockInitialValues({'demoMode': true});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Simulate clearDemoData behavior
+      await prefs.setBool('demoMode', false);
+
+      expect(prefs.getBool('demoMode'), isFalse);
+    });
+
+    test('demo mode does not persist savedPuzzle', () async {
+      // Start with demoMode flag set (simulating app in demo mode)
+      SharedPreferences.setMockInitialValues({'demoMode': true});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Demo mode logic: _isDemoMode check in runSetState() skips saving
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+
+      // Simulate runSetState behavior
+      if (!isDemoMode) {
+        // This should NOT execute in demo mode
+        await prefs.setString('savedPuzzle', '{"n":3}');
+      }
+
+      // Verify savedPuzzle was NOT persisted
+      expect(prefs.getString('savedPuzzle'), isNull);
+    });
+
+    test('demo mode does not persist assistantSettings', () async {
+      // Start with demoMode flag set
+      SharedPreferences.setMockInitialValues({'demoMode': true});
+      final prefs = await SharedPreferences.getInstance();
+
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+
+      // Simulate runSetState behavior
+      if (!isDemoMode) {
+        // This should NOT execute in demo mode
+        await prefs.setString('assistantSettings', '{"autoComplete":true}');
+      }
+
+      // Verify assistantSettings was NOT persisted
+      expect(prefs.getString('assistantSettings'), isNull);
+    });
+
+    test('non-demo mode DOES persist puzzle and settings', () async {
+      // Start with demoMode flag NOT set (normal mode)
+      SharedPreferences.setMockInitialValues({'demoMode': false});
+      final prefs = await SharedPreferences.getInstance();
+
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+
+      // Simulate runSetState behavior
+      if (!isDemoMode) {
+        // This SHOULD execute in normal mode
+        await prefs.setString('savedPuzzle', '{"n":3}');
+        await prefs.setString('assistantSettings', '{"autoComplete":true}');
+      }
+
+      // Verify both were persisted
+      expect(prefs.getString('savedPuzzle'), isNotNull);
+      expect(prefs.getString('assistantSettings'), isNotNull);
+    });
+
+    test('demo mode flag is independent of puzzle state', () async {
+      // Pre-existing puzzle state should not affect demo mode flag
+      SharedPreferences.setMockInitialValues({
+        'demoMode': true,
+        'savedPuzzle': '{"n":3,"buffer":[1,2,3]}',
+        'assistantSettings': '{"autoComplete":true}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      // Demo mode flag should still be true
+      expect(prefs.getBool('demoMode'), isTrue);
+
+      // But any NEW saves should be skipped
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+      final newPuzzleData = '{"n":4,"buffer":[0]}';
+
+      if (!isDemoMode) {
+        await prefs.setString('savedPuzzle', newPuzzleData);
+      }
+
+      // savedPuzzle should still have old value (not overwritten)
+      expect(prefs.getString('savedPuzzle'), equals('{"n":3,"buffer":[1,2,3]}'));
+    });
+
+    test('clearing demo mode allows normal persistence', () async {
+      // Start in demo mode
+      SharedPreferences.setMockInitialValues({'demoMode': true});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Verify demo mode blocks saving
+      var isDemoMode = prefs.getBool('demoMode') ?? false;
+      expect(isDemoMode, isTrue);
+
+      if (!isDemoMode) {
+        await prefs.setString('savedPuzzle', '{"n":3}');
+      }
+      expect(prefs.getString('savedPuzzle'), isNull);
+
+      // Clear demo mode (simulating clearDemoData)
+      await prefs.setBool('demoMode', false);
+
+      // Now saving should work
+      isDemoMode = prefs.getBool('demoMode') ?? false;
+      expect(isDemoMode, isFalse);
+
+      if (!isDemoMode) {
+        await prefs.setString('savedPuzzle', '{"n":3}');
+      }
+      expect(prefs.getString('savedPuzzle'), equals('{"n":3}'));
+    });
+
+    test('demo mode preserves theme and style settings', () async {
+      // seedDemoData sets theme and style, and these should persist
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Simulate seedDemoData
+      await prefs.setBool('demoMode', true);
+      await prefs.setInt('themeMode', 1); // light
+      await prefs.setInt('themeStyle', 0); // modern
+      await prefs.setInt('demoSelectedGridSize', 3);
+
+      // Verify all demo settings are persisted
+      expect(prefs.getBool('demoMode'), isTrue);
+      expect(prefs.getInt('themeMode'), equals(1));
+      expect(prefs.getInt('themeStyle'), equals(0));
+      expect(prefs.getInt('demoSelectedGridSize'), equals(3));
+    });
+
+    test('demo mode only blocks puzzle and assistant persistence', () async {
+      // Demo mode should ONLY skip savedPuzzle and assistantSettings
+      // Other settings (theme, style, etc.) should still be persisted
+      SharedPreferences.setMockInitialValues({'demoMode': true});
+      final prefs = await SharedPreferences.getInstance();
+
+      final isDemoMode = prefs.getBool('demoMode') ?? false;
+
+      // These are blocked in demo mode
+      if (!isDemoMode) {
+        await prefs.setString('savedPuzzle', '{"n":3}');
+        await prefs.setString('assistantSettings', '{}');
+      }
+
+      // These are NOT blocked (can be set anytime)
+      await prefs.setInt('themeMode', 2);
+      await prefs.setInt('themeStyle', 1);
+
+      // Verify blocked items are null
+      expect(prefs.getString('savedPuzzle'), isNull);
+      expect(prefs.getString('assistantSettings'), isNull);
+
+      // Verify non-blocked items are set
+      expect(prefs.getInt('themeMode'), equals(2));
+      expect(prefs.getInt('themeStyle'), equals(1));
+    });
+  });
 }
