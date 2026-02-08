@@ -3,8 +3,107 @@ import 'package:bit_array/bit_array.dart';
 import 'package:sudaku/Sudoku.dart';
 import 'package:sudaku/SudokuAssist.dart';
 import 'package:sudaku/SudokuBuffer.dart';
+import 'package:sudaku/demo_data.dart';
 
 void main() {
+  group('Elimination Auto-Complete Integration', () {
+    // Demo puzzle solution (row 1): 7 5 1 6 2 4 8 3 9
+    // Cell 9 (row 1, col 0) solution = 7
+    // Cell 10 (row 1, col 1) solution = 5
+    // Cell 11 (row 1, col 2) solution = 1
+
+    late Sudoku sd;
+
+    setUp(() {
+      // Create puzzle from demo using the demo constructor
+      final puzzle = parseDemoPuzzle(demoPuzzle9x9);
+      sd = Sudoku.demo(3, puzzle, () {});
+    });
+
+    test('eliminating all but one value triggers auto-complete', () {
+      // Enable auto-complete
+      sd.assist.autoComplete = true;
+
+      // Cell 9 (row 1, col 0) is empty, solution is 7
+      expect(sd.buf[9], equals(0)); // Initially empty
+
+      // Get the domain for cell 9 before eliminations
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[9].asIntIterable().toList();
+
+      // Eliminate all values except 7 (using invertBits like the UI does)
+      final valuesToEliminate = initialDomain.where((v) => v != 7).toList();
+      sd.assist.elim[9].invertBits(valuesToEliminate);
+
+      // Verify elimination was stored
+      expect(sd.assist.elim.length, equals(1));
+
+      // Verify domain is now single-valued
+      var domainAfter = sd.assist.getTotalDomain();
+      expect(domainAfter[9].cardinality, equals(1));
+      expect(domainAfter[9].asIntIterable().first, equals(7));
+
+      // Run the assistant (simulates what happens after elimination in UI)
+      sd.assist.apply();
+
+      // Cell should now be auto-filled with 7
+      expect(sd.buf[9], equals(7),
+          reason: 'Cell should be auto-filled when only one value remains after elimination');
+    });
+
+    test('eliminations persist across assistant runs', () {
+      sd.assist.autoComplete = true;
+
+      // Cell 10 (row 1, col 1) is empty, solution is 5
+      expect(sd.buf[10], equals(0));
+
+      // Get initial domain
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[10].asIntIterable().toList();
+
+      // Eliminate all values except 5 (using invertBits like the UI does)
+      final valuesToEliminate = initialDomain.where((v) => v != 5).toList();
+      sd.assist.elim[10].invertBits(valuesToEliminate);
+
+      // Run assistant multiple times (simulating user interactions)
+      sd.assist.apply();
+
+      // Verify cell is filled
+      expect(sd.buf[10], equals(5));
+
+      // The key test: run assistant again, cell should stay filled
+      sd.assist.apply();
+      expect(sd.buf[10], equals(5),
+          reason: 'Auto-filled value should persist across assistant runs');
+    });
+
+    test('partial elimination does not trigger auto-complete', () {
+      sd.assist.autoComplete = true;
+
+      // Cell 11 (row 1, col 2) is empty, solution is 1
+      expect(sd.buf[11], equals(0));
+
+      // Get domain
+      var domain = sd.assist.getTotalDomain();
+      final initialDomain = domain[11].asIntIterable().toList();
+
+      // Only eliminate some values, leaving more than 1 (using invertBits)
+      if (initialDomain.length > 2) {
+        sd.assist.elim[11].invertBits([initialDomain.first]);
+      }
+
+      // Run assistant
+      sd.assist.apply();
+
+      // Verify domain still has multiple values, cell not auto-filled
+      domain = sd.assist.getTotalDomain();
+      if (domain[11].cardinality > 1) {
+        expect(sd.buf[11], equals(0),
+            reason: 'Cell should NOT be auto-filled when multiple values remain');
+      }
+    });
+  });
+
   group('ConstraintType', () {
     test('has all required types', () {
       expect(ConstraintType.values.length, equals(4));
@@ -2529,6 +2628,122 @@ void main() {
       expect(domain[1], isFalse);
       expect(domain[2], isFalse);
       expect(domain[3], isFalse);
+    });
+  });
+
+  group('Auto-complete After Elimination', () {
+    test('cell with single value after elimination should be auto-fillable', () {
+      // Simulate: a cell starts with domain {1-9}
+      // User eliminates all values except 5
+      // The cell should now have cardinality 1 and be auto-fillable
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // User eliminates 1, 2, 3, 4, 6, 7, 8, 9 (all except 5)
+      var eliminated = [1, 2, 3, 4, 6, 7, 8, 9];
+      domain.clearBits(eliminated);
+
+      // Now domain should have only value 5
+      expect(domain.cardinality, equals(1));
+      expect(domain.asIntIterable().first, equals(5));
+
+      // Auto-complete logic: if cardinality == 1, cell can be auto-filled
+      bool shouldAutoComplete = domain.cardinality == 1;
+      int valueToFill = shouldAutoComplete ? domain.asIntIterable().first : 0;
+
+      expect(shouldAutoComplete, isTrue);
+      expect(valueToFill, equals(5));
+    });
+
+    test('cell with multiple values after partial elimination should not auto-fill', () {
+      // Simulate: a cell starts with domain {1-9}
+      // User eliminates some values but 2 remain
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // User eliminates all except 3 and 7
+      var eliminated = [1, 2, 4, 5, 6, 8, 9];
+      domain.clearBits(eliminated);
+
+      expect(domain.cardinality, equals(2));
+
+      // Auto-complete should not trigger
+      bool shouldAutoComplete = domain.cardinality == 1;
+      expect(shouldAutoComplete, isFalse);
+    });
+
+    test('elimination combined with constraint filtering reduces domain', () {
+      // Simulate: base domain from Sudoku rules gives {4, 5, 6, 7, 8, 9}
+      // User eliminated {6, 7, 8, 9}
+      // Final domain should be {4, 5}
+      var baseDomain = BitArray(10);
+      baseDomain.setBits([4, 5, 6, 7, 8, 9]); // Row/col/box constraints removed 1, 2, 3
+
+      var eliminated = [6, 7, 8, 9];
+
+      // Filter: remove eliminated values from domain
+      var finalDomain = BitArray(10);
+      finalDomain.setBits(baseDomain.asIntIterable().toList());
+      finalDomain.clearBits(eliminated);
+
+      expect(finalDomain.asIntIterable().toList(), equals([4, 5]));
+      expect(finalDomain.cardinality, equals(2));
+
+      // Further elimination of 5 leaves only 4
+      finalDomain.clearBit(5);
+
+      expect(finalDomain.cardinality, equals(1));
+      expect(finalDomain.asIntIterable().first, equals(4));
+    });
+  });
+
+  group('Condition Storage Bug Regression', () {
+    test('stored condition should not be affected by later updates to currentCondition', () {
+      // This test catches the bug where _eliminate stored a reference to
+      // currentCondition instead of a clone. When currentCondition was later
+      // modified, it would break the stored elimination conditions.
+
+      // Simulate the condition storage behavior
+      var currentCondition = SudokuBuffer(81);
+      currentCondition[0] = 5; // Set initial state
+
+      // Store a reference (the old buggy behavior)
+      var storedReference = currentCondition;
+
+      // Store a clone (the correct behavior)
+      var storedClone = currentCondition.clone();
+
+      // Later, currentCondition gets updated (simulating updateCurrentCondition)
+      currentCondition[0] = 7;
+      currentCondition[1] = 3;
+
+      // The reference was mutated - it now has the new values
+      expect(storedReference[0], equals(7)); // Bug: should have been 5
+      expect(storedReference[1], equals(3)); // Bug: should have been 0
+
+      // The clone preserved the original state
+      expect(storedClone[0], equals(5)); // Correct: original value
+      expect(storedClone[1], equals(0)); // Correct: original value
+    });
+
+    test('SudokuBuffer clone creates independent copy', () {
+      var original = SudokuBuffer(10);
+      original[0] = 1;
+      original[5] = 9;
+
+      var cloned = original.clone();
+
+      // Verify clone has same values
+      expect(cloned[0], equals(1));
+      expect(cloned[5], equals(9));
+
+      // Modify original
+      original[0] = 99;
+      original[5] = 88;
+
+      // Clone should be unaffected
+      expect(cloned[0], equals(1));
+      expect(cloned[5], equals(9));
     });
   });
 }

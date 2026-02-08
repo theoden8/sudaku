@@ -510,9 +510,7 @@ class Eliminator extends DomainFilterer {
   }
 
   bool checkCondition(int index) {
-    return Iterable<bool>.generate(this.length, (ind) =>
-      this.conditions[ind].match(sd.buf)
-    ).every((b) => b);
+    return this.conditions[index].match(sd.buf);
   }
 
   Iterable<int> iterateActiveConditions() sync* {
@@ -526,7 +524,8 @@ class Eliminator extends DomainFilterer {
   void _eliminate(int variable, Iterable<int> values) {
     this.removeObsoleteConditions();
     if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
-      this.conditions.add(sd.assist.currentCondition);
+      // Clone the condition to prevent it being modified by updateCurrentCondition()
+      this.conditions.add(sd.assist.currentCondition.clone());
       this.guard(() {
         this.forbiddenValues.add(SudokuDomain(sd));
       });
@@ -562,7 +561,14 @@ class Eliminator extends DomainFilterer {
   }
 
   void filterTotalDomain(SudokuDomain sdom) {
-    sdom &= ~this.getTotalElimination();
+    // Clear eliminated values from the domain
+    // Note: We can't use &= because it creates a new object instead of modifying in place
+    var eliminated = this.getTotalElimination();
+    for (int i = 0; i < sdom.dom.length; ++i) {
+      if (eliminated.dom[i]) {
+        sdom.dom.clearBit(i);
+      }
+    }
   }
 }
 
