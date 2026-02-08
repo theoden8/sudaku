@@ -338,19 +338,19 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
-    // Only save manual values (hints + user-entered), not assistant-propagated ones
-    final manualBuffer = List<int>.generate(sd!.ne4, (i) {
-      // Keep hints and manually entered values, clear assistant-propagated ones
-      if (sd!.isHint(i) || sd!.isVariableManual(i)) {
-        return sd![i];
-      }
-      return 0;
-    });
+    // Serialize changes history
+    final changesData = sd!.changes.map((c) => {
+      'variable': c.variable,
+      'value': c.value,
+      'prevValue': c.prevValue,
+      'assisted': c.assisted,
+    }).toList();
 
     final state = {
       'n': sd!.n,
-      'buffer': manualBuffer,
+      'buffer': sd!.buf.getBuffer(),
       'hints': sd!.hints.asIntIterable().toList(),
+      'changes': changesData,
       // Assistant settings
       'autoComplete': sd!.assist.autoComplete,
       'useDefaultConstraints': sd!.assist.useDefaultConstraints,
@@ -405,6 +405,21 @@ class SudokuScreenState extends State<SudokuScreen> {
       sd!.assist.showDifficultyNumbers = state['showDifficultyNumbers'] as bool;
     }
 
+    // Restore changes history
+    if (state.containsKey('changes')) {
+      final changesData = state['changes'] as List;
+      sd!.changes.clear();
+      for (final cData in changesData) {
+        final data = cData as Map<String, dynamic>;
+        sd!.changes.add(SudokuChange(
+          variable: data['variable'] as int,
+          value: data['value'] as int,
+          prevValue: data['prevValue'] as int,
+          assisted: data['assisted'] as bool,
+        ));
+      }
+    }
+
     // Restore constraints
     if (state.containsKey('constraints')) {
       final constraintsData = state['constraints'] as List;
@@ -454,7 +469,7 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     sd!.assist.updateCurrentCondition();
 
-    // Re-run assistant to propagate values (since we only saved manual values)
+    // Run assistant to apply constraints and update their status
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (sd != null && mounted) {
         runAssistant();
