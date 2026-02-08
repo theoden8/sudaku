@@ -30,6 +30,9 @@ target 'Runner' do
   use_frameworks!
 
   flutter_install_all_macos_pods File.dirname(File.realpath(__FILE__))
+
+  # Native sudoku library for FFI
+  pod 'sudoku_native', :path => '../native'
 end
 
 post_install do |installer|

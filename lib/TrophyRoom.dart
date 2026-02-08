@@ -18,6 +18,7 @@ class PuzzleRecord {
   final DateTime completedAt;
   final int moveCount;
   final String? nickname;
+  final int? difficultyForwards;  // Average forwards count from difficulty estimation
 
   PuzzleRecord({
     required this.id,
@@ -27,7 +28,33 @@ class PuzzleRecord {
     required this.completedAt,
     required this.moveCount,
     this.nickname,
+    this.difficultyForwards,
   });
+
+  /// Get difficulty as a normalized value 0.0-1.0 using log scale
+  /// Based on reference values: min ~324 (trivial 9x9), max ~600k (top44 16x16)
+  double? get difficultyNormalized {
+    if (difficultyForwards == null) return null;
+    // Log scale: log2(324) ≈ 8.3, log2(600000) ≈ 19.2
+    // Range of ~11 log units
+    const minLog = 8.3;
+    const maxLog = 19.2;
+    final logVal = _log2(difficultyForwards!.toDouble());
+    return ((logVal - minLog) / (maxLog - minLog)).clamp(0.0, 1.0);
+  }
+
+  static double _log2(double x) => x > 0 ? (log(x) / ln2) : 0;
+
+  /// Get difficulty label for display
+  String get difficultyLabel {
+    final norm = difficultyNormalized;
+    if (norm == null) return 'Unknown';
+    if (norm < 0.15) return 'Easy';
+    if (norm < 0.35) return 'Medium';
+    if (norm < 0.55) return 'Hard';
+    if (norm < 0.75) return 'Expert';
+    return 'Extreme';
+  }
 
   int get ne2 => n * n;
   int get ne4 => ne2 * ne2;
@@ -107,6 +134,7 @@ class PuzzleRecord {
     'completedAt': completedAt.toIso8601String(),
     'moveCount': moveCount,
     'nickname': nickname,
+    'difficultyForwards': difficultyForwards,
   };
 
   static PuzzleRecord fromJson(Map<String, dynamic> json) => PuzzleRecord(
@@ -117,6 +145,7 @@ class PuzzleRecord {
     completedAt: DateTime.parse(json['completedAt'] as String),
     moveCount: json['moveCount'] as int,
     nickname: json['nickname'] as String?,
+    difficultyForwards: json['difficultyForwards'] as int?,
   );
 
   /// Build buffer for launching puzzle (all hints filled, rest empty)
@@ -147,6 +176,10 @@ enum AchievementType {
   constraintOnly4x4,
   constraintOnly9x9,
   tutorialComplete,
+  // Difficulty-based achievements
+  hardPuzzle,
+  expertPuzzle,
+  extremePuzzle,
 }
 
 class Achievement {
@@ -306,6 +339,28 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       description: 'Complete the constraint tutorial',
       icon: Icons.school_rounded,
       gradientColors: [AppColors.success, AppColors.successLight],
+    ),
+    // Difficulty-based achievements
+    AchievementType.hardPuzzle: Achievement(
+      type: AchievementType.hardPuzzle,
+      title: 'Hard Solver',
+      description: 'Complete a Hard difficulty puzzle',
+      icon: Icons.psychology_alt_rounded,
+      gradientColors: [AppColors.accent, AppColors.accentLight],
+    ),
+    AchievementType.expertPuzzle: Achievement(
+      type: AchievementType.expertPuzzle,
+      title: 'Expert Solver',
+      description: 'Complete an Expert difficulty puzzle',
+      icon: Icons.lightbulb_rounded,
+      gradientColors: [AppColors.constraintPurple, AppColors.constraintPurpleLight],
+    ),
+    AchievementType.extremePuzzle: Achievement(
+      type: AchievementType.extremePuzzle,
+      title: 'Extreme Solver',
+      description: 'Complete an Extreme difficulty puzzle',
+      icon: Icons.local_fire_department_rounded,
+      gradientColors: [AppColors.error, AppColors.gold],
     ),
   };
 }
@@ -540,6 +595,23 @@ class AchievementTracker {
     // Check constraint-only 9x9 (solved without manual cell entries)
     if (completedPuzzle.n == 3 && manualMoves == 0) {
       unlock(AchievementType.constraintOnly9x9);
+    }
+
+    // Check difficulty-based achievements
+    final diffNorm = completedPuzzle.difficultyNormalized;
+    if (diffNorm != null) {
+      // Hard: normalized >= 0.35
+      if (diffNorm >= 0.35) {
+        unlock(AchievementType.hardPuzzle);
+      }
+      // Expert: normalized >= 0.55
+      if (diffNorm >= 0.55) {
+        unlock(AchievementType.expertPuzzle);
+      }
+      // Extreme: normalized >= 0.75
+      if (diffNorm >= 0.75) {
+        unlock(AchievementType.extremePuzzle);
+      }
     }
 
     // Save updates

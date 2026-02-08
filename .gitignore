@@ -8,6 +8,10 @@
 .buildlog/
 .history
 .svn/
+*.so
+*.dylib
+*.a
+core
 
 # appimage
 /AppDir
@@ -49,3 +53,7 @@ lib/generated_plugin_registrant.dart
 # FVM Version Cache
 .fvm/
 .vscode
+
+# Local folders
+scratch/
+screenshots/

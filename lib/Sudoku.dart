@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'SudokuBuffer.dart';
 import 'SudokuDomain.dart';
 import 'SudokuAssist.dart';
+import 'sudoku_native.dart';
 
 
 // load a dataset of hard n=3 sudokus
@@ -217,39 +218,61 @@ class Sudoku {
     return bc;
   }
 
-  void _setupSudoku(AssetBundle a, Function() callback_f) async {
+  void _setupSudoku(AssetBundle a, Function() callback_f, {double? generatedDifficulty}) async {
     this.buf = SudokuBuffer(ne4);
     var r = new Random();
-    if(n == 2) {
-      this.guard(() {
-        switch(r.nextInt(2)) {
-          case 0:
-            this.buf.setBuffer(<int>[
-              1, 0, 0, 0,
-              3, 2, 0, 0,
-              0, 0, 2, 0,
-              0, 0, 0, 1,
-            ]);
-          break;
-          case 1:
-            this.buf.setBuffer(<int>[
-              1, 0, 0, 0,
-              0, 2, 0, 0,
-              3, 0, 2, 0,
-              0, 0, 0, 1,
-            ]);
-          break;
-        }
-      });
-    } else if(n == 3) {
-      var newBuf = await loadFrom1465(a);
-      this.buf.setBuffer(newBuf);
-    } else if(n == 4) {
-      var newBuf = await loadFrom44(a);
-      this.buf.setBuffer(newBuf);
-    } else {
-      this.buf.setBuffer(List<int>.generate(this.ne4, (i) => r.nextInt(ne2 + 1)));
+
+    // Try to generate using native library if difficulty specified
+    if (generatedDifficulty != null && n >= 2 && n <= 4) {
+      try {
+        final seed = DateTime.now().millisecondsSinceEpoch;
+        final generated = SudokuNative.generate(
+          n: n,
+          seed: seed,
+          difficulty: generatedDifficulty,
+          timeoutMs: n == 4 ? 30000 : 10000, // More time for 16x16
+        );
+        this.buf.setBuffer(generated);
+      } catch (e) {
+        // Fall back to loading from files if native generation fails
+        generatedDifficulty = null;
+      }
     }
+
+    // Load from files or use hardcoded puzzles if not generated
+    if (generatedDifficulty == null) {
+      if(n == 2) {
+        this.guard(() {
+          switch(r.nextInt(2)) {
+            case 0:
+              this.buf.setBuffer(<int>[
+                1, 0, 0, 0,
+                3, 2, 0, 0,
+                0, 0, 2, 0,
+                0, 0, 0, 1,
+              ]);
+            break;
+            case 1:
+              this.buf.setBuffer(<int>[
+                1, 0, 0, 0,
+                0, 2, 0, 0,
+                3, 0, 2, 0,
+                0, 0, 0, 1,
+              ]);
+            break;
+          }
+        });
+      } else if(n == 3) {
+        var newBuf = await loadFrom1465(a);
+        this.buf.setBuffer(newBuf);
+      } else if(n == 4) {
+        var newBuf = await loadFrom44(a);
+        this.buf.setBuffer(newBuf);
+      } else {
+        this.buf.setBuffer(List<int>.generate(this.ne4, (i) => r.nextInt(ne2 + 1)));
+      }
+    }
+
     // print(this.toString());
     this.shuffleSudokuBuffer();
     // print(this.toString());
@@ -266,7 +289,7 @@ class Sudoku {
     callback_f();
   }
 
-  Sudoku(int n, AssetBundle a, callback_f) {
+  Sudoku(int n, AssetBundle a, callback_f, {double? generatedDifficulty}) {
     this.n = n;
     this.ne2 = n * n;
     this.ne4 = ne2 * ne2;
@@ -275,7 +298,7 @@ class Sudoku {
     this.assist = SudokuAssist(this);
     // to prevent some pesky late initialization errors
     this.hints = BitArray(ne4);
-    this._setupSudoku(a, callback_f);
+    this._setupSudoku(a, callback_f, generatedDifficulty: generatedDifficulty);
   }
 
   /// Creates a Sudoku with a fixed puzzle for demo/screenshot mode.

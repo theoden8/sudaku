@@ -1,11 +1,18 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'main.dart';
 import 'TrophyRoom.dart';
 import 'SudokuScreen.dart';
+import 'sudoku_native.dart';
+
+Color _getDifficultyColor(double normalized) {
+  if (normalized < 0.15) return AppColors.success;
+  if (normalized < 0.35) return AppColors.accent;
+  if (normalized < 0.55) return AppColors.warning;
+  if (normalized < 0.75) return AppColors.constraintPurple;
+  return AppColors.error;
+}
 
 class TrophyRoomScreen extends StatefulWidget {
   static const String routeName = '/trophy_room';
@@ -34,6 +41,38 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
   Future<void> _loadData() async {
     final records = await TrophyRoomStorage.loadPuzzleRecords();
     final achievements = await TrophyRoomStorage.loadAchievements();
+
+    // Compute difficulty for any puzzles missing it
+    bool needsSave = false;
+    for (int i = 0; i < records.length; i++) {
+      if (records[i].difficultyForwards == null) {
+        try {
+          final puzzleBuffer = records[i].buildLaunchBuffer();
+          final stats = SudokuNative.estimateDifficulty(puzzleBuffer, records[i].n, numSamples: 10);
+          if (stats != null && stats['avgForwards'] != null) {
+            records[i] = PuzzleRecord(
+              id: records[i].id,
+              n: records[i].n,
+              hints: records[i].hints,
+              hintValues: records[i].hintValues,
+              completedAt: records[i].completedAt,
+              moveCount: records[i].moveCount,
+              nickname: records[i].nickname,
+              difficultyForwards: stats['avgForwards'],
+            );
+            needsSave = true;
+          }
+        } catch (e) {
+          // Native library might not be available, skip
+        }
+      }
+    }
+
+    // Save updated records if any were modified
+    if (needsSave) {
+      await TrophyRoomStorage.savePuzzleRecords(records);
+    }
+
     if (mounted) {
       setState(() {
         _puzzleRecords = records;
@@ -333,6 +372,24 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
                       color: theme.mutedPrimary,
                     ),
                   ),
+                  if (record.difficultyNormalized != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: _getDifficultyColor(record.difficultyNormalized!),
+                      ),
+                      child: Text(
+                        record.difficultyLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

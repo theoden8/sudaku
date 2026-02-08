@@ -90,6 +90,9 @@ jobs:
       - name: Build Linux
         run: fvm flutter build linux --release
 
+      - name: Run FFI integration tests
+        run: xvfb-run fvm flutter test integration_test/ffi_test.dart -d linux
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:

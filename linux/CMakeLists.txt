@@ -1,6 +1,6 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.13)
-project(runner LANGUAGES CXX)
+project(runner LANGUAGES C CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
@@ -49,6 +49,17 @@ endfunction()
 # Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
+
+# Native sudoku library for FFI
+add_library(sudoku_native SHARED
+  "${CMAKE_CURRENT_SOURCE_DIR}/../native/sudoku_native.c"
+)
+target_compile_options(sudoku_native PRIVATE -O3 -fvisibility=default)
+target_link_libraries(sudoku_native m)
+set_target_properties(sudoku_native PROPERTIES
+  OUTPUT_NAME "sudoku_native"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+)
 
 # System-level dependencies.
 find_package(PkgConfig REQUIRED)
@@ -111,6 +122,11 @@ set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/linux/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
+
+# Install sudoku_native library
+install(TARGETS sudoku_native
+  LIBRARY DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
