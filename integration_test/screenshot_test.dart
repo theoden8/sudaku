@@ -117,7 +117,10 @@ void main() {
         if (playText.evaluate().isNotEmpty) {
           await tester.tap(playText);
           // Wait longer for demo settings to load via async _loadDemoSettings()
+          // and for difficulty selector animation to complete
           await tester.pump(const Duration(seconds: 2));
+          // Additional pump to ensure START button and difficulty selector are visible
+          await tester.pump(const Duration(seconds: 1));
         }
 
         // Take screenshot of grid selection with 9×9 pre-selected
