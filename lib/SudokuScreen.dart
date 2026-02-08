@@ -2542,23 +2542,26 @@ class SudokuScreenState extends State<SudokuScreen> {
     var appBar = AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'SUDOKU',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-              letterSpacing: 3,
-              color: theme.dialogTitleColor,
+      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'SUDOKU',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                letterSpacing: 3,
+                color: theme.dialogTitleColor,
+              ),
             ),
-          ),
-          if (difficultyBadge != null) ...[
-            const SizedBox(width: 12),
-            difficultyBadge,
+            if (difficultyBadge != null) ...[
+              const SizedBox(width: 12),
+              difficultyBadge,
+            ],
           ],
-        ],
+        ),
       ),
       centerTitle: true,
       leading: const SizedBox.shrink(),
