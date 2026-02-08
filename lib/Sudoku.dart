@@ -91,6 +91,7 @@ class Sudoku {
   late int n, ne2, ne4, ne6;
   late SudokuAssist assist;
   bool _mutex = false;
+  bool isDemo = false;
 
   int get age => this.changes.where((c) => !c.assisted).length;
 
@@ -311,6 +312,7 @@ class Sudoku {
     this.changes = <SudokuChange>[];
     this.assist = SudokuAssist(this);
     this.hints = BitArray(ne4);
+    this.isDemo = true;
     this._setupDemoSudoku(fixedPuzzle, callback_f);
   }
 
