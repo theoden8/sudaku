@@ -205,14 +205,20 @@ class SudokuScreenState extends State<SudokuScreen> {
   double screenWidth = 0,
          screenHeight = 0;
 
+  // Demo mode flag - no saving/restoring in demo mode
+  bool _isDemoMode = false;
+
   // Difficulty tracking
   int? _currentDifficultyForwards;
   bool _difficultyLoading = false;
 
   void runSetState() {
     setState((){});
-    _autoSavePuzzleState();
-    _saveAssistantSettings(); // Save settings globally
+    // Skip saving in demo mode
+    if (!_isDemoMode) {
+      _autoSavePuzzleState();
+      _saveAssistantSettings(); // Save settings globally
+    }
     // Update live difficulty if enabled
     if (sd != null && sd!.assist.showDifficulty && sd!.assist.showLiveDifficulty) {
       _estimateDifficulty(isInitial: false);
@@ -2468,6 +2474,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         }
       } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
+        _isDemoMode = true;
         sd = Sudoku.demo(n, args.demoPuzzle!, () {
           this.runSetState();
         });
@@ -2475,8 +2482,9 @@ class SudokuScreenState extends State<SudokuScreen> {
         if (args.addDemoConstraints) {
           setupDemoConstraints(sd!);
         }
-        // Restore global assistant settings for demo mode
-        _restoreAssistantSettings();
+        // In demo mode: force show difficulty as numbers, no restore/save
+        sd!.assist.showDifficulty = true;
+        sd!.assist.showDifficultyNumbers = true;
       } else {
         // Normal mode: load random puzzle or generate based on difficulty
         sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
