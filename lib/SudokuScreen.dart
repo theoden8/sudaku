@@ -78,6 +78,9 @@ class SudokuScreenArguments {
   final List<int>? savedHints;
   // Full saved state from persistence
   final Map<String, dynamic>? savedState;
+  // Generate puzzle with specified difficulty (0.0=easy, 1.0=hard)
+  // null = load from hard puzzle files (top1465/top44)
+  final double? generatedDifficulty;
 
   SudokuScreenArguments({
     required this.n,
@@ -87,6 +90,7 @@ class SudokuScreenArguments {
     this.savedBuffer,
     this.savedHints,
     this.savedState,
+    this.generatedDifficulty,
   });
 }
 
@@ -2474,10 +2478,10 @@ class SudokuScreenState extends State<SudokuScreen> {
         // Restore global assistant settings for demo mode
         _restoreAssistantSettings();
       } else {
-        // Normal mode: load random puzzle
+        // Normal mode: load random puzzle or generate based on difficulty
         sd = Sudoku(n, DefaultAssetBundle.of(ctx), () {
           this.runSetState();
-        });
+        }, generatedDifficulty: args.generatedDifficulty);
         // Restore global assistant settings for new puzzles
         _restoreAssistantSettings();
       }

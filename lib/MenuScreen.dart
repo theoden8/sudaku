@@ -34,6 +34,8 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
   late AnimationController _selectionPulseController;
   int _selectedSize = -1;
   bool _isDemoMode = false;
+  // null = hard (from file), otherwise generated with this difficulty level
+  double? _selectedDifficulty;
 
   @override
   void initState() {
@@ -64,6 +66,86 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
   void dispose() {
     _selectionPulseController.dispose();
     super.dispose();
+  }
+
+  // Build difficulty selector for 9x9 (Easy/Hard) and 16x16 (Easy/Medium/Hard)
+  Widget _buildDifficultySelector(BuildContext context) {
+    final theme = widget.sudokuThemeFunc(context);
+
+    // Define difficulty options based on grid size
+    // 9x9: Easy (generated 0.3), Hard (from file = null)
+    // 16x16: Easy (generated 0.2), Medium (generated 0.5), Hard (from file = null)
+    final List<({String label, double? difficulty, IconData icon})> options;
+    if (_selectedSize == 3) {
+      options = [
+        (label: 'Easy', difficulty: 0.3, icon: Icons.sentiment_satisfied_rounded),
+        (label: 'Hard', difficulty: null, icon: Icons.local_fire_department_rounded),
+      ];
+    } else if (_selectedSize == 4) {
+      options = [
+        (label: 'Easy', difficulty: 0.2, icon: Icons.sentiment_satisfied_rounded),
+        (label: 'Medium', difficulty: 0.5, icon: Icons.psychology_rounded),
+        (label: 'Hard', difficulty: null, icon: Icons.local_fire_department_rounded),
+      ];
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: options.map((opt) {
+        final isSelected = _selectedDifficulty == opt.difficulty;
+        final color = _sizeColors[_selectedSize]?[0] ?? AppColors.primaryPurple;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                setState(() {
+                  _selectedDifficulty = opt.difficulty;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: isSelected
+                      ? color.withOpacity(0.15)
+                      : theme.cardBackground.withOpacity(0.5),
+                  border: Border.all(
+                    color: isSelected ? color : theme.mutedPrimary.withOpacity(0.3),
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      opt.icon,
+                      size: 18,
+                      color: isSelected ? color : theme.mutedPrimary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      opt.label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? color : theme.mutedPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   // Build a mini sudoku grid preview with optional animation
@@ -209,7 +291,11 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
       onTap: () {
         setState(() {
           // Simply toggle selection - animation runs continuously
-          _selectedSize = (_selectedSize == n) ? -1 : n;
+          final newSize = (_selectedSize == n) ? -1 : n;
+          _selectedSize = newSize;
+          // Reset difficulty to default (Hard) when changing size
+          // For n>=3, default to Hard (null = load from files)
+          _selectedDifficulty = null;
         });
       },
       child: AnimatedContainer(
@@ -548,6 +634,24 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                           ),
                   ),
                   SizedBox(height: min(16, availableHeight * 0.02)),
+                  // Difficulty selection (for 9x9 and 16x16)
+                  AnimatedOpacity(
+                    opacity: _selectedSize >= 3 ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedSlide(
+                      offset: _selectedSize >= 3
+                          ? Offset.zero
+                          : const Offset(0, 0.5),
+                      duration: const Duration(milliseconds: 200),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: min(availableWidth * 0.9, 350),
+                        ),
+                        child: _buildDifficultySelector(context),
+                      ),
+                    ),
+                  ),
+                  if (_selectedSize >= 3) SizedBox(height: min(12, availableHeight * 0.015)),
                   // Play button
                   AnimatedOpacity(
                     opacity: _selectedSize == -1 ? 0.0 : 1.0,
@@ -574,6 +678,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                                     ? parseDemoPuzzle(demoPuzzle9x9)
                                     : null,
                                 addDemoConstraints: _isDemoMode && _selectedSize == 3,
+                                generatedDifficulty: _selectedDifficulty,
                               ),
                             );
                           },
