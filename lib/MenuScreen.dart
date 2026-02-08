@@ -73,18 +73,18 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
     final theme = widget.sudokuThemeFunc(context);
 
     // Define difficulty options based on grid size
-    // 9x9: Easy (generated 0.3), Hard (from file = null)
-    // 16x16: Easy (generated 0.2), Medium (generated 0.5), Hard (from file = null)
+    // 9x9: Easy (generated 1.0), Hard (from file = null)
+    // 16x16: Easy (generated 0.5), Medium (generated 1.0), Hard (from file = null)
     final List<({String label, double? difficulty, IconData icon})> options;
     if (_selectedSize == 3) {
       options = [
-        (label: 'Easy', difficulty: 0.3, icon: Icons.sentiment_satisfied_rounded),
+        (label: 'Easy', difficulty: 1.0, icon: Icons.sentiment_satisfied_rounded),
         (label: 'Hard', difficulty: null, icon: Icons.local_fire_department_rounded),
       ];
     } else if (_selectedSize == 4) {
       options = [
-        (label: 'Easy', difficulty: 0.2, icon: Icons.sentiment_satisfied_rounded),
-        (label: 'Medium', difficulty: 0.5, icon: Icons.psychology_rounded),
+        (label: 'Easy', difficulty: 0.5, icon: Icons.sentiment_satisfied_rounded),
+        (label: 'Medium', difficulty: 1.0, icon: Icons.psychology_rounded),
         (label: 'Hard', difficulty: null, icon: Icons.local_fire_department_rounded),
       ];
     } else {
@@ -115,7 +115,7 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   borderRadius: BorderRadius.circular(12),
                   color: isSelected
                       ? color.withOpacity(0.15)
-                      : theme.cardBackground.withOpacity(0.5),
+                      : Theme.of(context).colorScheme.surface.withOpacity(0.5),
                   border: Border.all(
                     color: isSelected ? color : theme.mutedPrimary.withOpacity(0.3),
                     width: isSelected ? 2 : 1,
