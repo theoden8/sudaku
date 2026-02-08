@@ -173,8 +173,7 @@ enum AchievementType {
   allSizesMaster,
   speedDemon,
   constraintMaster,
-  constraintOnly4x4,
-  constraintOnly9x9,
+  constraintOnly9x9,  // Note: 4x4 constraint-only removed (too easy)
   tutorialComplete,
   // Difficulty-based achievements
   hardPuzzle,
@@ -319,13 +318,6 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
       icon: Icons.rule_rounded,
       gradientColors: [AppColors.primaryPurple, AppColors.secondaryPurple],
     ),
-    AchievementType.constraintOnly4x4: Achievement(
-      type: AchievementType.constraintOnly4x4,
-      title: 'Pure Logic',
-      description: 'Complete a 4x4 puzzle using only constraints',
-      icon: Icons.auto_fix_high_rounded,
-      gradientColors: [AppColors.constraintPurple, AppColors.gold],
-    ),
     AchievementType.constraintOnly9x9: Achievement(
       type: AchievementType.constraintOnly9x9,
       title: 'Logic Grandmaster',
@@ -366,15 +358,221 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
 }
 
 // ============================================================================
+// Gamification Stats - Single source of truth for achievements
+// ============================================================================
+
+/// Immutable stats that only grow (monotonic). Achievements are derived from this.
+class GamificationStats {
+  final int totalCompleted;
+  final Set<int> completedSizes;        // {2, 3, 4} for 4x4, 9x9, 16x16
+  final Set<String> solvedPuzzleIds;    // Content IDs for duplicate detection
+
+  // High-water marks (monotonic - only increase)
+  final int? fastestTimeSeconds;        // Best completion time ever
+  final double? maxDifficultyNormalized; // Highest difficulty beaten
+
+  // Boolean flags (once true, stays true)
+  final bool usedAllConstraintTypes;    // Ever used all 3 in one puzzle
+  final Set<int> constraintOnlySizes;   // Sizes beaten with 0 manual moves
+  final bool tutorialCompleted;
+
+  const GamificationStats({
+    this.totalCompleted = 0,
+    this.completedSizes = const {},
+    this.solvedPuzzleIds = const {},
+    this.fastestTimeSeconds,
+    this.maxDifficultyNormalized,
+    this.usedAllConstraintTypes = false,
+    this.constraintOnlySizes = const {},
+    this.tutorialCompleted = false,
+  });
+
+  /// Create updated stats after completing a puzzle
+  GamificationStats recordCompletion({
+    required String contentId,
+    required int gridSize,
+    int? timeSeconds,
+    double? difficultyNormalized,
+    bool usedAllConstraints = false,
+    bool wasConstraintOnly = false,
+  }) {
+    final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
+
+    return GamificationStats(
+      totalCompleted: isNewPuzzle ? totalCompleted + 1 : totalCompleted,
+      completedSizes: {...completedSizes, gridSize},
+      solvedPuzzleIds: {...solvedPuzzleIds, contentId},
+      fastestTimeSeconds: _minNullable(fastestTimeSeconds, timeSeconds),
+      maxDifficultyNormalized: _maxNullable(maxDifficultyNormalized, difficultyNormalized),
+      usedAllConstraintTypes: usedAllConstraintTypes || usedAllConstraints,
+      constraintOnlySizes: wasConstraintOnly
+          ? {...constraintOnlySizes, gridSize}
+          : constraintOnlySizes,
+      tutorialCompleted: tutorialCompleted,
+    );
+  }
+
+  /// Mark tutorial as completed
+  GamificationStats withTutorialCompleted() => GamificationStats(
+    totalCompleted: totalCompleted,
+    completedSizes: completedSizes,
+    solvedPuzzleIds: solvedPuzzleIds,
+    fastestTimeSeconds: fastestTimeSeconds,
+    maxDifficultyNormalized: maxDifficultyNormalized,
+    usedAllConstraintTypes: usedAllConstraintTypes,
+    constraintOnlySizes: constraintOnlySizes,
+    tutorialCompleted: true,
+  );
+
+  static int? _minNullable(int? a, int? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a < b ? a : b;
+  }
+
+  static double? _maxNullable(double? a, double? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a > b ? a : b;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'totalCompleted': totalCompleted,
+    'completedSizes': completedSizes.toList(),
+    'solvedPuzzleIds': solvedPuzzleIds.toList(),
+    'fastestTimeSeconds': fastestTimeSeconds,
+    'maxDifficultyNormalized': maxDifficultyNormalized,
+    'usedAllConstraintTypes': usedAllConstraintTypes,
+    'constraintOnlySizes': constraintOnlySizes.toList(),
+    'tutorialCompleted': tutorialCompleted,
+  };
+
+  static GamificationStats fromJson(Map<String, dynamic> json) {
+    return GamificationStats(
+      totalCompleted: (json['totalCompleted'] ?? 0) as int,
+      completedSizes: Set<int>.from(
+        ((json['completedSizes'] ?? []) as List).cast<int>(),
+      ),
+      solvedPuzzleIds: Set<String>.from(
+        ((json['solvedPuzzleIds'] ?? []) as List).cast<String>(),
+      ),
+      fastestTimeSeconds: json['fastestTimeSeconds'] as int?,
+      maxDifficultyNormalized: (json['maxDifficultyNormalized'] as num?)?.toDouble(),
+      usedAllConstraintTypes: (json['usedAllConstraintTypes'] ?? false) as bool,
+      constraintOnlySizes: Set<int>.from(
+        ((json['constraintOnlySizes'] ?? []) as List).cast<int>(),
+      ),
+      tutorialCompleted: (json['tutorialCompleted'] ?? false) as bool,
+    );
+  }
+}
+
+/// Derive achievements from stats - pure function, no side effects
+Map<AchievementType, Achievement> deriveAchievements(GamificationStats stats) {
+  final templates = getDefaultAchievements();
+  final result = <AchievementType, Achievement>{};
+
+  // Helper to mark achievement as unlocked
+  Achievement unlocked(AchievementType type) => templates[type]!.copyWith(
+    unlockedAt: DateTime.fromMillisecondsSinceEpoch(0), // Placeholder time
+  );
+
+  // Helper to set progress on count-based achievements
+  Achievement withProgress(AchievementType type, int progress) {
+    final template = templates[type]!;
+    final isUnlocked = template.target != null && progress >= template.target!;
+    return template.copyWith(
+      progress: progress,
+      unlockedAt: isUnlocked ? DateTime.fromMillisecondsSinceEpoch(0) : null,
+    );
+  }
+
+  // Count-based achievements (4x4 doesn't count - too easy)
+  final hasCompleted9x9OrLarger = stats.completedSizes.contains(3) || stats.completedSizes.contains(4);
+  result[AchievementType.firstSolve] = hasCompleted9x9OrLarger
+      ? unlocked(AchievementType.firstSolve)
+      : templates[AchievementType.firstSolve]!;
+
+  result[AchievementType.tenPuzzles] = withProgress(
+    AchievementType.tenPuzzles, stats.totalCompleted);
+  result[AchievementType.twentyFivePuzzles] = withProgress(
+    AchievementType.twentyFivePuzzles, stats.totalCompleted);
+  result[AchievementType.fiftyPuzzles] = withProgress(
+    AchievementType.fiftyPuzzles, stats.totalCompleted);
+
+  // Size-based achievements
+  result[AchievementType.size4x4Master] = stats.completedSizes.contains(2)
+      ? unlocked(AchievementType.size4x4Master)
+      : templates[AchievementType.size4x4Master]!;
+  result[AchievementType.size9x9Master] = stats.completedSizes.contains(3)
+      ? unlocked(AchievementType.size9x9Master)
+      : templates[AchievementType.size9x9Master]!;
+  result[AchievementType.size16x16Master] = stats.completedSizes.contains(4)
+      ? unlocked(AchievementType.size16x16Master)
+      : templates[AchievementType.size16x16Master]!;
+  result[AchievementType.allSizesMaster] = stats.completedSizes.containsAll([2, 3, 4])
+      ? unlocked(AchievementType.allSizesMaster)
+      : templates[AchievementType.allSizesMaster]!;
+
+  // Speed achievement
+  result[AchievementType.speedDemon] = (stats.fastestTimeSeconds != null && stats.fastestTimeSeconds! < 120)
+      ? unlocked(AchievementType.speedDemon)
+      : templates[AchievementType.speedDemon]!;
+
+  // Constraint achievements
+  result[AchievementType.constraintMaster] = stats.usedAllConstraintTypes
+      ? unlocked(AchievementType.constraintMaster)
+      : templates[AchievementType.constraintMaster]!;
+  // Note: constraintOnly4x4 removed (too easy)
+  result[AchievementType.constraintOnly9x9] = stats.constraintOnlySizes.contains(3)
+      ? unlocked(AchievementType.constraintOnly9x9)
+      : templates[AchievementType.constraintOnly9x9]!;
+
+  // Tutorial achievement
+  result[AchievementType.tutorialComplete] = stats.tutorialCompleted
+      ? unlocked(AchievementType.tutorialComplete)
+      : templates[AchievementType.tutorialComplete]!;
+
+  // Difficulty achievements
+  final maxDiff = stats.maxDifficultyNormalized ?? 0.0;
+  result[AchievementType.hardPuzzle] = maxDiff >= 0.35
+      ? unlocked(AchievementType.hardPuzzle)
+      : templates[AchievementType.hardPuzzle]!;
+  result[AchievementType.expertPuzzle] = maxDiff >= 0.55
+      ? unlocked(AchievementType.expertPuzzle)
+      : templates[AchievementType.expertPuzzle]!;
+  result[AchievementType.extremePuzzle] = maxDiff >= 0.75
+      ? unlocked(AchievementType.extremePuzzle)
+      : templates[AchievementType.extremePuzzle]!;
+
+  return result;
+}
+
+/// Get list of newly unlocked achievements by comparing old and new stats
+List<Achievement> getNewlyUnlocked(GamificationStats oldStats, GamificationStats newStats) {
+  final oldAchievements = deriveAchievements(oldStats);
+  final newAchievements = deriveAchievements(newStats);
+
+  final newlyUnlocked = <Achievement>[];
+  for (final type in AchievementType.values) {
+    final wasUnlocked = oldAchievements[type]?.isUnlocked ?? false;
+    final isNowUnlocked = newAchievements[type]?.isUnlocked ?? false;
+    if (!wasUnlocked && isNowUnlocked) {
+      newlyUnlocked.add(newAchievements[type]!);
+    }
+  }
+  return newlyUnlocked;
+}
+
+// ============================================================================
 // Storage
 // ============================================================================
 
 class TrophyRoomStorage {
   static const String _puzzleRecordsKey = 'trophyRoom_puzzleRecords';
-  static const String _achievementsKey = 'trophyRoom_achievements';
   static const String _statsKey = 'trophyRoom_stats';
 
-  // Puzzle Records
+  // Puzzle Records (visible history - can be deleted)
   static Future<List<PuzzleRecord>> loadPuzzleRecords() async {
     final prefs = await SharedPreferences.getInstance();
     final json = prefs.getString(_puzzleRecordsKey);
@@ -412,90 +610,51 @@ class TrophyRoomStorage {
     final records = await loadPuzzleRecords();
     records.removeWhere((r) => r.id == id);
     await savePuzzleRecords(records);
+    // Note: Stats are NOT modified when deleting a puzzle record
+    // This preserves achievement progress
   }
 
-  // Achievements
-  static Future<Map<AchievementType, Achievement>> loadAchievements() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_achievementsKey);
-    final defaults = getDefaultAchievements();
-
-    if (json == null) return defaults;
-
-    try {
-      final savedMap = jsonDecode(json) as Map<String, dynamic>;
-      final result = <AchievementType, Achievement>{};
-
-      for (final type in AchievementType.values) {
-        final template = defaults[type]!;
-        final key = type.name;
-        if (savedMap.containsKey(key)) {
-          result[type] = Achievement.fromJson(
-            savedMap[key] as Map<String, dynamic>,
-            template,
-          );
-        } else {
-          result[type] = template;
-        }
-      }
-      return result;
-    } catch (e) {
-      return defaults;
-    }
-  }
-
-  static Future<void> saveAchievements(Map<AchievementType, Achievement> achievements) async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = <String, dynamic>{};
-    for (final entry in achievements.entries) {
-      // Use enum name for migration safety (not index)
-      map[entry.key.name] = entry.value.toJson();
-    }
-    await prefs.setString(_achievementsKey, jsonEncode(map));
-  }
-
-  // Stats
-  static Future<Map<String, dynamic>> loadStats() async {
+  // Stats (permanent, monotonic)
+  static Future<GamificationStats> loadStats() async {
     final prefs = await SharedPreferences.getInstance();
     final json = prefs.getString(_statsKey);
-    if (json == null) {
-      return {
-        'totalCompleted': 0,
-        'completedSizes': <int>[],
-      };
-    }
+    if (json == null) return const GamificationStats();
+
     try {
-      return jsonDecode(json) as Map<String, dynamic>;
+      return GamificationStats.fromJson(jsonDecode(json) as Map<String, dynamic>);
     } catch (e) {
-      return {
-        'totalCompleted': 0,
-        'completedSizes': <int>[],
-      };
+      return const GamificationStats();
     }
   }
 
-  static Future<void> saveStats(Map<String, dynamic> stats) async {
+  static Future<void> saveStats(GamificationStats stats) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_statsKey, jsonEncode(stats));
+    await prefs.setString(_statsKey, jsonEncode(stats.toJson()));
+  }
+
+  // Convenience: Load achievements derived from stats
+  static Future<Map<AchievementType, Achievement>> loadAchievements() async {
+    final stats = await loadStats();
+    return deriveAchievements(stats);
   }
 
   /// Check if a specific achievement is unlocked
   static Future<bool> isAchievementUnlocked(AchievementType type) async {
-    final achievements = await loadAchievements();
+    final stats = await loadStats();
+    final achievements = deriveAchievements(stats);
     return achievements[type]?.isUnlocked ?? false;
   }
 
-  /// Unlock a specific achievement directly (for non-puzzle achievements like tutorial)
-  static Future<Achievement?> unlockAchievement(AchievementType type) async {
-    final achievements = await loadAchievements();
-    if (achievements[type]!.isUnlocked) {
-      return null; // Already unlocked
-    }
-    achievements[type] = achievements[type]!.copyWith(
-      unlockedAt: DateTime.now(),
-    );
-    await saveAchievements(achievements);
-    return achievements[type];
+  /// Mark tutorial as completed
+  static Future<Achievement?> markTutorialCompleted() async {
+    final oldStats = await loadStats();
+    if (oldStats.tutorialCompleted) return null; // Already completed
+
+    final newStats = oldStats.withTutorialCompleted();
+    await saveStats(newStats);
+
+    final achievements = deriveAchievements(newStats);
+    return achievements[AchievementType.tutorialComplete];
   }
 }
 
@@ -504,7 +663,7 @@ class TrophyRoomStorage {
 // ============================================================================
 
 class AchievementTracker {
-  /// Check and unlock achievements after puzzle completion.
+  /// Check and update stats after puzzle completion.
   /// Returns list of newly unlocked achievements.
   Future<List<Achievement>> checkAchievements({
     required PuzzleRecord completedPuzzle,
@@ -512,116 +671,23 @@ class AchievementTracker {
     required int constraintTypesUsed,
     required int manualMoves,
   }) async {
-    final newlyUnlocked = <Achievement>[];
-    final achievements = await TrophyRoomStorage.loadAchievements();
-    final stats = await TrophyRoomStorage.loadStats();
+    // Load current stats
+    final oldStats = await TrophyRoomStorage.loadStats();
 
-    // Check if this puzzle was already solved (by content ID)
-    final solvedPuzzleIds = Set<String>.from(
-      ((stats['solvedPuzzleIds'] ?? []) as List).cast<String>(),
+    // Update stats with this completion
+    final newStats = oldStats.recordCompletion(
+      contentId: completedPuzzle.contentId,
+      gridSize: completedPuzzle.n,
+      timeSeconds: timeSpent?.inSeconds,
+      difficultyNormalized: completedPuzzle.difficultyNormalized,
+      usedAllConstraints: constraintTypesUsed >= 3,
+      wasConstraintOnly: manualMoves == 0,
     );
-    final contentId = completedPuzzle.contentId;
-    final isNewPuzzle = !solvedPuzzleIds.contains(contentId);
 
-    // Update stats only for new puzzles
-    final totalCompleted = isNewPuzzle
-        ? ((stats['totalCompleted'] ?? 0) as int) + 1
-        : (stats['totalCompleted'] ?? 0) as int;
-    final completedSizes = Set<int>.from(
-      ((stats['completedSizes'] ?? []) as List).cast<int>(),
-    )..add(completedPuzzle.n);
-    if (isNewPuzzle) {
-      solvedPuzzleIds.add(contentId);
-    }
+    // Save updated stats
+    await TrophyRoomStorage.saveStats(newStats);
 
-    // Helper to unlock achievement
-    void unlock(AchievementType type) {
-      if (!achievements[type]!.isUnlocked) {
-        achievements[type] = achievements[type]!.copyWith(
-          unlockedAt: DateTime.now(),
-        );
-        newlyUnlocked.add(achievements[type]!);
-      }
-    }
-
-    // Helper to update progress
-    void updateProgress(AchievementType type, int progress) {
-      final current = achievements[type]!;
-      achievements[type] = current.copyWith(progress: progress);
-      if (current.target != null && progress >= current.target! && !current.isUnlocked) {
-        unlock(type);
-      }
-    }
-
-    // Check first solve
-    if (totalCompleted == 1) {
-      unlock(AchievementType.firstSolve);
-    }
-
-    // Check count-based achievements
-    updateProgress(AchievementType.tenPuzzles, totalCompleted);
-    updateProgress(AchievementType.twentyFivePuzzles, totalCompleted);
-    updateProgress(AchievementType.fiftyPuzzles, totalCompleted);
-
-    // Check size-based achievements
-    if (completedPuzzle.n == 2) {
-      unlock(AchievementType.size4x4Master);
-    } else if (completedPuzzle.n == 3) {
-      unlock(AchievementType.size9x9Master);
-    } else if (completedPuzzle.n == 4) {
-      unlock(AchievementType.size16x16Master);
-    }
-
-    // Check all sizes
-    if (completedSizes.containsAll([2, 3, 4])) {
-      unlock(AchievementType.allSizesMaster);
-    }
-
-    // Check speed demon (under 2 minutes)
-    if (timeSpent != null && timeSpent.inSeconds < 120) {
-      unlock(AchievementType.speedDemon);
-    }
-
-    // Check constraint master (all 3 types used)
-    if (constraintTypesUsed >= 3) {
-      unlock(AchievementType.constraintMaster);
-    }
-
-    // Check constraint-only 4x4 (solved without manual cell entries)
-    if (completedPuzzle.n == 2 && manualMoves == 0) {
-      unlock(AchievementType.constraintOnly4x4);
-    }
-
-    // Check constraint-only 9x9 (solved without manual cell entries)
-    if (completedPuzzle.n == 3 && manualMoves == 0) {
-      unlock(AchievementType.constraintOnly9x9);
-    }
-
-    // Check difficulty-based achievements
-    final diffNorm = completedPuzzle.difficultyNormalized;
-    if (diffNorm != null) {
-      // Hard: normalized >= 0.35
-      if (diffNorm >= 0.35) {
-        unlock(AchievementType.hardPuzzle);
-      }
-      // Expert: normalized >= 0.55
-      if (diffNorm >= 0.55) {
-        unlock(AchievementType.expertPuzzle);
-      }
-      // Extreme: normalized >= 0.75
-      if (diffNorm >= 0.75) {
-        unlock(AchievementType.extremePuzzle);
-      }
-    }
-
-    // Save updates
-    await TrophyRoomStorage.saveAchievements(achievements);
-    await TrophyRoomStorage.saveStats({
-      'totalCompleted': totalCompleted,
-      'completedSizes': completedSizes.toList(),
-      'solvedPuzzleIds': solvedPuzzleIds.toList(),
-    });
-
-    return newlyUnlocked;
+    // Return newly unlocked achievements
+    return getNewlyUnlocked(oldStats, newStats);
   }
 }

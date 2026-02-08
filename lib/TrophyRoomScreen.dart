@@ -495,16 +495,8 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
                         ),
                       ),
                     ],
-                    if (isUnlocked && achievement.unlockedAt != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Unlocked: ${achievement.unlockedAt!.day}/${achievement.unlockedAt!.month}/${achievement.unlockedAt!.year}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: theme.mutedSecondary,
-                        ),
-                      ),
-                    ],
+                    // Note: Unlock dates are not displayed since achievements
+                    // are now derived from stats (not stored with timestamps)
                   ],
                 ),
               ),

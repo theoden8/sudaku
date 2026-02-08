@@ -1536,9 +1536,63 @@ class SudokuScreenState extends State<SudokuScreen> {
       sd!.assist.autoComplete = this._tutorialSavedAutoComplete!;
       this._tutorialSavedAutoComplete = null;
     }
-    // Unlock tutorial achievement
-    await TrophyRoomStorage.unlockAchievement(AchievementType.tutorialComplete);
+    // Mark tutorial as completed (updates stats, achievement derived from that)
+    final achievement = await TrophyRoomStorage.markTutorialCompleted();
     this.runSetState();
+
+    // Show achievement notification if newly unlocked
+    if (achievement != null && mounted) {
+      _showAchievementNotification(achievement);
+    }
+  }
+
+  void _showAchievementNotification(Achievement achievement) {
+    final theme = widget.sudokuThemeFunc(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: theme.dialogBackgroundColor,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+        content: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(colors: achievement.gradientColors),
+              ),
+              child: Icon(achievement.icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Achievement Unlocked!',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.mutedSecondary,
+                    ),
+                  ),
+                  Text(
+                    achievement.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: theme.dialogTitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showTutorialMessage({required String title, required String message, required Function() nextFunc}) async {

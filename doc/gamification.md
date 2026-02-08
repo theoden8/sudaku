@@ -10,7 +10,7 @@ Tap the trophy icon in the top-right corner of the main menu.
 
 ### Puzzle Difficulty
 
-Puzzle difficulty is estimated using the native solver library and displayed throughout the app:
+Puzzle difficulty is estimated using the native solver library. See [solver.md](solver.md) for technical details.
 
 #### Difficulty Levels
 | Level | Description |
@@ -19,7 +19,7 @@ Puzzle difficulty is estimated using the native solver library and displayed thr
 | Medium | Moderate challenge |
 | Hard | Requires more advanced techniques |
 | Expert | Challenging puzzles |
-| Extreme | Top-tier difficulty (comparable to top44 hard puzzles) |
+| Extreme | Top-tier difficulty |
 
 #### Difficulty Display
 - **App Bar**: Shows difficulty badge next to "SUDOKU" title (can be toggled in Assistant settings)
@@ -52,25 +52,26 @@ The Achievements tab tracks your progress across various milestones.
 | Achievement | Description |
 |-------------|-------------|
 | First Steps | Complete your first puzzle |
-| Dedicated | Complete 10 puzzles |
-| Enthusiast | Complete 25 puzzles |
-| Master | Complete 50 puzzles |
+| Getting Hooked | Complete 10 puzzles |
+| Dedicated | Complete 25 puzzles |
+| Sudoku Master | Complete 50 puzzles |
 
 #### Size Achievements
 | Achievement | Description |
 |-------------|-------------|
 | Mini Master | Complete a 4x4 puzzle |
-| Classic Master | Complete a 9x9 puzzle |
-| Grand Master | Complete a 16x16 puzzle |
-| Size Champion | Complete all three sizes |
+| Classic Champion | Complete a 9x9 puzzle |
+| Challenge Conqueror | Complete a 16x16 puzzle |
+| Size Doesn't Matter | Complete all three sizes |
 
 #### Skill Achievements
 | Achievement | Description |
 |-------------|-------------|
 | Speed Demon | Complete a puzzle in under 2 minutes |
 | Constraint Master | Use all 3 constraint types in one puzzle |
-| Pure Logic | Complete a 4x4 using only constraints |
 | Logic Grandmaster | Complete a 9x9 using only constraints |
+
+Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
 
 #### Difficulty Achievements
 | Achievement | Description |
