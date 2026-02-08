@@ -256,6 +256,20 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
         gradientColors: [AppColors.warning, AppColors.warningLight],
         isIndented: true,
       ));
+
+      widgets.add(_buildSettingItem(
+        ctx: ctx,
+        icon: Icons.tag_rounded,
+        title: 'Show exact numbers',
+        subtitle: 'Display forwards count instead of difficulty label',
+        value: sd.assist.showDifficultyNumbers,
+        onChanged: (bool b) {
+          sd.assist.showDifficultyNumbers = b;
+          runSetState();
+        },
+        gradientColors: [AppColors.accent, AppColors.accentLight],
+        isIndented: true,
+      ));
     }
 
     return widgets;

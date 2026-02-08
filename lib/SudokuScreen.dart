@@ -267,6 +267,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       'hintContradictions': sd!.assist.hintContradictions,
       'showDifficulty': sd!.assist.showDifficulty,
       'showLiveDifficulty': sd!.assist.showLiveDifficulty,
+      'showDifficultyNumbers': sd!.assist.showDifficultyNumbers,
       // Constraints
       'constraints': constraintsData,
       // Eliminator
@@ -307,6 +308,9 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
     if (state.containsKey('showLiveDifficulty')) {
       sd!.assist.showLiveDifficulty = state['showLiveDifficulty'] as bool;
+    }
+    if (state.containsKey('showDifficultyNumbers')) {
+      sd!.assist.showDifficultyNumbers = state['showDifficultyNumbers'] as bool;
     }
 
     // Restore constraints
@@ -403,6 +407,15 @@ class SudokuScreenState extends State<SudokuScreen> {
     if (sd == null) return;
     if (!sd!.assist.showDifficulty) return;
     if (!isInitial && !sd!.assist.showLiveDifficulty) return;
+
+    // Check if puzzle is loaded (has hints)
+    if (sd!.hints.isEmpty) {
+      // Puzzle not loaded yet, retry after a delay
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _estimateDifficulty(isInitial: isInitial);
+      });
+      return;
+    }
 
     setState(() => _difficultyLoading = true);
 
@@ -2440,6 +2453,9 @@ class SudokuScreenState extends State<SudokuScreen> {
           ),
         );
       } else if (norm != null) {
+        final displayText = sd!.assist.showDifficultyNumbers
+            ? _currentDifficultyForwards.toString()
+            : _getDifficultyLabel(norm);
         difficultyBadge = Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -2447,7 +2463,7 @@ class SudokuScreenState extends State<SudokuScreen> {
             color: _getDifficultyColor(norm),
           ),
           child: Text(
-            _getDifficultyLabel(norm),
+            displayText,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
