@@ -2501,9 +2501,11 @@ class SudokuScreenState extends State<SudokuScreen> {
       });
     }
 
-    // Build difficulty badge for app bar
+    // Build difficulty badge for app bar (hide on narrow screens)
+    final screenWidth = MediaQuery.of(ctx).size.width;
+    final showBadge = screenWidth > 360; // Hide on very narrow screens
     Widget? difficultyBadge;
-    if (sd != null && sd!.assist.showDifficulty) {
+    if (showBadge && sd != null && sd!.assist.showDifficulty) {
       final norm = _getDifficultyNormalized(_currentDifficultyForwards);
       if (_difficultyLoading) {
         difficultyBadge = Container(
