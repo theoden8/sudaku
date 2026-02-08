@@ -2531,4 +2531,70 @@ void main() {
       expect(domain[3], isFalse);
     });
   });
+
+  group('Auto-complete After Elimination', () {
+    test('cell with single value after elimination should be auto-fillable', () {
+      // Simulate: a cell starts with domain {1-9}
+      // User eliminates all values except 5
+      // The cell should now have cardinality 1 and be auto-fillable
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // User eliminates 1, 2, 3, 4, 6, 7, 8, 9 (all except 5)
+      var eliminated = [1, 2, 3, 4, 6, 7, 8, 9];
+      domain.clearBits(eliminated);
+
+      // Now domain should have only value 5
+      expect(domain.cardinality, equals(1));
+      expect(domain.asIntIterable().first, equals(5));
+
+      // Auto-complete logic: if cardinality == 1, cell can be auto-filled
+      bool shouldAutoComplete = domain.cardinality == 1;
+      int valueToFill = shouldAutoComplete ? domain.asIntIterable().first : 0;
+
+      expect(shouldAutoComplete, isTrue);
+      expect(valueToFill, equals(5));
+    });
+
+    test('cell with multiple values after partial elimination should not auto-fill', () {
+      // Simulate: a cell starts with domain {1-9}
+      // User eliminates some values but 2 remain
+      var domain = BitArray(10);
+      domain.setBits([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+      // User eliminates all except 3 and 7
+      var eliminated = [1, 2, 4, 5, 6, 8, 9];
+      domain.clearBits(eliminated);
+
+      expect(domain.cardinality, equals(2));
+
+      // Auto-complete should not trigger
+      bool shouldAutoComplete = domain.cardinality == 1;
+      expect(shouldAutoComplete, isFalse);
+    });
+
+    test('elimination combined with constraint filtering reduces domain', () {
+      // Simulate: base domain from Sudoku rules gives {4, 5, 6, 7, 8, 9}
+      // User eliminated {6, 7, 8, 9}
+      // Final domain should be {4, 5}
+      var baseDomain = BitArray(10);
+      baseDomain.setBits([4, 5, 6, 7, 8, 9]); // Row/col/box constraints removed 1, 2, 3
+
+      var eliminated = [6, 7, 8, 9];
+
+      // Filter: remove eliminated values from domain
+      var finalDomain = BitArray(10);
+      finalDomain.setBits(baseDomain.asIntIterable().toList());
+      finalDomain.clearBits(eliminated);
+
+      expect(finalDomain.asIntIterable().toList(), equals([4, 5]));
+      expect(finalDomain.cardinality, equals(2));
+
+      // Further elimination of 5 leaves only 4
+      finalDomain.clearBit(5);
+
+      expect(finalDomain.cardinality, equals(1));
+      expect(finalDomain.asIntIterable().first, equals(4));
+    });
+  });
 }

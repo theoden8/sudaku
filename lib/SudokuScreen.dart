@@ -599,6 +599,9 @@ class SudokuScreenState extends State<SudokuScreen> {
         } else {
           this._processCellElimination(variable_s, ret);
         }
+        // Propagate assistant after elimination to auto-complete cells
+        // when only one value remains (if autoComplete is enabled)
+        this.runAssistant();
       } else {
       }
       this.runSetState();
