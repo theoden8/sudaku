@@ -39,7 +39,7 @@ Estimate puzzle difficulty using statistical sampling:
 final stats = SudokuNative.estimateDifficulty(
   puzzleBuffer,      // Current puzzle state
   n,                 // Grid dimension
-  numSamples: 10,    // Number of solving attempts
+  numSamples: 25,    // Number of solving attempts
 );
 // Returns: {'minForwards', 'maxForwards', 'avgForwards'}
 ```

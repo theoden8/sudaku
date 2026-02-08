@@ -215,7 +215,8 @@ class SudokuScreenState extends State<SudokuScreen> {
   bool _isDemoMode = false;
 
   // Difficulty tracking
-  int? _currentDifficultyForwards;
+  int? _initialDifficultyForwards;  // Difficulty of original puzzle (hints only)
+  int? _currentDifficultyForwards;  // Live difficulty (current state)
   bool _difficultyLoading = false;
 
   // Track last constraint added by user in current session (not restored)
@@ -536,16 +537,23 @@ class SudokuScreenState extends State<SudokuScreen> {
         puzzleBuffer = List.generate(sd!.ne4, (i) => sd![i]);
       }
 
-      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 5);
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 25);
       if (mounted) {
         setState(() {
-          _currentDifficultyForwards = stats?['avgForwards'];
+          final difficulty = stats?['avgForwards'];
+          if (isInitial) {
+            _initialDifficultyForwards = difficulty;
+          }
+          _currentDifficultyForwards = difficulty;
           _difficultyLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
+          if (isInitial) {
+            _initialDifficultyForwards = null;
+          }
           _currentDifficultyForwards = null;
           _difficultyLoading = false;
         });
@@ -570,7 +578,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       for (int i = 0; i < hints.length; i++) {
         puzzleBuffer[hints[i]] = hintValues[i];
       }
-      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 10);
+      final stats = SudokuNative.estimateDifficulty(puzzleBuffer, sd!.n, numSamples: 25);
       difficultyForwards = stats?['avgForwards'];
     } catch (e) {
       // Native library might not be available on all platforms
@@ -2628,7 +2636,11 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     Widget? difficultyBadge;
     if (sd != null && sd!.assist.showDifficulty) {
-      final norm = _getDifficultyNormalized(_currentDifficultyForwards);
+      // Use live difficulty if enabled, otherwise show initial difficulty
+      final difficultyToShow = sd!.assist.showLiveDifficulty
+          ? _currentDifficultyForwards
+          : _initialDifficultyForwards;
+      final norm = _getDifficultyNormalized(difficultyToShow);
       if (_difficultyLoading) {
         difficultyBadge = Container(
           padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 4 * scale),
@@ -2643,21 +2655,45 @@ class SudokuScreenState extends State<SudokuScreen> {
         );
       } else if (norm != null) {
         final displayText = sd!.assist.showDifficultyNumbers
-            ? _currentDifficultyForwards.toString()
+            ? difficultyToShow.toString()
             : _getDifficultyLabel(norm);
+        final isLive = sd!.assist.showLiveDifficulty;
         difficultyBadge = Container(
           padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 4 * scale),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12 * scale),
             color: _getDifficultyColor(norm),
           ),
-          child: Text(
-            displayText,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 11 * scale,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                displayText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11 * scale,
+                ),
+              ),
+              if (isLive) ...[
+                SizedBox(width: 4 * scale),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 4 * scale, vertical: 1 * scale),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4 * scale),
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                  child: Text(
+                    'LIVE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 8 * scale,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         );
       }

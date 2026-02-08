@@ -136,7 +136,7 @@ class SudokuNative {
   ///
   /// Returns a map with min/max/avg forwards and backtracks
   /// Uses a hash of the solved puzzle as seed for deterministic results
-  static Map<String, int>? estimateDifficulty(List<int> table, int n, {int numSamples = 10}) {
+  static Map<String, int>? estimateDifficulty(List<int> table, int n, {int numSamples = 25}) {
     _ensureLoaded();
 
     final ne4 = n * n * n * n;
@@ -152,7 +152,8 @@ class SudokuNative {
     }
 
     // Hash the solved puzzle for deterministic seeding
-    final seed = _hashPuzzle(solvedCopy);
+    // Ensure seed is never 0 (native code uses time-based seed if 0)
+    final seed = _hashPuzzle(solvedCopy) | 1;
 
     final tablePtr = calloc<Uint8>(ne4);
     final minFwdPtr = calloc<Int32>(1);

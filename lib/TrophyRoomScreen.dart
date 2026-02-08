@@ -48,7 +48,7 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
       if (records[i].difficultyForwards == null) {
         try {
           final puzzleBuffer = records[i].buildLaunchBuffer();
-          final stats = SudokuNative.estimateDifficulty(puzzleBuffer, records[i].n, numSamples: 10);
+          final stats = SudokuNative.estimateDifficulty(puzzleBuffer, records[i].n, numSamples: 25);
           if (stats != null && stats['avgForwards'] != null) {
             records[i] = PuzzleRecord(
               id: records[i].id,

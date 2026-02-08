@@ -81,7 +81,7 @@ void main() {
     test('Difficulty estimation', () {
       final puzzle = SudokuNative.generate(n: 3, seed: 11111, difficulty: 1.0);
 
-      final stats = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
+      final stats = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
 
       expect(stats, isNotNull);
       expect(stats!['minForwards'], greaterThan(0));
@@ -122,9 +122,9 @@ void main() {
       final puzzle = SudokuNative.generate(n: 3, seed: 77777, difficulty: 1.0);
 
       // Estimate difficulty multiple times
-      final stats1 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
-      final stats2 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
-      final stats3 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 5);
+      final stats1 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
+      final stats2 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
+      final stats3 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
 
       // Results should be identical (deterministic)
       expect(stats1, isNotNull);
