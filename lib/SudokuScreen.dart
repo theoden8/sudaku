@@ -221,8 +221,8 @@ class SudokuScreenState extends State<SudokuScreen> {
   // Track last constraint added by user in current session (not restored)
   Constraint? _lastUserAddedConstraint;
 
-  // Skip victory check when restoring a completed puzzle
-  bool _skipVictoryCheck = false;
+  // Track if this puzzle has already been won (don't show victory again)
+  bool _puzzleAlreadyWon = false;
 
   void runSetState() {
     setState((){});
@@ -363,6 +363,7 @@ class SudokuScreenState extends State<SudokuScreen> {
       'buffer': manualBuffer,
       'hints': sd!.hints.asIntIterable().toList(),
       'changes': changesData,
+      'puzzleAlreadyWon': _puzzleAlreadyWon,
       // Assistant settings
       'autoComplete': sd!.assist.autoComplete,
       'useDefaultConstraints': sd!.assist.useDefaultConstraints,
@@ -481,10 +482,13 @@ class SudokuScreenState extends State<SudokuScreen> {
 
     sd!.assist.updateCurrentCondition();
 
+    // Restore puzzleAlreadyWon flag
+    if (state.containsKey('puzzleAlreadyWon')) {
+      _puzzleAlreadyWon = state['puzzleAlreadyWon'] as bool;
+    }
+
     // Re-run assistant to propagate values and apply constraints
     // (we only save manual values, so assistant needs to re-propagate)
-    // Skip victory check since we're restoring a potentially completed puzzle
-    _skipVictoryCheck = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (sd != null && mounted) {
         runAssistant();
@@ -768,12 +772,12 @@ class SudokuScreenState extends State<SudokuScreen> {
   }
 
   void _checkVictoryConditions() async {
-    // Skip victory check when restoring a completed puzzle
-    if (_skipVictoryCheck) {
-      _skipVictoryCheck = false;
+    // Don't show victory if puzzle was already won
+    if (_puzzleAlreadyWon) {
       return;
     }
     if(sd!.checkIsComplete() && sd!.check()) {
+      _puzzleAlreadyWon = true;
       this._showVictoryDialog();
     }
   }
