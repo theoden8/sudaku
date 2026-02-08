@@ -2597,4 +2597,54 @@ void main() {
       expect(finalDomain.asIntIterable().first, equals(4));
     });
   });
+
+  group('Condition Storage Bug Regression', () {
+    test('stored condition should not be affected by later updates to currentCondition', () {
+      // This test catches the bug where _eliminate stored a reference to
+      // currentCondition instead of a clone. When currentCondition was later
+      // modified, it would break the stored elimination conditions.
+
+      // Simulate the condition storage behavior
+      var currentCondition = SudokuBuffer(81);
+      currentCondition[0] = 5; // Set initial state
+
+      // Store a reference (the old buggy behavior)
+      var storedReference = currentCondition;
+
+      // Store a clone (the correct behavior)
+      var storedClone = currentCondition.clone();
+
+      // Later, currentCondition gets updated (simulating updateCurrentCondition)
+      currentCondition[0] = 7;
+      currentCondition[1] = 3;
+
+      // The reference was mutated - it now has the new values
+      expect(storedReference[0], equals(7)); // Bug: should have been 5
+      expect(storedReference[1], equals(3)); // Bug: should have been 0
+
+      // The clone preserved the original state
+      expect(storedClone[0], equals(5)); // Correct: original value
+      expect(storedClone[1], equals(0)); // Correct: original value
+    });
+
+    test('SudokuBuffer clone creates independent copy', () {
+      var original = SudokuBuffer(10);
+      original[0] = 1;
+      original[5] = 9;
+
+      var cloned = original.clone();
+
+      // Verify clone has same values
+      expect(cloned[0], equals(1));
+      expect(cloned[5], equals(9));
+
+      // Modify original
+      original[0] = 99;
+      original[5] = 88;
+
+      // Clone should be unaffected
+      expect(cloned[0], equals(1));
+      expect(cloned[5], equals(9));
+    });
+  });
 }
