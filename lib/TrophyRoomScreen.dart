@@ -553,19 +553,88 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
     );
   }
 
-  Widget _buildAchievementsTab(SudokuTheme theme) {
-    final achievementList = _achievements.values.toList();
-    // Sort: unlocked first, then by type
-    achievementList.sort((a, b) {
-      if (a.isUnlocked && !b.isUnlocked) return -1;
-      if (!a.isUnlocked && b.isUnlocked) return 1;
-      return a.type.index.compareTo(b.type.index);
-    });
+  Widget _buildSectionHeader(String title, SudokuTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: theme.mutedPrimary,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
 
-    return ListView.builder(
+  Widget _buildAchievementsTab(SudokuTheme theme) {
+    // Define achievement sections
+    final sections = <String, List<AchievementType>>{
+      'COMPLETION': [
+        AchievementType.firstSolve,
+        AchievementType.tenPuzzles,
+        AchievementType.twentyFivePuzzles,
+        AchievementType.fiftyPuzzles,
+      ],
+      'SIZE': [
+        AchievementType.size4x4Master,
+        AchievementType.size9x9Master,
+        AchievementType.size16x16Master,
+        AchievementType.allSizesMaster,
+      ],
+      'SKILL': [
+        AchievementType.speedDemon,
+        AchievementType.constraintMaster,
+        AchievementType.constraintOnly9x9,
+      ],
+      'LEARNING': [
+        AchievementType.tutorialComplete,
+      ],
+      'EASY': [
+        AchievementType.easy1,
+        AchievementType.easy5,
+        AchievementType.easy10,
+      ],
+      'MEDIUM': [
+        AchievementType.medium1,
+        AchievementType.medium5,
+        AchievementType.medium10,
+      ],
+      'HARD': [
+        AchievementType.hard1,
+        AchievementType.hard5,
+        AchievementType.hard10,
+      ],
+      'EXPERT': [
+        AchievementType.expert1,
+        AchievementType.expert5,
+      ],
+      'EXTREME': [
+        AchievementType.extreme1,
+        AchievementType.extreme3,
+      ],
+    };
+
+    // Build list items with section headers
+    final items = <Widget>[];
+    for (final entry in sections.entries) {
+      final sectionAchievements = entry.value
+          .where((type) => _achievements.containsKey(type))
+          .map((type) => _achievements[type]!)
+          .toList();
+
+      if (sectionAchievements.isNotEmpty) {
+        items.add(_buildSectionHeader(entry.key, theme));
+        for (final achievement in sectionAchievements) {
+          items.add(_buildAchievementCard(achievement, theme));
+        }
+      }
+    }
+
+    return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 16),
-      itemCount: achievementList.length,
-      itemBuilder: (ctx, index) => _buildAchievementCard(achievementList[index], theme),
+      children: items,
     );
   }
 
