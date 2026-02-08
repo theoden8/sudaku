@@ -62,7 +62,7 @@ The Achievements tab tracks your progress across various milestones.
 | Mini Master | Complete a 4x4 puzzle |
 | Classic Champion | Complete a 9x9 puzzle |
 | Challenge Conqueror | Complete a 16x16 puzzle |
-| Size Doesn't Matter | Complete all three sizes |
+| Versatile Solver | Complete all three sizes |
 
 #### Skill Achievements
 | Achievement | Description |

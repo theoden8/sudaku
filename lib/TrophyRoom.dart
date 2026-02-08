@@ -306,7 +306,7 @@ Map<AchievementType, Achievement> getDefaultAchievements() {
     ),
     AchievementType.allSizesMaster: Achievement(
       type: AchievementType.allSizesMaster,
-      title: 'Size Doesn\'t Matter',
+      title: 'Versatile Solver',
       description: 'Complete puzzles of all sizes',
       icon: Icons.emoji_events_rounded,
       gradientColors: [AppColors.gold, AppColors.warning],
