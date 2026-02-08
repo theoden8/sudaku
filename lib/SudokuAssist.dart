@@ -524,7 +524,8 @@ class Eliminator extends DomainFilterer {
   void _eliminate(int variable, Iterable<int> values) {
     this.removeObsoleteConditions();
     if(this.length == 0 || this.conditions.last != sd.assist.currentCondition) {
-      this.conditions.add(sd.assist.currentCondition);
+      // Clone the condition to prevent it being modified by updateCurrentCondition()
+      this.conditions.add(sd.assist.currentCondition.clone());
       this.guard(() {
         this.forbiddenValues.add(SudokuDomain(sd));
       });
