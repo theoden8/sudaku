@@ -48,6 +48,14 @@ Duplicate detection prevents the same puzzle from appearing multiple times.
 
 The Achievements tab tracks your progress across various milestones.
 
+#### Learning Achievements
+| Achievement | Description |
+|-------------|-------------|
+| Quick Learner | Complete the constraint tutorial |
+| Constraint Master | Use all 3 constraint types in one puzzle |
+
+Note: Once the tutorial is completed, the tutorial offer dialog will no longer appear.
+
 #### Completion Achievements
 | Achievement | Description |
 |-------------|-------------|
@@ -56,6 +64,8 @@ The Achievements tab tracks your progress across various milestones.
 | Dedicated | Complete 25 puzzles |
 | Sudoku Master | Complete 50 puzzles |
 
+Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
+
 #### Size Achievements
 | Achievement | Description |
 |-------------|-------------|
@@ -63,13 +73,6 @@ The Achievements tab tracks your progress across various milestones.
 | Classic Champion | Complete a 9x9 puzzle |
 | Challenge Conqueror | Complete a 16x16 puzzle |
 | Versatile Solver | Complete all three sizes |
-
-#### Skill Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Constraint Master | Use all 3 constraint types in one puzzle |
-
-Note: "First Steps" requires completing a 9x9 or larger puzzle (4x4 is too easy to count).
 
 #### Difficulty Achievements
 
@@ -86,13 +89,6 @@ Each difficulty tier has count-based milestones plus speed and logic achievement
 **Speed achievements** require completing a puzzle of that difficulty in under 2 minutes.
 
 **Logic achievements** require completing a 9x9+ puzzle of that difficulty using only constraints (no manual cell entries).
-
-#### Learning Achievements
-| Achievement | Description |
-|-------------|-------------|
-| Quick Learner | Complete the constraint tutorial |
-
-Note: Once the tutorial is completed, the tutorial offer dialog will no longer appear.
 
 ### Puzzle Import
 

@@ -571,6 +571,10 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
   Widget _buildAchievementsTab(SudokuTheme theme) {
     // Define achievement sections
     final sections = <String, List<AchievementType>>{
+      'LEARNING': [
+        AchievementType.tutorialComplete,
+        AchievementType.constraintMaster,
+      ],
       'COMPLETION': [
         AchievementType.firstSolve,
         AchievementType.tenPuzzles,
@@ -582,12 +586,6 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
         AchievementType.size9x9Master,
         AchievementType.size16x16Master,
         AchievementType.allSizesMaster,
-      ],
-      'SKILL': [
-        AchievementType.constraintMaster,
-      ],
-      'LEARNING': [
-        AchievementType.tutorialComplete,
       ],
       'EASY': [
         AchievementType.easy1,
