@@ -1945,14 +1945,32 @@ class SudokuScreenState extends State<SudokuScreen> {
     }
 
     final allConstraints = sd!.assist.constraints;
-    final hasEmptyCells = !sd!.checkIsComplete();
 
-    // Show all constraints if puzzle isn't complete, hide only SUCCESS ones when complete
+    // Check if there's a contradiction:
+    // 1. Any constraint has VIOLATED status
+    // 2. Any cell has an empty domain (red cells - dead end)
+    final hasViolatedConstraint = allConstraints.any((c) => c.status == Constraint.VIOLATED);
+    final hasEmptyDomain = sd!.assist.hintContradictions &&
+        Iterable<int>.generate(sd!.ne4).any((i) => sd![i] == 0 && sd!.assist.getDomain(i).isEmpty);
+    final hasContradiction = hasViolatedConstraint || hasEmptyDomain;
+
+    // Find the last satisfied constraint (if any) to show when there's a contradiction
+    Constraint? lastSatisfied;
+    if (hasContradiction) {
+      final satisfiedConstraints = allConstraints.where((c) => c.status == Constraint.SUCCESS).toList();
+      if (satisfiedConstraints.isNotEmpty) {
+        lastSatisfied = satisfiedConstraints.last;
+      }
+    }
+
+    // Show constraints that are:
+    // 1. Not satisfied (NOT_RUN, INSUFFICIENT, VIOLATED)
+    // 2. The last satisfied constraint when there's a contradiction
     var constraints = allConstraints.where((Constraint c) {
-      // Always show non-successful constraints (violated, insufficient, not run)
+      // Always show non-successful constraints
       if (c.status != Constraint.SUCCESS) return true;
-      // Show all constraints while puzzle has empty cells
-      if (hasEmptyCells) return true;
+      // Show the last satisfied constraint if there's a contradiction
+      if (hasContradiction && c == lastSatisfied) return true;
       return false;
     }).toList();
 
