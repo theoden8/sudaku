@@ -324,37 +324,6 @@ class Sudoku {
     this._setupSudoku(a, callback_f, generatedDifficulty: generatedDifficulty);
   }
 
-  /// Creates a Sudoku with a fixed puzzle for demo/screenshot mode.
-  /// [fixedPuzzle] should be a list of ne4 integers (0 for empty cells).
-  Sudoku.demo(int n, List<int> fixedPuzzle, callback_f) {
-    this.n = n;
-    this.ne2 = n * n;
-    this.ne4 = ne2 * ne2;
-    this.ne6 = ne4 * ne2;
-    this.changes = <SudokuChange>[];
-    this.assist = SudokuAssist(this);
-    this.hints = BitArray(ne4);
-    this.isDemo = true;
-    this._setupDemoSudoku(fixedPuzzle, callback_f);
-  }
-
-  void _setupDemoSudoku(List<int> fixedPuzzle, Function() callback_f) {
-    assert(fixedPuzzle.length == ne4);
-    this.buf = SudokuBuffer(ne4);
-    this.buf.setBuffer(fixedPuzzle);
-    this.guard(() {
-      this.hints = BitArray(ne4);
-      for (int i = 0; i < ne4; ++i) {
-        if (this.buf[i] != 0) {
-          this.hints.setBit(i);
-        }
-      }
-    });
-    this.assist.updateCurrentCondition();
-    assert(this.check());
-    callback_f();
-  }
-
   /// Creates a Sudoku from a puzzle list.
   /// [puzzle] should be a list of ne4 integers (0 for empty cells).
   /// Non-zero values are treated as hints.
@@ -367,6 +336,20 @@ class Sudoku {
     this.assist = SudokuAssist(this);
     this.hints = BitArray(ne4);
     this._setupFromList(puzzle, callback_f);
+  }
+
+  /// Creates a Sudoku with a fixed puzzle for demo/screenshot mode.
+  /// [fixedPuzzle] should be a list of ne4 integers (0 for empty cells).
+  Sudoku.demo(int n, List<int> fixedPuzzle, callback_f) {
+    this.n = n;
+    this.ne2 = n * n;
+    this.ne4 = ne2 * ne2;
+    this.ne6 = ne4 * ne2;
+    this.changes = <SudokuChange>[];
+    this.assist = SudokuAssist(this);
+    this.hints = BitArray(ne4);
+    this.isDemo = true;
+    this._setupFromList(fixedPuzzle, callback_f);
   }
 
   void _setupFromList(List<int> puzzle, Function() callback_f) {
