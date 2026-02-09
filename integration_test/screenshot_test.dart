@@ -127,45 +127,9 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
 
         // =========================================
-        // Screenshot 1: Grid Selection Screen
-        // =========================================
-        print('--- Screenshot 1: Grid Selection ---');
-
-        // Tap PLAY button to show size selection dialog
-        final playText = find.text('PLAY');
-        if (playText.evaluate().isNotEmpty) {
-          await tester.tap(playText);
-          // Wait longer for demo settings to load via async _loadDemoSettings()
-          // and for difficulty selector animation to complete
-          await tester.pump(const Duration(seconds: 2));
-          // Additional pump to ensure START button and difficulty selector are visible
-          await tester.pump(const Duration(seconds: 1));
-        }
-
-        // Verify grid selection dialog is visible before taking screenshot
-        final startButton = find.text('START');
-        if (startButton.evaluate().isEmpty) {
-          print('Warning: START button not found, waiting longer...');
-          await tester.pump(const Duration(seconds: 2));
-        }
-
-        // Take screenshot of grid selection with 9×9 pre-selected
-        await _takeScreenshot(
-          binding,
-          tester,
-          '01-grid-selection$suffix',
-        );
-
-        // =========================================
-        // Screenshot 2: Trophy Room - Achievements
+        // Screenshot 2: Trophy Room - Achievements (do this first from menu)
         // =========================================
         print('--- Screenshot 2: Trophy Room ---');
-
-        // Navigate back to menu by simulating back button press
-        // The grid selection is a full-screen scaffold shown via showGeneralDialog
-        final NavigatorState navigator = tester.state(find.byType(Navigator).first);
-        navigator.pop();
-        await tester.pump(const Duration(seconds: 1));
 
         // Navigate to Trophy Room from menu
         final trophyIcon = find.byIcon(Icons.emoji_events_rounded);
@@ -200,28 +164,34 @@ void main() {
         }
 
         // =========================================
-        // Prepare for remaining screenshots
+        // Screenshot 1: Grid Selection Screen
         // =========================================
-        print('--- Reopening grid selection ---');
+        print('--- Screenshot 1: Grid Selection ---');
 
-        // Re-open grid selection dialog
-        final playTextAgain = find.text('PLAY');
-        if (playTextAgain.evaluate().isNotEmpty) {
-          await tester.tap(playTextAgain);
+        // Tap PLAY button to show size selection dialog
+        final playText = find.text('PLAY');
+        if (playText.evaluate().isNotEmpty) {
+          await tester.tap(playText);
+          // Wait longer for demo settings to load via async _loadDemoSettings()
+          // and for difficulty selector animation to complete
           await tester.pump(const Duration(seconds: 2));
+          // Additional pump to ensure START button and difficulty selector are visible
           await tester.pump(const Duration(seconds: 1));
         }
 
-        // Re-select 9x9 (tap on the middle card)
-        final gridCards = find.byType(GestureDetector);
-        if (gridCards.evaluate().length >= 3) {
-          // Find the 9x9 card by looking for text "9×9" or tap middle card
-          final nineByNine = find.text('9×9');
-          if (nineByNine.evaluate().isNotEmpty) {
-            await tester.tap(nineByNine.first);
-            await tester.pump(const Duration(seconds: 1));
-          }
+        // Verify grid selection dialog is visible before taking screenshot
+        final startButton = find.text('START');
+        if (startButton.evaluate().isEmpty) {
+          print('Warning: START button not found, waiting longer...');
+          await tester.pump(const Duration(seconds: 2));
         }
+
+        // Take screenshot of grid selection with 9×9 pre-selected
+        await _takeScreenshot(
+          binding,
+          tester,
+          '01-grid-selection$suffix',
+        );
 
         // =========================================
         // Screenshot 3: Start game and show constraints
