@@ -342,14 +342,17 @@ class SudokuTheme {
     required this.currentMode,
     this.cellHintBorder,
     this.isSketchedStyle = false,
+    Color? constraintOneOfColor,
+    Color? constraintEqualColor,
+    Color? constraintAllDiffColor,
   })
   {
     this.buttonForeground = Colors.black;
     this.buttonBackground = this.blue;
     this.buttonSelectedBackground = this.green;
-    this.constraintOneOf = this.green?.withOpacity(0.4);
-    this.constraintEqual = this.purple?.withOpacity(0.4);
-    this.constraintAllDiff = this.blue?.withOpacity(0.4);
+    this.constraintOneOf = constraintOneOfColor ?? this.green?.withOpacity(0.4);
+    this.constraintEqual = constraintEqualColor ?? this.purple?.withOpacity(0.4);
+    this.constraintAllDiff = constraintAllDiffColor ?? this.blue?.withOpacity(0.4);
   }
 }
 
@@ -448,6 +451,9 @@ class _SudokuAppState extends State<SudokuApp> {
     onThemeStyleChange: _setThemeStyle,
     currentStyle: _themeStyle,
     currentMode: _themeMode,
+    constraintOneOfColor: Colors.green[300]!.withOpacity(0.5),
+    constraintEqualColor: Colors.purple[300]!.withOpacity(0.5),
+    constraintAllDiffColor: Colors.blue[300]!.withOpacity(0.5),
   );
 
   // Pen-and-Paper Light Theme - blue fountain pen ink on cream paper
@@ -496,6 +502,9 @@ class _SudokuAppState extends State<SudokuApp> {
     currentMode: _themeMode,
     cellHintBorder: AppColors.paperHintBorder,  // Visible blue border for hint cells
     isSketchedStyle: true,
+    constraintOneOfColor: const Color(0xFF90C090).withOpacity(0.5),  // Visible sage green
+    constraintEqualColor: const Color(0xFFB090C0).withOpacity(0.5),  // Visible lavender
+    constraintAllDiffColor: const Color(0xFF90A8C0).withOpacity(0.5),  // Visible blue-gray
   );
 
   // Modern Dark Theme
