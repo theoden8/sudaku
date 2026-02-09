@@ -372,6 +372,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       'showDifficultyNumbers': sd!.assist.showDifficultyNumbers,
       // Constraints
       'constraints': constraintsData,
+      // Eliminations (pencil marks)
+      'eliminations': _serializeEliminations(),
     };
     await prefs.setString(_savedPuzzleKey, jsonEncode(state));
   }
@@ -458,6 +460,11 @@ class SudokuScreenState extends State<SudokuScreen> {
       _puzzleAlreadyWon = state['puzzleAlreadyWon'] as bool;
     }
 
+    // Restore eliminations (pencil marks)
+    if (state.containsKey('eliminations')) {
+      _deserializeEliminations(state['eliminations'] as List);
+    }
+
     // Re-run assistant to propagate values and apply constraints
     // (we only save manual values, so assistant needs to re-propagate)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -481,6 +488,41 @@ class SudokuScreenState extends State<SudokuScreen> {
   static Future<void> clearSavedPuzzle() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_savedPuzzleKey);
+  }
+
+  List<Map<String, dynamic>> _serializeEliminations() {
+    if (sd == null) return [];
+    final elim = sd!.assist.elim;
+    final result = <Map<String, dynamic>>[];
+    for (int i = 0; i < elim.length; i++) {
+      result.add({
+        'condition': elim.conditions[i].getBuffer(),
+        'forbidden': elim.forbiddenValues[i].asIntIterable().toList(),
+      });
+    }
+    return result;
+  }
+
+  void _deserializeEliminations(List elimData) {
+    if (sd == null) return;
+    final elim = sd!.assist.elim;
+    // Clear existing eliminations
+    elim.conditions.clear();
+    elim.forbiddenValues.clear();
+    // Restore from saved data
+    for (final item in elimData) {
+      final data = item as Map<String, dynamic>;
+      final conditionBuf = (data['condition'] as List).cast<int>();
+      final forbiddenIndices = (data['forbidden'] as List).cast<int>();
+      // Create condition buffer
+      final condition = SudokuBuffer(sd!.ne4);
+      condition.setBuffer(List<int>.from(conditionBuf));
+      elim.conditions.add(condition);
+      // Create forbidden values domain
+      final forbidden = SudokuDomain(sd!);
+      forbidden.setBits(forbiddenIndices);
+      elim.forbiddenValues.add(forbidden);
+    }
   }
 
   Color _getDifficultyColor(double normalized) {
