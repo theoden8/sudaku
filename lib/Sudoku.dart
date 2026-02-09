@@ -127,8 +127,8 @@ class Sudoku {
 
       // Check if puzzle is trivially solvable when not allowed
       if (!trivialAllowed && SudokuAssist.isTriviallyAutoSolvable(puzzle, n)) {
-        // Bump difficulty closer to 1.0 (harder = fewer hints = less trivial)
-        currentDifficulty = currentDifficulty + (1.0 - currentDifficulty) * 0.5;
+        // Bump difficulty toward 0.9 (harder = fewer hints = less trivial)
+        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 0.9);
         continue;
       }
 
@@ -292,8 +292,8 @@ class Sudoku {
             break;
           }
 
-          // Bump difficulty closer to 1.0 (harder = fewer hints = less trivial)
-          currentDifficulty = currentDifficulty + (1.0 - currentDifficulty) * 0.5;
+          // Bump difficulty toward 0.9 (harder = fewer hints = less trivial)
+          currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 0.9);
         }
 
         // Fall back to files if buffer still empty
