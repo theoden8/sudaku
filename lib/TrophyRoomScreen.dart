@@ -381,7 +381,7 @@ class TrophyRoomScreenState extends State<TrophyRoomScreen>
                         color: _getDifficultyColor(record.difficultyNormalized!),
                       ),
                       child: Text(
-                        record.difficultyLabel,
+                        '${record.difficultyLabel} (${record.difficultyForwards})',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
