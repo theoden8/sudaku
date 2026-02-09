@@ -245,20 +245,6 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
     if (sd.assist.showDifficulty) {
       widgets.add(_buildSettingItem(
         ctx: ctx,
-        icon: Icons.update_rounded,
-        title: 'Live difficulty',
-        subtitle: 'Update difficulty as you solve (may affect performance)',
-        value: sd.assist.showLiveDifficulty,
-        onChanged: (bool b) {
-          sd.assist.showLiveDifficulty = b;
-          runSetState();
-        },
-        gradientColors: [AppColors.warning, AppColors.warningLight],
-        isIndented: true,
-      ));
-
-      widgets.add(_buildSettingItem(
-        ctx: ctx,
         icon: Icons.tag_rounded,
         title: 'Show exact numbers',
         subtitle: 'Display forwards count instead of difficulty label',
@@ -268,6 +254,20 @@ class SudokuAssistScreenState extends State<SudokuAssistScreen> {
           runSetState();
         },
         gradientColors: [AppColors.accent, AppColors.accentLight],
+        isIndented: true,
+      ));
+
+      widgets.add(_buildSettingItem(
+        ctx: ctx,
+        icon: Icons.update_rounded,
+        title: 'Live difficulty',
+        subtitle: 'Update as you solve (can help cheat)',
+        value: sd.assist.showLiveDifficulty,
+        onChanged: (bool b) {
+          sd.assist.showLiveDifficulty = b;
+          runSetState();
+        },
+        gradientColors: [AppColors.warning, AppColors.warningLight],
         isIndented: true,
       ));
     }
