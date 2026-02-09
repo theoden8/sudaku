@@ -271,32 +271,19 @@ class Sudoku {
 
     // Try to generate using native library if difficulty specified
     if (generatedDifficulty != null && n >= 2 && n <= 4) {
-      final maxAttempts = 10;
       final trivialAllowed = (n <= 2); // Only 4x4 puzzles can be trivial
-      double currentDifficulty = generatedDifficulty;
+      final puzzle = SudokuNative.generate(
+        n: n,
+        seed: DateTime.now().millisecondsSinceEpoch,
+        difficulty: generatedDifficulty,
+        timeoutMs: n == 4 ? 30000 : 10000,
+        trivialAllowed: trivialAllowed,
+      );
 
-      for (int attempt = 0; attempt < maxAttempts; attempt++) {
-        final seed = DateTime.now().millisecondsSinceEpoch + attempt;
-        final puzzle = SudokuNative.generate(
-          n: n,
-          seed: seed,
-          difficulty: currentDifficulty,
-          timeoutMs: n == 4 ? 30000 : 10000,
-          trivialAllowed: trivialAllowed,
-        );
-
-        if (puzzle != null) {
-          this.buf.setBuffer(puzzle);
-          this.difficulty = currentDifficulty;
-          break;
-        }
-
-        // Bump difficulty toward 1.0 (harder = fewer hints = less trivial)
-        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 1.0);
-      }
-
-      // Fall back to files if buffer still empty
-      if (this.buf.getBuffer().every((v) => v == 0)) {
+      if (puzzle != null) {
+        this.buf.setBuffer(puzzle);
+      } else {
+        // Fall back to files if generation failed
         generatedDifficulty = null;
       }
     }
