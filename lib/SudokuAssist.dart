@@ -782,14 +782,8 @@ class SudokuAssist extends DomainFilterer {
       throw ArgumentError('Puzzle length must be $ne4 for n=$n');
     }
 
-    // Extract hint indices (non-zero cells in the original puzzle)
-    final hintIndices = <int>[];
-    for (int i = 0; i < ne4; i++) {
-      if (puzzle[i] != 0) hintIndices.add(i);
-    }
-
-    // Create a temporary Sudoku instance using fromSaved
-    final testSudoku = Sudoku.fromSaved(n, List<int>.from(puzzle), hintIndices, () {});
+    // Create a temporary Sudoku instance from the puzzle
+    final testSudoku = Sudoku.fromList(n, List<int>.from(puzzle), () {});
 
     // Enable auto-complete with default constraints
     testSudoku.assist.autoComplete = true;

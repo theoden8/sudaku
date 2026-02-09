@@ -15,9 +15,9 @@ void main() {
     late Sudoku sd;
 
     setUp(() {
-      // Create puzzle from demo using the demo constructor
+      // Create puzzle from demo data
       final puzzle = parseDemoPuzzle(demoPuzzle9x9);
-      sd = Sudoku.demo(3, puzzle, () {});
+      sd = Sudoku.fromList(3, puzzle, () {});
     });
 
     test('eliminating all but one value triggers auto-complete', () {

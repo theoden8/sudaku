@@ -355,6 +355,36 @@ class Sudoku {
     callback_f();
   }
 
+  /// Creates a Sudoku from a puzzle list.
+  /// [puzzle] should be a list of ne4 integers (0 for empty cells).
+  /// Non-zero values are treated as hints.
+  Sudoku.fromList(int n, List<int> puzzle, callback_f) {
+    this.n = n;
+    this.ne2 = n * n;
+    this.ne4 = ne2 * ne2;
+    this.ne6 = ne4 * ne2;
+    this.changes = <SudokuChange>[];
+    this.assist = SudokuAssist(this);
+    this.hints = BitArray(ne4);
+    this._setupFromList(puzzle, callback_f);
+  }
+
+  void _setupFromList(List<int> puzzle, Function() callback_f) {
+    assert(puzzle.length == ne4);
+    this.buf = SudokuBuffer(ne4);
+    this.buf.setBuffer(puzzle);
+    this.guard(() {
+      this.hints = BitArray(ne4);
+      for (int i = 0; i < ne4; ++i) {
+        if (this.buf[i] != 0) {
+          this.hints.setBit(i);
+        }
+      }
+    });
+    this.assist.updateCurrentCondition();
+    callback_f();
+  }
+
   /// Creates a Sudoku restored from saved state.
   /// [buffer] is the current grid values, [hintIndices] are the original hint cell indices.
   Sudoku.fromSaved(int n, List<int> buffer, List<int> hintIndices, callback_f) {
