@@ -226,14 +226,36 @@ class Sudoku {
     // Try to generate using native library if difficulty specified
     if (generatedDifficulty != null && n >= 2 && n <= 4) {
       try {
-        final seed = DateTime.now().millisecondsSinceEpoch;
-        final generated = SudokuNative.generate(
-          n: n,
-          seed: seed,
-          difficulty: generatedDifficulty,
-          timeoutMs: n == 4 ? 30000 : 10000, // More time for 16x16
-        );
-        this.buf.setBuffer(generated);
+        var seed = DateTime.now().millisecondsSinceEpoch;
+        final maxAttempts = 10;
+        List<int>? lastGenerated;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+          final generated = SudokuNative.generate(
+            n: n,
+            seed: seed,
+            difficulty: generatedDifficulty,
+            timeoutMs: n == 4 ? 30000 : 10000, // More time for 16x16
+          );
+          lastGenerated = generated;
+
+          // For puzzles larger than 4x4, ensure they're not trivially solvable
+          // with basic techniques (naked/hidden singles only)
+          if (n > 2 && SudokuNative.isSolvableWithBasicTechniques(generated, n)) {
+            // Puzzle is too easy - try again with a different seed
+            seed = DateTime.now().millisecondsSinceEpoch + attempt + 1;
+            continue;
+          }
+
+          // Found a suitable puzzle
+          this.buf.setBuffer(generated);
+          break;
+        }
+
+        // If buffer is still empty after all attempts, use the last generated puzzle
+        if (this.buf.getBuffer().every((v) => v == 0) && lastGenerated != null) {
+          this.buf.setBuffer(lastGenerated);
+        }
       } catch (e) {
         // Fall back to loading from files if native generation fails
         generatedDifficulty = null;

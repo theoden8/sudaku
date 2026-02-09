@@ -136,4 +136,97 @@ void main() {
       expect(stats1['maxForwards'], stats2['maxForwards']);
     });
   });
+
+  group('Basic Techniques Solvability Tests', () {
+    test('Trivial 4x4 puzzle is solvable with basic techniques', () {
+      // A 4x4 puzzle that can be solved with just naked/hidden singles
+      final puzzle = [
+        1, 0, 0, 0,
+        0, 2, 0, 0,
+        0, 0, 3, 0,
+        0, 0, 0, 4,
+      ];
+
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 2);
+      expect(result, isTrue);
+    });
+
+    test('Easy 9x9 puzzle may be solvable with basic techniques', () {
+      // Generate an easy puzzle (many hints)
+      final puzzle = SudokuNative.generate(n: 3, seed: 12345, difficulty: 0.0);
+
+      // Easy puzzles with lots of hints are often solvable with basic techniques
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 3);
+      // We just verify it doesn't crash - the result depends on the specific puzzle
+      expect(result, isA<bool>());
+    });
+
+    test('Hard 9x9 puzzle is likely NOT solvable with basic techniques', () {
+      // Generate a hard puzzle (few hints)
+      final puzzle = SudokuNative.generate(n: 3, seed: 54321, difficulty: 1.0);
+
+      // Hard puzzles should require more advanced techniques
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 3);
+      // Most hard puzzles require more than naked/hidden singles
+      // We just verify the function works - specific result may vary
+      expect(result, isA<bool>());
+    });
+
+    test('Already solved puzzle is considered solvable', () {
+      // Generate and solve a puzzle
+      final puzzle = SudokuNative.generate(n: 3, seed: 99999, difficulty: 1.0);
+      SudokuNative.solve(puzzle, 3);
+
+      // A solved puzzle should return true (no empty cells)
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 3);
+      expect(result, isTrue);
+    });
+
+    test('Empty puzzle is not solvable with basic techniques', () {
+      // A completely empty puzzle
+      final puzzle = List<int>.filled(81, 0);
+
+      // Can't solve an empty puzzle with basic techniques
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 3);
+      expect(result, isFalse);
+    });
+
+    test('Basic techniques function throws on invalid input', () {
+      final puzzle = [1, 2, 3]; // Wrong size
+
+      expect(
+        () => SudokuNative.isSolvableWithBasicTechniques(puzzle, 3),
+        throwsArgumentError,
+      );
+    });
+
+    test('Naked single detection works', () {
+      // Create a puzzle where cell 1 can only be 2 (naked single)
+      // Row 0: 1, _, 3, 4 -> cell 1 must be 2
+      final puzzle = [
+        1, 0, 3, 4,
+        3, 4, 1, 2,
+        4, 1, 2, 3,
+        2, 3, 4, 1,
+      ];
+      // Remove the value at cell 1 to make it a naked single
+      puzzle[1] = 0;
+
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 2);
+      expect(result, isTrue);
+    });
+
+    test('Hidden single detection works', () {
+      // Create a puzzle where value 4 can only go in one cell of row 0
+      final puzzle = [
+        1, 2, 0, 0, // Row 0: need 3 and 4
+        0, 0, 1, 2, // Row 1
+        0, 0, 2, 1, // Row 2
+        2, 1, 0, 0, // Row 3
+      ];
+
+      final result = SudokuNative.isSolvableWithBasicTechniques(puzzle, 2);
+      expect(result, isTrue);
+    });
+  });
 }
