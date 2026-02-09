@@ -67,11 +67,13 @@ void main() {
   // Clear any leftover demo data before all tests
   setUpAll(() async {
     await clearDemoData();
+    await clearDemoTrophyRoomData();
   });
 
   // Clean up after all tests to help process exit
   tearDownAll(() async {
     await clearDemoData();
+    await clearDemoTrophyRoomData();
     // Reset frame policy to stop continuous rendering
     binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.benchmark;
     // Give time for cleanup to complete
@@ -100,10 +102,15 @@ void main() {
 
         // Clear any previous demo data first
         await clearDemoData();
+        await clearDemoTrophyRoomData();
 
         // Seed demo data with theme, style AND pre-selected grid size
         print('Seeding demo data: theme=$theme, style=$style, gridSize=3...');
         await seedDemoData(theme: theme, style: style, selectedGridSize: 3);
+
+        // Seed Trophy Room demo data for achievements screenshot
+        print('Seeding Trophy Room demo data...');
+        await seedDemoTrophyRoomData();
 
         // Launch the app
         print('Launching app...');
@@ -118,6 +125,43 @@ void main() {
         // Convert Flutter surface to image for screenshots
         await binding.convertFlutterSurfaceToImage();
         await tester.pump(const Duration(seconds: 1));
+
+        // =========================================
+        // Screenshot 2: Trophy Room - Achievements (do this first from menu)
+        // =========================================
+        print('--- Screenshot 2: Trophy Room ---');
+
+        // Navigate to Trophy Room from menu
+        final trophyIcon = find.byIcon(Icons.emoji_events_rounded);
+        if (trophyIcon.evaluate().isNotEmpty) {
+          print('Found trophy icon, navigating to Trophy Room...');
+          await tester.tap(trophyIcon.first);
+          await tester.pump(const Duration(seconds: 2));
+        } else {
+          print('Warning: Trophy icon not found');
+        }
+
+        // Switch to Achievements tab
+        final achievementsTab = find.text('Achievements');
+        if (achievementsTab.evaluate().isNotEmpty) {
+          print('Switching to Achievements tab...');
+          await tester.tap(achievementsTab.first);
+          await tester.pump(const Duration(seconds: 1));
+        }
+
+        // Take Trophy Room screenshot
+        await _takeScreenshot(
+          binding,
+          tester,
+          '02-trophy-room$suffix',
+        );
+
+        // Navigate back to menu
+        final backButton = find.byIcon(Icons.arrow_back_rounded);
+        if (backButton.evaluate().isNotEmpty) {
+          await tester.tap(backButton.first);
+          await tester.pump(const Duration(seconds: 1));
+        }
 
         // =========================================
         // Screenshot 1: Grid Selection Screen
@@ -150,9 +194,9 @@ void main() {
         );
 
         // =========================================
-        // Screenshot 2: Sudoku Screen with Puzzle
+        // Screenshot 3: Start game and show constraints
         // =========================================
-        print('--- Screenshot 2: Sudoku Screen ---');
+        print('--- Starting game ---');
 
         // Start the game - START button should be visible since 9x9 is pre-selected
         final startText = find.text('START');
@@ -176,9 +220,9 @@ void main() {
         }
 
         // =========================================
-        // Screenshot 2: Constraint List with AllDiff Highlighted
+        // Screenshot 3: Constraint List with AllDiff Highlighted
         // =========================================
-        print('--- Screenshot 2: Constraint list with AllDiff highlighted ---');
+        print('--- Screenshot 3: Constraint list with AllDiff highlighted ---');
 
         // Clear any SnackBars that may have appeared from initial assistant run
         final scaffoldFinder = find.byType(Scaffold);
@@ -207,13 +251,13 @@ void main() {
         await _takeScreenshot(
           binding,
           tester,
-          '02-constraint-list$suffix',
+          '03-constraint-list$suffix',
         );
 
         // =========================================
-        // Screenshot 3: Fill in a cell from AllDiff constraint
+        // Screenshot 4: Fill in a cell from AllDiff constraint
         // =========================================
-        print('--- Screenshot 3: Filling AllDiff cell ---');
+        print('--- Screenshot 4: Filling AllDiff cell ---');
 
         // Find mutable cells (TextButtons)
         final textButtons = find.byType(TextButton);
@@ -246,7 +290,7 @@ void main() {
           await _takeScreenshot(
             binding,
             tester,
-            '03-cell-filled$suffix',
+            '04-cell-filled$suffix',
           );
         }
 
@@ -256,6 +300,7 @@ void main() {
 
         // Clean up demo mode
         await clearDemoData();
+        await clearDemoTrophyRoomData();
       });
     }
   });
