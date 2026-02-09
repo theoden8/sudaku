@@ -269,8 +269,8 @@ class Sudoku {
     this.difficulty = generatedDifficulty;
     var r = new Random();
 
-    // Try to generate using native library for 9x9 and 16x16
-    if (generatedDifficulty != null && n > 2 && n <= 4) {
+    // Try to generate using native library for 9x9 and larger (up to n<12)
+    if (generatedDifficulty != null && n > 2 && n < 12) {
       final puzzle = SudokuNative.generate(
         n: n,
         seed: DateTime.now().millisecondsSinceEpoch,
