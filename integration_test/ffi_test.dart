@@ -8,7 +8,7 @@ void main() {
 
   group('Native FFI Tests', () {
     test('Generate 4x4 puzzle', () {
-      final puzzle = SudokuNative.generate(n: 2, seed: 12345, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 2, seed: 12345, difficulty: 1.0)!;
 
       expect(puzzle.length, 16);
 
@@ -25,7 +25,7 @@ void main() {
     });
 
     test('Generate 9x9 puzzle', () {
-      final puzzle = SudokuNative.generate(n: 3, seed: 12345, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 3, seed: 12345, difficulty: 1.0)!;
 
       expect(puzzle.length, 81);
 
@@ -45,7 +45,7 @@ void main() {
         seed: 12345,
         difficulty: 0.5, // Lower difficulty for faster generation
         timeoutMs: 10000,
-      );
+      )!;
 
       expect(puzzle.length, 256);
 
@@ -60,7 +60,7 @@ void main() {
 
     test('Solve puzzle', () {
       // Generate a puzzle
-      final puzzle = SudokuNative.generate(n: 3, seed: 99999, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 3, seed: 99999, difficulty: 1.0)!;
       final original = List<int>.from(puzzle);
 
       // Solve it
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('Difficulty estimation', () {
-      final puzzle = SudokuNative.generate(n: 3, seed: 11111, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 3, seed: 11111, difficulty: 1.0)!;
 
       final stats = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
 
@@ -93,11 +93,11 @@ void main() {
 
     test('Difficulty parameter affects hint count', () {
       // Easy puzzle (many hints)
-      final easy = SudokuNative.generate(n: 3, seed: 1000, difficulty: 0.0);
+      final easy = SudokuNative.generate(n: 3, seed: 1000, difficulty: 0.0)!;
       final easyHints = easy.where((v) => v != 0).length;
 
       // Hard puzzle (few hints)
-      final hard = SudokuNative.generate(n: 3, seed: 1000, difficulty: 1.0);
+      final hard = SudokuNative.generate(n: 3, seed: 1000, difficulty: 1.0)!;
       final hardHints = hard.where((v) => v != 0).length;
 
       // Easy should have more hints than hard
@@ -105,22 +105,22 @@ void main() {
     });
 
     test('Same seed produces same puzzle', () {
-      final puzzle1 = SudokuNative.generate(n: 3, seed: 42, difficulty: 0.5);
-      final puzzle2 = SudokuNative.generate(n: 3, seed: 42, difficulty: 0.5);
+      final puzzle1 = SudokuNative.generate(n: 3, seed: 42, difficulty: 0.5)!;
+      final puzzle2 = SudokuNative.generate(n: 3, seed: 42, difficulty: 0.5)!;
 
       expect(puzzle1, equals(puzzle2));
     });
 
     test('Different seeds produce different puzzles', () {
-      final puzzle1 = SudokuNative.generate(n: 3, seed: 100, difficulty: 0.5);
-      final puzzle2 = SudokuNative.generate(n: 3, seed: 200, difficulty: 0.5);
+      final puzzle1 = SudokuNative.generate(n: 3, seed: 100, difficulty: 0.5)!;
+      final puzzle2 = SudokuNative.generate(n: 3, seed: 200, difficulty: 0.5)!;
 
       expect(puzzle1, isNot(equals(puzzle2)));
     });
 
     test('Difficulty estimation is deterministic for same puzzle', () {
       // Generate a puzzle
-      final puzzle = SudokuNative.generate(n: 3, seed: 77777, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 3, seed: 77777, difficulty: 1.0)!;
 
       // Estimate difficulty multiple times
       final stats1 = SudokuNative.estimateDifficulty(puzzle, 3, numSamples: 25);
@@ -145,7 +145,7 @@ void main() {
       int triviallySolvable = 0;
 
       for (int seed = 1; seed <= 1000; seed++) {
-        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 1.0);
+        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 1.0)!;
         if (SudokuAssist.isTriviallyAutoSolvable(puzzle, 3)) {
           triviallySolvable++;
         }
@@ -161,7 +161,7 @@ void main() {
       int triviallySolvable = 0;
 
       for (int seed = 1; seed <= 100; seed++) {
-        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 0.0);
+        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 0.0)!;
         if (SudokuAssist.isTriviallyAutoSolvable(puzzle, 3)) {
           triviallySolvable++;
         }
@@ -174,7 +174,7 @@ void main() {
 
     test('4x4 puzzles can be trivially auto-solvable (expected)', () {
       // 4x4 puzzles are intentionally allowed to be trivial
-      final puzzle = SudokuNative.generate(n: 2, seed: 12345, difficulty: 1.0);
+      final puzzle = SudokuNative.generate(n: 2, seed: 12345, difficulty: 1.0)!;
       final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 2);
       // Just verify it doesn't crash - 4x4 puzzles are often trivial
       expect(result, isA<bool>());
