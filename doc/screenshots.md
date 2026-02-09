@@ -60,13 +60,19 @@ The tour runs 4 times, once for each combination:
 ### 1. Grid Selection (`01-grid-selection-*.png`)
 The size selection screen with 9x9 pre-selected, showing the three grid size options (4x4, 9x9, 16x16).
 
-### 2. Constraint List (`02-constraint-list-*.png`)
+### 2. Trophy Room (`02-trophy-room-*.png`)
+The Trophy Room Achievements tab showcasing gamification features:
+- Some achievements unlocked (Quick Learner, Constraint Master, First Steps, Classic Champion, Easy Start)
+- Progress bars on achievements in progress (3/10 for Getting Hooked, 3/5 for Easy Going)
+- Section headers grouping achievements by category (Learning, Completion, Size, Difficulty tiers)
+
+### 3. Constraint List (`03-constraint-list-*.png`)
 The constraint list with the AllDiff constraint selected, highlighting its cells on the grid. Shows all three demo constraints:
 - OneOf (green)
 - Equal (purple)
 - AllDiff (orange) - selected
 
-### 3. Cell Filled (`03-cell-filled-*.png`)
+### 4. Cell Filled (`04-cell-filled-*.png`)
 One of the AllDiff constraint cells (cell 29 at row 3, col 2) filled with its correct value (4), demonstrating constraint interaction.
 
 ## Demo Puzzle
@@ -120,6 +126,13 @@ Demo mode is activated via `SharedPreferences`:
 - `themeMode` - Sets light (1) or dark (2) theme
 - `themeStyle` - Sets modern (0) or paper (1) style
 - `demoSelectedGridSize` - Pre-selects 9x9 grid (3)
+
+### Demo Trophy Room Data
+For the Trophy Room screenshot, demo gamification data is seeded to showcase achievements:
+- **Stats**: 3 puzzles completed, 9x9 size unlocked, tutorial completed, all constraint types used, 3 easy puzzles
+- **Achievements unlocked**: Quick Learner, Constraint Master, First Steps, Classic Champion, Easy Start
+- **Achievements in progress**: Getting Hooked (3/10), Easy Going (3/5)
+- **Puzzle records**: 3 demo 9x9 puzzles with varying completion dates and difficulty levels
 
 ### Key Files
 - `lib/demo_data.dart` - Demo puzzle, constraint setup, and preference helpers
