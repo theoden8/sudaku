@@ -138,38 +138,56 @@ void main() {
     });
   });
 
-  group('Generated Puzzles Not Trivially Auto-Solvable', () {
-    test('1000 generated 9x9 puzzles are not trivially auto-solvable', () {
-      // Generate 1000 9x9 puzzles with maximum difficulty and verify
-      // none of them can be solved by the assistant with default constraints
-      int triviallySolvable = 0;
-
-      for (int seed = 1; seed <= 1000; seed++) {
-        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 1.0)!;
-        if (SudokuAssist.isTriviallyAutoSolvable(puzzle, 3)) {
-          triviallySolvable++;
-        }
-      }
-
-      // None of the hard puzzles should be trivially auto-solvable
-      expect(triviallySolvable, 0,
-          reason: '$triviallySolvable out of 1000 puzzles were trivially auto-solvable');
-    });
-
-    test('Easy 9x9 puzzles may be trivially auto-solvable', () {
-      // Generate easy puzzles - some may be solvable with basic techniques
-      int triviallySolvable = 0;
+  group('Trivial Puzzle Filtering', () {
+    test('trivialAllowed=false returns null for trivially solvable puzzles', () {
+      // Some seeds produce trivially solvable puzzles
+      // trivialAllowed=false should return null for these
+      int nullCount = 0;
 
       for (int seed = 1; seed <= 100; seed++) {
-        final puzzle = SudokuNative.generate(n: 3, seed: seed, difficulty: 0.0)!;
-        if (SudokuAssist.isTriviallyAutoSolvable(puzzle, 3)) {
-          triviallySolvable++;
+        final puzzle = SudokuNative.generate(
+          n: 3,
+          seed: seed,
+          difficulty: 1.0,
+          trivialAllowed: false,
+        );
+        if (puzzle == null) {
+          nullCount++;
         }
       }
 
-      // Easy puzzles often CAN be solved with basic techniques
-      // Just verify the function doesn't crash and returns reasonable results
-      expect(triviallySolvable, greaterThanOrEqualTo(0));
+      // Some puzzles should be filtered out (returned as null)
+      expect(nullCount, greaterThan(0),
+          reason: 'Expected some puzzles to be filtered as trivially solvable');
+    });
+
+    test('Puzzles returned with trivialAllowed=false are not trivially solvable', () {
+      // When a puzzle is returned with trivialAllowed=false,
+      // it should not be trivially auto-solvable
+      int triviallySolvable = 0;
+      int validPuzzles = 0;
+
+      for (int seed = 1; seed <= 1000; seed++) {
+        final puzzle = SudokuNative.generate(
+          n: 3,
+          seed: seed,
+          difficulty: 1.0,
+          trivialAllowed: false,
+        );
+        if (puzzle != null) {
+          validPuzzles++;
+          if (SudokuAssist.isTriviallyAutoSolvable(puzzle, 3)) {
+            triviallySolvable++;
+          }
+        }
+      }
+
+      // None of the returned puzzles should be trivially solvable
+      expect(triviallySolvable, 0,
+          reason: '$triviallySolvable out of $validPuzzles returned puzzles were trivially auto-solvable');
+      // Should still get some valid puzzles
+      expect(validPuzzles, greaterThan(0),
+          reason: 'Expected at least some non-trivial puzzles to be generated');
     });
 
     test('4x4 puzzles can be trivially auto-solvable (expected)', () {
