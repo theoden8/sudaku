@@ -123,7 +123,6 @@ jobs:
 
       - name: Clean build artifacts before screenshots
         run: |
-          fvm flutter clean
           rm -rf ~/.gradle/caches/transforms-*
           fvm flutter pub get --enforce-lockfile
 
@@ -263,7 +262,6 @@ jobs:
 
       - name: Clean build artifacts before screenshots
         run: |
-          fvm flutter clean
           fvm flutter pub get --enforce-lockfile
 
       - name: Create screenshots directory
