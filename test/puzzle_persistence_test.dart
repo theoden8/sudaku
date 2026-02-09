@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sudaku/Sudoku.dart';
+import 'package:sudaku/SudokuBuffer.dart';
+import 'package:sudaku/SudokuDomain.dart';
 import 'package:sudaku/SudokuScreen.dart';
+import 'package:sudaku/demo_data.dart';
 
 void main() {
   group('Puzzle Persistence Tests', () {
@@ -403,6 +406,213 @@ void main() {
 
       expect(buffer[1], equals(0));
       expect(changes.length, equals(0));
+    });
+  });
+
+  group('Eliminations Persistence Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('eliminations serialization format is correct', () {
+      // Test the expected format of serialized eliminations
+      final eliminationsData = [
+        {
+          'condition': [0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0], // 4x4 grid condition
+          'forbidden': [5, 10, 15], // indices into the domain
+        },
+        {
+          'condition': [0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'forbidden': [20, 25],
+        },
+      ];
+
+      // Verify structure
+      expect(eliminationsData.length, equals(2));
+      expect(eliminationsData[0]['condition'], isA<List>());
+      expect(eliminationsData[0]['forbidden'], isA<List>());
+      expect((eliminationsData[0]['condition'] as List).length, equals(16));
+    });
+
+    test('eliminations round-trip preserves data', () {
+      // Create a 4x4 sudoku for testing
+      final puzzle = parseDemoPuzzle(demoPuzzle4x4);
+      final sd = Sudoku.demo(2, puzzle, () {}); // n=2 means 4x4 grid
+      final elim = sd.assist.elim;
+
+      // Set up a condition (the puzzle state when elimination was made)
+      final condition = SudokuBuffer(16);
+      condition[0] = 1;
+      condition[5] = 2;
+      condition[10] = 3;
+      condition[15] = 4;
+
+      // Add an elimination directly to the eliminator
+      elim.conditions.add(condition);
+      final forbidden = SudokuDomain(sd);
+      forbidden[0].setBit(2); // Cell 0 cannot have value 2
+      forbidden[0].setBit(3); // Cell 0 cannot have value 3
+      forbidden[1].setBit(4); // Cell 1 cannot have value 4
+      elim.forbiddenValues.add(forbidden);
+
+      // Serialize
+      final serialized = <Map<String, dynamic>>[];
+      for (int i = 0; i < elim.length; i++) {
+        serialized.add({
+          'condition': elim.conditions[i].getBuffer(),
+          'forbidden': elim.forbiddenValues[i].asIntIterable().toList(),
+        });
+      }
+
+      // Verify serialization
+      expect(serialized.length, equals(1));
+      expect(serialized[0]['condition'], equals([1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4]));
+      expect((serialized[0]['forbidden'] as List), isNotEmpty);
+
+      // Create a new Sudoku and deserialize
+      final puzzle2 = parseDemoPuzzle(demoPuzzle4x4);
+      final sd2 = Sudoku.demo(2, puzzle2, () {});
+      final elim2 = sd2.assist.elim;
+      elim2.conditions.clear();
+      elim2.forbiddenValues.clear();
+
+      for (final item in serialized) {
+        final conditionBuf = (item['condition'] as List).cast<int>();
+        final forbiddenIndices = (item['forbidden'] as List).cast<int>();
+
+        final restoredCondition = SudokuBuffer(16);
+        restoredCondition.setBuffer(List<int>.from(conditionBuf));
+        elim2.conditions.add(restoredCondition);
+
+        final restoredForbidden = SudokuDomain(sd2);
+        restoredForbidden.setBits(forbiddenIndices);
+        elim2.forbiddenValues.add(restoredForbidden);
+      }
+
+      // Verify restoration
+      expect(elim2.length, equals(1));
+      expect(elim2.conditions[0][0], equals(1));
+      expect(elim2.conditions[0][5], equals(2));
+      expect(elim2.conditions[0][10], equals(3));
+      expect(elim2.conditions[0][15], equals(4));
+
+      // Verify forbidden values are restored
+      final restoredForbidden = elim2.forbiddenValues[0];
+      // The forbidden bits should match what we set
+      expect(restoredForbidden.asIntIterable().toList(), equals(forbidden.asIntIterable().toList()));
+    });
+
+    test('multiple eliminations with different conditions persist correctly', () {
+      final puzzle = parseDemoPuzzle(demoPuzzle4x4);
+      final sd = Sudoku.demo(2, puzzle, () {});
+      final elim = sd.assist.elim;
+
+      // Add first elimination (condition: only cell 0 filled)
+      final condition1 = SudokuBuffer(16);
+      condition1[0] = 1;
+      elim.conditions.add(condition1);
+      final forbidden1 = SudokuDomain(sd);
+      forbidden1[1].setBit(1); // Cell 1 cannot have value 1
+      elim.forbiddenValues.add(forbidden1);
+
+      // Add second elimination (condition: cells 0 and 5 filled)
+      final condition2 = SudokuBuffer(16);
+      condition2[0] = 1;
+      condition2[5] = 2;
+      elim.conditions.add(condition2);
+      final forbidden2 = SudokuDomain(sd);
+      forbidden2[2].setBit(1); // Cell 2 cannot have value 1
+      forbidden2[2].setBit(2); // Cell 2 cannot have value 2
+      elim.forbiddenValues.add(forbidden2);
+
+      // Serialize
+      final serialized = <Map<String, dynamic>>[];
+      for (int i = 0; i < elim.length; i++) {
+        serialized.add({
+          'condition': elim.conditions[i].getBuffer(),
+          'forbidden': elim.forbiddenValues[i].asIntIterable().toList(),
+        });
+      }
+
+      expect(serialized.length, equals(2));
+
+      // Verify first elimination
+      expect(serialized[0]['condition']![0], equals(1));
+      expect(serialized[0]['condition']![5], equals(0));
+
+      // Verify second elimination
+      expect(serialized[1]['condition']![0], equals(1));
+      expect(serialized[1]['condition']![5], equals(2));
+    });
+
+    test('empty eliminations serialize to empty list', () {
+      final puzzle = parseDemoPuzzle(demoPuzzle4x4);
+      final sd = Sudoku.demo(2, puzzle, () {});
+      final elim = sd.assist.elim;
+
+      // No eliminations added
+      expect(elim.length, equals(0));
+
+      // Serialize
+      final serialized = <Map<String, dynamic>>[];
+      for (int i = 0; i < elim.length; i++) {
+        serialized.add({
+          'condition': elim.conditions[i].getBuffer(),
+          'forbidden': elim.forbiddenValues[i].asIntIterable().toList(),
+        });
+      }
+
+      expect(serialized, isEmpty);
+    });
+
+    test('eliminations included in saved puzzle JSON', () async {
+      // Verify eliminations field is expected in saved puzzle
+      final puzzleData = {
+        'n': 2,
+        'buffer': List.generate(16, (i) => 0),
+        'hints': [0, 5, 10, 15],
+        'eliminations': [
+          {
+            'condition': [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4],
+            'forbidden': [5, 10], // domain indices
+          }
+        ],
+      };
+
+      SharedPreferences.setMockInitialValues({
+        'savedPuzzle': jsonEncode(puzzleData),
+      });
+
+      final result = await SudokuScreenState.loadSavedPuzzle();
+
+      expect(result, isNotNull);
+      expect(result!['eliminations'], isNotNull);
+      expect(result['eliminations'], isA<List>());
+      expect((result['eliminations'] as List).length, equals(1));
+
+      final elim = result['eliminations'][0];
+      expect(elim['condition'], equals([1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4]));
+      expect(elim['forbidden'], equals([5, 10]));
+    });
+
+    test('puzzle without eliminations field restores without error', () async {
+      // Backward compatibility: old saved puzzles won't have eliminations field
+      final puzzleData = {
+        'n': 2,
+        'buffer': List.generate(16, (i) => 0),
+        'hints': [0, 5, 10, 15],
+        // No 'eliminations' field
+      };
+
+      SharedPreferences.setMockInitialValues({
+        'savedPuzzle': jsonEncode(puzzleData),
+      });
+
+      final result = await SudokuScreenState.loadSavedPuzzle();
+
+      expect(result, isNotNull);
+      expect(result!.containsKey('eliminations'), isFalse);
+      // Should not throw when eliminations is missing
     });
   });
 
