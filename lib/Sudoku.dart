@@ -240,8 +240,8 @@ class Sudoku {
           lastGenerated = generated;
 
           // For puzzles larger than 4x4, ensure they're not trivially solvable
-          // with basic techniques (naked/hidden singles only)
-          if (n > 2 && SudokuNative.isSolvableWithBasicTechniques(generated, n)) {
+          // with the assistant's default constraints (naked/hidden singles)
+          if (n > 2 && SudokuAssist.isTriviallyAutoSolvable(generated, n)) {
             // Puzzle is too easy - try again with a different seed
             seed = DateTime.now().millisecondsSinceEpoch + attempt + 1;
             continue;
