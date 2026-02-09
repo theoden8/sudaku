@@ -127,8 +127,8 @@ class Sudoku {
 
       // Check if puzzle is trivially solvable when not allowed
       if (!trivialAllowed && SudokuAssist.isTriviallyAutoSolvable(puzzle, n)) {
-        // Bump difficulty toward 0.9 (harder = fewer hints = less trivial)
-        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 0.9);
+        // Bump difficulty toward 1.0 (harder = fewer hints = less trivial)
+        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 1.0);
         continue;
       }
 
@@ -271,37 +271,32 @@ class Sudoku {
 
     // Try to generate using native library if difficulty specified
     if (generatedDifficulty != null && n >= 2 && n <= 4) {
-      try {
-        final maxAttempts = 10;
-        final trivialAllowed = (n <= 2); // Only 4x4 puzzles can be trivial
-        double currentDifficulty = generatedDifficulty;
+      final maxAttempts = 10;
+      final trivialAllowed = (n <= 2); // Only 4x4 puzzles can be trivial
+      double currentDifficulty = generatedDifficulty;
 
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-          final seed = DateTime.now().millisecondsSinceEpoch + attempt;
-          final puzzle = SudokuNative.generate(
-            n: n,
-            seed: seed,
-            difficulty: currentDifficulty,
-            timeoutMs: n == 4 ? 30000 : 10000,
-            trivialAllowed: trivialAllowed,
-          );
+      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        final seed = DateTime.now().millisecondsSinceEpoch + attempt;
+        final puzzle = SudokuNative.generate(
+          n: n,
+          seed: seed,
+          difficulty: currentDifficulty,
+          timeoutMs: n == 4 ? 30000 : 10000,
+          trivialAllowed: trivialAllowed,
+        );
 
-          if (puzzle != null) {
-            this.buf.setBuffer(puzzle);
-            this.difficulty = currentDifficulty;
-            break;
-          }
-
-          // Bump difficulty toward 0.9 (harder = fewer hints = less trivial)
-          currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 0.9);
+        if (puzzle != null) {
+          this.buf.setBuffer(puzzle);
+          this.difficulty = currentDifficulty;
+          break;
         }
 
-        // Fall back to files if buffer still empty
-        if (this.buf.getBuffer().every((v) => v == 0)) {
-          generatedDifficulty = null;
-        }
-      } catch (e) {
-        // Fall back to loading from files if native generation fails
+        // Bump difficulty toward 1.0 (harder = fewer hints = less trivial)
+        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 1.0);
+      }
+
+      // Fall back to files if buffer still empty
+      if (this.buf.getBuffer().every((v) => v == 0)) {
         generatedDifficulty = null;
       }
     }
