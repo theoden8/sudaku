@@ -275,21 +275,19 @@ class Sudoku {
         final maxAttempts = 10;
         final trivialAllowed = (n <= 2); // Only 4x4 puzzles can be trivial
         double currentDifficulty = generatedDifficulty;
-        List<int>? puzzle;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
           final seed = DateTime.now().millisecondsSinceEpoch + attempt;
-          final generated = SudokuNative.generate(
+          final puzzle = SudokuNative.generate(
             n: n,
             seed: seed,
             difficulty: currentDifficulty,
             timeoutMs: n == 4 ? 30000 : 10000,
+            trivialAllowed: trivialAllowed,
           );
 
-          if (generated == null) continue;
-
-          if (trivialAllowed || !SudokuAssist.isTriviallyAutoSolvable(generated, n)) {
-            puzzle = generated;
+          if (puzzle != null) {
+            this.buf.setBuffer(puzzle);
             this.difficulty = currentDifficulty;
             break;
           }
@@ -298,10 +296,8 @@ class Sudoku {
           currentDifficulty = currentDifficulty + (1.0 - currentDifficulty) * 0.5;
         }
 
-        if (puzzle != null) {
-          this.buf.setBuffer(puzzle);
-        } else {
-          // Fall back to files if all attempts produced trivial puzzles
+        // Fall back to files if buffer still empty
+        if (this.buf.getBuffer().every((v) => v == 0)) {
           generatedDifficulty = null;
         }
       } catch (e) {
