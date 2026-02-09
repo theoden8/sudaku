@@ -92,8 +92,53 @@ class Sudoku {
   late SudokuAssist assist;
   bool _mutex = false;
   bool isDemo = false;
+  double? difficulty;
 
   int get age => this.changes.where((c) => !c.assisted).length;
+
+  /// Generate a new Sudoku puzzle.
+  ///
+  /// [n] - box size (2 for 4x4, 3 for 9x9, 4 for 16x16)
+  /// [difficulty] - 0.0 = easy (many hints), 1.0 = hard (fully reduced)
+  /// [trivialAllowed] - if false and puzzle is solvable with basic techniques, retries
+  /// [maxAttempts] - max attempts before returning null (each attempt bumps difficulty toward 1.0)
+  /// [timeoutMs] - timeout in milliseconds per attempt
+  ///
+  /// Returns a new Sudoku instance, or null if no suitable puzzle could be generated.
+  static Sudoku? generate({
+    required int n,
+    double difficulty = 1.0,
+    bool trivialAllowed = true,
+    int maxAttempts = 10,
+    int timeoutMs = 5000,
+  }) {
+    double currentDifficulty = difficulty;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      final seed = DateTime.now().millisecondsSinceEpoch + attempt;
+      final puzzle = SudokuNative.generate(
+        n: n,
+        seed: seed,
+        difficulty: currentDifficulty,
+        timeoutMs: timeoutMs,
+      );
+
+      if (puzzle == null) continue;
+
+      // Check if puzzle is trivially solvable when not allowed
+      if (!trivialAllowed && SudokuAssist.isTriviallyAutoSolvable(puzzle, n)) {
+        // Bump difficulty toward 1.0 (harder = fewer hints = less trivial)
+        currentDifficulty = (currentDifficulty + 0.02).clamp(0.0, 1.0);
+        continue;
+      }
+
+      final sudoku = Sudoku.fromList(n, puzzle, () {});
+      sudoku.difficulty = currentDifficulty;
+      return sudoku;
+    }
+
+    return null;
+  }
 
   void guard(Function() func) {
     while(this._mutex)
@@ -221,21 +266,23 @@ class Sudoku {
 
   void _setupSudoku(AssetBundle a, Function() callback_f, {double? generatedDifficulty}) async {
     this.buf = SudokuBuffer(ne4);
+    this.difficulty = generatedDifficulty;
     var r = new Random();
 
-    // Try to generate using native library if difficulty specified
-    if (generatedDifficulty != null && n >= 2 && n <= 4) {
-      try {
-        final seed = DateTime.now().millisecondsSinceEpoch;
-        final generated = SudokuNative.generate(
-          n: n,
-          seed: seed,
-          difficulty: generatedDifficulty,
-          timeoutMs: n == 4 ? 30000 : 10000, // More time for 16x16
-        );
-        this.buf.setBuffer(generated);
-      } catch (e) {
-        // Fall back to loading from files if native generation fails
+    // Try to generate using native library for 9x9 and larger (up to n<12)
+    if (generatedDifficulty != null && n > 2 && n < 12) {
+      final puzzle = SudokuNative.generate(
+        n: n,
+        seed: DateTime.now().millisecondsSinceEpoch,
+        difficulty: generatedDifficulty,
+        timeoutMs: n == 4 ? 30000 : 10000,
+        trivialAllowed: false,
+      );
+
+      if (puzzle != null) {
+        this.buf.setBuffer(puzzle);
+      } else {
+        // Fall back to files if generation failed
         generatedDifficulty = null;
       }
     }
@@ -302,6 +349,20 @@ class Sudoku {
     this._setupSudoku(a, callback_f, generatedDifficulty: generatedDifficulty);
   }
 
+  /// Creates a Sudoku from a puzzle list.
+  /// [puzzle] should be a list of ne4 integers (0 for empty cells).
+  /// Non-zero values are treated as hints.
+  Sudoku.fromList(int n, List<int> puzzle, callback_f) {
+    this.n = n;
+    this.ne2 = n * n;
+    this.ne4 = ne2 * ne2;
+    this.ne6 = ne4 * ne2;
+    this.changes = <SudokuChange>[];
+    this.assist = SudokuAssist(this);
+    this.hints = BitArray(ne4);
+    this._setupFromList(puzzle, callback_f);
+  }
+
   /// Creates a Sudoku with a fixed puzzle for demo/screenshot mode.
   /// [fixedPuzzle] should be a list of ne4 integers (0 for empty cells).
   Sudoku.demo(int n, List<int> fixedPuzzle, callback_f) {
@@ -313,13 +374,13 @@ class Sudoku {
     this.assist = SudokuAssist(this);
     this.hints = BitArray(ne4);
     this.isDemo = true;
-    this._setupDemoSudoku(fixedPuzzle, callback_f);
+    this._setupFromList(fixedPuzzle, callback_f);
   }
 
-  void _setupDemoSudoku(List<int> fixedPuzzle, Function() callback_f) {
-    assert(fixedPuzzle.length == ne4);
+  void _setupFromList(List<int> puzzle, Function() callback_f) {
+    assert(puzzle.length == ne4);
     this.buf = SudokuBuffer(ne4);
-    this.buf.setBuffer(fixedPuzzle);
+    this.buf.setBuffer(puzzle);
     this.guard(() {
       this.hints = BitArray(ne4);
       for (int i = 0; i < ne4; ++i) {
@@ -329,7 +390,6 @@ class Sudoku {
       }
     });
     this.assist.updateCurrentCondition();
-    assert(this.check());
     callback_f();
   }
 

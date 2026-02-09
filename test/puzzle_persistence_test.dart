@@ -437,7 +437,7 @@ void main() {
     test('eliminations round-trip preserves data', () {
       // Create a 4x4 sudoku for testing
       final puzzle = parseDemoPuzzle(demoPuzzle4x4);
-      final sd = Sudoku.demo(2, puzzle, () {}); // n=2 means 4x4 grid
+      final sd = Sudoku.fromList(2, puzzle, () {}); // n=2 means 4x4 grid
       final elim = sd.assist.elim;
 
       // Set up a condition (the puzzle state when elimination was made)
@@ -471,7 +471,7 @@ void main() {
 
       // Create a new Sudoku and deserialize
       final puzzle2 = parseDemoPuzzle(demoPuzzle4x4);
-      final sd2 = Sudoku.demo(2, puzzle2, () {});
+      final sd2 = Sudoku.fromList(2, puzzle2, () {});
       final elim2 = sd2.assist.elim;
       elim2.conditions.clear();
       elim2.forbiddenValues.clear();
@@ -504,7 +504,7 @@ void main() {
 
     test('multiple eliminations with different conditions persist correctly', () {
       final puzzle = parseDemoPuzzle(demoPuzzle4x4);
-      final sd = Sudoku.demo(2, puzzle, () {});
+      final sd = Sudoku.fromList(2, puzzle, () {});
       final elim = sd.assist.elim;
 
       // Add first elimination (condition: only cell 0 filled)
@@ -547,7 +547,7 @@ void main() {
 
     test('empty eliminations serialize to empty list', () {
       final puzzle = parseDemoPuzzle(demoPuzzle4x4);
-      final sd = Sudoku.demo(2, puzzle, () {});
+      final sd = Sudoku.fromList(2, puzzle, () {});
       final elim = sd.assist.elim;
 
       // No eliminations added

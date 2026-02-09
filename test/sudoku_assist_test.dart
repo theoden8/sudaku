@@ -15,9 +15,9 @@ void main() {
     late Sudoku sd;
 
     setUp(() {
-      // Create puzzle from demo using the demo constructor
+      // Create puzzle from demo data
       final puzzle = parseDemoPuzzle(demoPuzzle9x9);
-      sd = Sudoku.demo(3, puzzle, () {});
+      sd = Sudoku.fromList(3, puzzle, () {});
     });
 
     test('eliminating all but one value triggers auto-complete', () {
@@ -2744,6 +2744,87 @@ void main() {
       // Clone should be unaffected
       expect(cloned[0], equals(1));
       expect(cloned[5], equals(9));
+    });
+  });
+
+  group('Trivially Auto-Solvable Detection', () {
+    test('Almost-complete 4x4 puzzle is auto-solvable', () {
+      // A 4x4 puzzle with only one empty cell - definitely solvable
+      final puzzle = [
+        1, 2, 3, 4,
+        3, 4, 1, 2,
+        2, 1, 4, 3,
+        4, 3, 2, 0, // Only cell 15 is empty, must be 1
+      ];
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 2);
+      expect(result, isTrue);
+    });
+
+    test('Already solved puzzle is auto-solvable', () {
+      // A completely solved 4x4 puzzle
+      final puzzle = [
+        1, 2, 3, 4,
+        3, 4, 1, 2,
+        2, 1, 4, 3,
+        4, 3, 2, 1,
+      ];
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 2);
+      expect(result, isTrue);
+    });
+
+    test('Empty puzzle is not auto-solvable', () {
+      // A completely empty 9x9 puzzle
+      final puzzle = List<int>.filled(81, 0);
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 3);
+      expect(result, isFalse);
+    });
+
+    test('Puzzle with naked singles chain is auto-solvable', () {
+      // A 4x4 puzzle where solving one naked single enables the next
+      final puzzle = [
+        1, 2, 3, 0, // Cell 3 must be 4 (naked single)
+        3, 4, 0, 2, // Cell 6 must be 1 (naked single after cell 3 solved)
+        0, 1, 4, 3, // Cell 8 must be 2 (naked single)
+        4, 3, 2, 1,
+      ];
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 2);
+      expect(result, isTrue);
+    });
+
+    test('Invalid puzzle size throws ArgumentError', () {
+      final puzzle = [1, 2, 3]; // Wrong size
+
+      expect(
+        () => SudokuAssist.isTriviallyAutoSolvable(puzzle, 3),
+        throwsArgumentError,
+      );
+    });
+
+    test('Hard 9x9 demo puzzle is NOT trivially auto-solvable', () {
+      // This is a known hard puzzle from the demo data
+      final puzzle = parseDemoPuzzle(demoPuzzle9x9);
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 3);
+      // Hard puzzles should NOT be solvable with just basic techniques
+      expect(result, isFalse);
+    });
+
+    test('Sparse 4x4 puzzle is NOT trivially auto-solvable', () {
+      // A sparse 4x4 diagonal puzzle - requires more than basic techniques
+      final puzzle = [
+        1, 0, 0, 0,
+        0, 2, 0, 0,
+        0, 0, 3, 0,
+        0, 0, 0, 4,
+      ];
+
+      final result = SudokuAssist.isTriviallyAutoSolvable(puzzle, 2);
+      // This sparse puzzle requires guessing/backtracking
+      expect(result, isFalse);
     });
   });
 }

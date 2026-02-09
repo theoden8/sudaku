@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
+import 'SudokuAssist.dart';
+
 // FFI type definitions
 typedef SdGenerateNative = Int32 Function(
     Pointer<Uint8> outTable, Int32 n, Uint32 seed, Float difficulty, Int32 timeoutMs);
@@ -68,13 +70,16 @@ class SudokuNative {
   /// [seed] - random seed (0 for time-based)
   /// [difficulty] - 0.0 = easy (many hints), 1.0 = hard (fully reduced)
   /// [timeoutMs] - timeout in milliseconds (0 = no limit)
+  /// [trivialAllowed] - if false and puzzle is solvable with basic techniques, returns null
   ///
-  /// Returns the puzzle as a flat list of integers (0 = empty)
-  static List<int> generate({
+  /// Returns the puzzle as a flat list of integers (0 = empty), or null if
+  /// trivialAllowed is false and the puzzle is trivially solvable.
+  static List<int>? generate({
     required int n,
     int seed = 0,
     double difficulty = 1.0,
     int timeoutMs = 5000,
+    bool trivialAllowed = true,
   }) {
     _ensureLoaded();
 
@@ -83,7 +88,14 @@ class SudokuNative {
 
     try {
       _generate!(tablePtr, n, seed, difficulty, timeoutMs);
-      return tablePtr.asTypedList(ne4).toList();
+      final puzzle = tablePtr.asTypedList(ne4).toList();
+
+      // Check if puzzle is trivially solvable when not allowed
+      if (!trivialAllowed && SudokuAssist.isTriviallyAutoSolvable(puzzle, n)) {
+        return null;
+      }
+
+      return puzzle;
     } finally {
       calloc.free(tablePtr);
     }
@@ -196,4 +208,5 @@ class SudokuNative {
       calloc.free(avgBtPtr);
     }
   }
+
 }

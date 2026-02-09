@@ -768,6 +768,50 @@ class SudokuAssist extends DomainFilterer {
   // configuration readers
   bool get shouldUseDefaultConstraints => autoComplete && useDefaultConstraints;
 
+  /// Check if a puzzle is trivially solvable using only the assistant's
+  /// default constraints (naked singles and hidden singles).
+  ///
+  /// This creates a temporary Sudoku instance, enables auto-complete with
+  /// default constraints, and checks if the puzzle gets fully solved.
+  ///
+  /// Returns true if the puzzle can be completely solved by the assistant
+  /// with only basic techniques, meaning it's too easy for larger grids.
+  static bool isTriviallyAutoSolvable(List<int> puzzle, int n) {
+    final ne4 = n * n * n * n;
+    if (puzzle.length != ne4) {
+      throw ArgumentError('Puzzle length must be $ne4 for n=$n');
+    }
+
+    // Create a temporary Sudoku instance from the puzzle
+    final testSudoku = Sudoku.fromList(n, List<int>.from(puzzle), () {});
+
+    // Enable auto-complete with default constraints
+    testSudoku.assist.autoComplete = true;
+    testSudoku.assist.useDefaultConstraints = true;
+
+    // Run the assistant repeatedly until no more progress
+    int prevEmpty = ne4;
+    while (true) {
+      testSudoku.assist.apply();
+
+      // Count empty cells
+      int emptyCount = 0;
+      for (int i = 0; i < ne4; i++) {
+        if (testSudoku.buf[i] == 0) emptyCount++;
+      }
+
+      // No progress made - stop
+      if (emptyCount >= prevEmpty) break;
+      prevEmpty = emptyCount;
+
+      // Puzzle is solved
+      if (emptyCount == 0) break;
+    }
+
+    // Return true if puzzle is fully solved (trivially solvable)
+    return testSudoku.buf.getBuffer().every((v) => v != 0);
+  }
+
   SudokuAssist(Sudoku sd) {
     this.sd = sd;
     this.constraints = <Constraint>[];
