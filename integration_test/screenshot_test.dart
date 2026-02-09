@@ -161,9 +161,10 @@ void main() {
         // =========================================
         print('--- Screenshot 2: Trophy Room ---');
 
-        // Navigate back to menu by tapping outside the dialog or pressing back
-        // The grid selection is a full-screen scaffold, so tap the back area
-        await tester.tapAt(const Offset(20, 50));  // Tap near top-left to go back
+        // Navigate back to menu by simulating back button press
+        // The grid selection is a full-screen scaffold shown via showGeneralDialog
+        final NavigatorState navigator = tester.state(find.byType(Navigator).first);
+        navigator.pop();
         await tester.pump(const Duration(seconds: 1));
 
         // Navigate to Trophy Room from menu
