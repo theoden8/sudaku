@@ -269,15 +269,14 @@ class Sudoku {
     this.difficulty = generatedDifficulty;
     var r = new Random();
 
-    // Try to generate using native library if difficulty specified
-    if (generatedDifficulty != null && n >= 2 && n <= 4) {
-      final trivialAllowed = (n <= 2); // Only 4x4 puzzles can be trivial
+    // Try to generate using native library for 9x9 and 16x16
+    if (generatedDifficulty != null && n > 2 && n <= 4) {
       final puzzle = SudokuNative.generate(
         n: n,
         seed: DateTime.now().millisecondsSinceEpoch,
         difficulty: generatedDifficulty,
         timeoutMs: n == 4 ? 30000 : 10000,
-        trivialAllowed: trivialAllowed,
+        trivialAllowed: false,
       );
 
       if (puzzle != null) {
