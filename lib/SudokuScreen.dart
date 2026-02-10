@@ -2648,9 +2648,12 @@ class SudokuScreenState extends State<SudokuScreen> {
         sd = Sudoku.fromSaved(n, args.savedBuffer!, args.savedHints!, () {
           this.runSetState();
         });
-        // Restore full state if available
+        // Restore full state if available, otherwise restore global assistant settings
         if (args.savedState != null) {
           _restoreFullState(args.savedState!);
+        } else {
+          // Loading from Trophy Room/History without full state - use user's global settings
+          _restoreAssistantSettings();
         }
       } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
