@@ -1,1 +1,1 @@
-Find patterns to solve sudoku - your workhorse handles the grunt work
+Find patterns to solve sudoku - your sudoku workhorse handles the grunt work
