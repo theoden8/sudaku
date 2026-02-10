@@ -21,9 +21,9 @@
 
 ## About
 
-Sudaku is a constraint-based sudoku assistant that lets you define logical rules and relationships between cells. Instead of manually propagating obvious implications when testing hypotheses, you can express patterns using constraints like `alldifferent`, `one-of`, and value elimination. The app automatically handles the mechanical work of propagating these rules, letting you focus on the logical reasoning.
+Find a pattern, let your logic ripple across the grid, and focus on your next insight. Sudaku is your tireless sudoku workhorse - it handles all the grunt work while you do the thinking. Spot something? It fills in every obvious consequence.
 
-This isn't a solver - you remain in full control of your logic and strategy. Sudaku simply automates the tedious bookkeeping that comes with exploring different possibilities.
+Express patterns using constraints like `alldifferent`, `one-of`, and value elimination. Your rules, your strategy, your glory. 9×9 and 16×16 puzzles included.
 
 ## Screenshots
 
@@ -32,10 +32,6 @@ This isn't a solver - you remain in full control of your logic and strategy. Sud
   &nbsp;&nbsp;
   <img src="./screenshots/selecting-constraint.jpg" alt="Selecting constraint" width="45%">
 </p>
-
-## Why Not Use a Solver?
-
-Sudaku is designed as an assistant, not a solver. It doesn't brute-force solutions or impose strong arc consistency algorithms. You define the rules based on your own reasoning, and the app propagates the consequences of those rules. You remain in control of the solving strategy - and responsible for any logical mistakes you make.
 
 ## Technology
 

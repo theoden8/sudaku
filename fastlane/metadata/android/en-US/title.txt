@@ -1,1 +1,1 @@
-Sudaku - Make your rules to solve sudoku
+Sudaku - Pattern-driven sudoku
