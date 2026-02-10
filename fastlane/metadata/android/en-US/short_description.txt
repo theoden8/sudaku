@@ -1,1 +1,1 @@
-Constraint-based sudoku assistant for logical puzzle solving
+Find patterns to solve sudoku - your sudoku workhorse handles the grunt work
