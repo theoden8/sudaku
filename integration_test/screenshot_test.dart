@@ -282,11 +282,11 @@ void main() {
             // The number pad buttons are usually the last ones found
             print('Found digit 4, tapping to enter value...');
             await tester.tap(digit4.last);
-            // Wait for UI to update (SnackBar stays visible in demo mode)
-            await tester.pump(const Duration(milliseconds: 500));
+            // Wait for tap indicator to disappear (SnackBar stays visible)
+            await tester.pump(const Duration(seconds: 2));
           }
 
-          // Take screenshot showing the filled cell
+          // Take screenshot showing the filled cell with SnackBar
           await _takeScreenshot(
             binding,
             tester,
