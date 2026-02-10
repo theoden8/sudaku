@@ -25,9 +25,7 @@
 
 ## About
 
-Find a pattern, let your logic ripple across the grid, and focus on your next insight. Sudaku is your tireless sudoku workhorse - it handles all the grunt work while you do the thinking. Spot something? It fills in every obvious consequence.
-
-Express patterns using constraints like `alldifferent`, `one-of`, and value elimination. Your rules, your strategy, your glory. 9×9 and 16×16 puzzles included.
+Find a pattern, let your logic ripple across the grid, and focus on your next insight. Sudaku is your tireless sudoku workhorse - it handles all the grunt work while you do the thinking. Spot something? It fills in every obvious consequence. Express patterns using constraints like `alldifferent`, `one-of`, and value elimination. Your rules, your strategy, your glory. 9×9 and 16×16 puzzles included.
 
 ## Screenshots
 
