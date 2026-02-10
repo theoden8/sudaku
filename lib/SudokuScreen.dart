@@ -2769,7 +2769,7 @@ class SudokuScreenState extends State<SudokuScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'SUDOKU',
+            'SUDAKU',
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 24 * scale,
