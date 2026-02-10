@@ -1,4 +1,8 @@
-# sudaku
+<h1 align="center">sudaku</h1>
+
+<p align="center">
+  <em>Find patterns to solve sudoku - your workhorse handles the grunt work</em>
+</p>
 
 <p align="center">
   <img src="./assets/icon.png" alt="Sudaku" width="128">
