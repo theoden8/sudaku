@@ -115,7 +115,6 @@ platform :android do
   desc "Frame screenshots with device frames and marketing titles"
   lane :add_device_frames do
     screenshots_dir = File.join(project_root, "screenshots", "android")
-    output_dir = File.join(project_root, "fastlane", "metadata", "android", "en-US", "images", "phoneScreenshots")
 
     begin
       # Download font if not present
@@ -137,15 +136,14 @@ platform :android do
         white: true
       )
 
-      # Copy framed screenshots to store metadata directory, removing _framed suffix
-      FileUtils.mkdir_p(output_dir)
+      # Rename framed screenshots to remove _framed suffix
       Dir.glob(File.join(screenshots_dir, "*_framed.png")).each do |framed|
-        output_name = File.basename(framed).gsub("_framed", "")
-        FileUtils.cp(framed, File.join(output_dir, output_name))
-        UI.message("Copied #{output_name} to #{output_dir}")
+        output_name = framed.gsub("_framed", "")
+        FileUtils.mv(framed, output_name)
+        UI.message("Renamed to #{File.basename(output_name)}")
       end
 
-      UI.success("Framed screenshots copied to: #{output_dir}")
+      UI.success("Framed screenshots saved to: #{screenshots_dir}")
     rescue => ex
       UI.error("Failed to frame screenshots: #{ex.message}")
       if ex.message.include?("Unsupported screen size")
