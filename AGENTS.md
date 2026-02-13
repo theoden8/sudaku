@@ -6,6 +6,23 @@ Instructions for AI coding agents working in this Flutter/Dart codebase.
 
 Sudaku is a constraint-based Sudoku **assistant** (not solver). Users control solving strategy while the app handles constraint propagation. Supports 4x4, 9x9, and 16x16 puzzles.
 
+## Documentation - READ FIRST
+
+**Before modifying any feature, read the relevant doc file in `doc/`:**
+
+| Feature | Read First |
+|---------|------------|
+| Core puzzle state, grid, undo/redo | `doc/sudoku.md` |
+| Constraint system (AllDiff, OneOf, Equal) | `doc/sudoku-assist.md` |
+| Native solver, difficulty estimation | `doc/solver.md` |
+| Auto-save, SharedPreferences | `doc/persistence.md` |
+| UI screens, themes, responsive layout | `doc/interface.md` |
+| Trophy room, achievements | `doc/gamification.md` |
+
+Each doc file contains architecture details, implementation notes, and test coverage expectations.
+
+**When modifying a feature, update its corresponding doc file.** If adding new features or changing build/style conventions, update this AGENTS.md file as well.
+
 ## Build Commands
 
 This project uses **FVM (Flutter Version Manager)**. Always prefix flutter commands with `fvm`:
@@ -107,15 +124,6 @@ import 'SudokuBuffer.dart';
 - Guard clauses with early returns
 - Debug output: `if (kDebugMode) print('message')`
 
-## Constraint System
-
-Three constraint types filter cell domains:
-- **AllDiff**: Selected cells must have different values
-- **OneOf**: Selected cells contain exactly one occurrence of specified values
-- **Equal**: Selected cells must have the same value
-
-Status constants: `NOT_RUN` (-2), `SUCCESS` (1), `INSUFFICIENT` (0), `VIOLATED` (-1)
-
 ## Testing Patterns
 
 ```dart
@@ -145,7 +153,7 @@ group('Feature Name', () {
 - **Domains**: Each cell tracks possible values via BitArray. Constraints narrow domains.
 - **Manual vs Assisted changes**: Manual = user input, Assisted = constraint inferences
 - **Constraint conditions**: Constraints can be conditional on specific board states
-- **Rollback**: Full undo/redo support including constraint effects
+- **Rollback**: Full undo/redo support including constraint effects and domain restoration
 
 ## Linting
 
