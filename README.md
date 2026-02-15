@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/icon.png" alt="Sudaku" width="128">
+  <img src="./assets/icon.svg" alt="Sudaku" width="128">
 </p>
 
 <p align="center">

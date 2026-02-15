@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import 'package:bit_array/bit_array.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -237,7 +239,13 @@ class AppColors {
   static const Color paperDarkGridLine = Color(0xFF34343C);     // Grid lines
 }
 
-void main() => runApp(SudokuApp());
+void main() {
+  LicenseRegistry.addLicense(() async* {
+    final license = await rootBundle.loadString('assets/LICENSE');
+    yield LicenseEntryWithLineBreaks(['Sudaku Assets'], license);
+  });
+  runApp(SudokuApp());
+}
 
 class SudokuApp extends StatefulWidget {
   @override
