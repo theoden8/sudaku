@@ -30,9 +30,10 @@ Find a pattern, let your logic ripple across the grid, and focus on your next in
 ## Screenshots
 
 <p align="center">
-  <img src="./screenshots/solving.jpg" alt="Solving" width="45%">
-  &nbsp;&nbsp;
-  <img src="./screenshots/selecting-constraint.jpg" alt="Selecting constraint" width="45%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="Screenshot 1" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="Screenshot 2" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="Screenshot 3" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Screenshot 4" width="22%">
 </p>
 
 ## Technology
