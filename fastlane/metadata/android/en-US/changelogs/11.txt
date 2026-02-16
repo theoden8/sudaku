@@ -1,5 +1,6 @@
 ## changes
 
+* new app icon design
 * added Trophy Room with achievements and puzzle history
 * difficulty levels: Easy, Medium, Hard, Expert, Extreme
 * live difficulty indicator shows puzzle complexity as you solve

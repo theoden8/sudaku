@@ -1,11 +1,5 @@
-<h1 align="center">sudaku</h1>
-
 <p align="center">
-  <em>Find patterns to solve sudoku - your sudoku workhorse handles the grunt work</em>
-</p>
-
-<p align="center">
-  <img src="./assets/icon.png" alt="Sudaku" width="128">
+  <img src="./assets/featureGraphic.png" alt="Sudaku" width="100%">
 </p>
 
 <p align="center">
@@ -30,14 +24,15 @@ Find a pattern, let your logic ripple across the grid, and focus on your next in
 ## Screenshots
 
 <p align="center">
-  <img src="./screenshots/solving.jpg" alt="Solving" width="45%">
-  &nbsp;&nbsp;
-  <img src="./screenshots/selecting-constraint.jpg" alt="Selecting constraint" width="45%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="Screenshot 1" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="Screenshot 2" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="Screenshot 3" width="22%">
+  <img src="./fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Screenshot 4" width="22%">
 </p>
 
 ## Technology
 
-Built with [Flutter](https://flutter.dev/) for cross-platform support on Android, iOS, Linux, macOS, and Windows.
+Built with [Flutter](https://flutter.dev/) for cross-platform support on Android, iOS, Linux, macOS, and Windows. Uses [sdsolve](https://github.com/theoden8/sdsolve) for constraint solver implementation.
 
 ## Building
 

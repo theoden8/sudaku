@@ -1,0 +1,251 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="paper">
+      <rect width="512" height="512"/>
+    </clipPath>
+    <clipPath id="lens">
+      <circle cx="375" cy="355" r="110"/>
+    </clipPath>
+    <!-- Glass — barely there, no tint -->
+    <radialGradient id="glass" cx="0.38" cy="0.33" r="0.65">
+      <stop offset="0%" stop-color="white" stop-opacity="0.0"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.0"/>
+    </radialGradient>
+    <!-- Metallic rim gradient — high contrast for visibility -->
+    <linearGradient id="rim" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#999"/>
+      <stop offset="25%" stop-color="#444"/>
+      <stop offset="50%" stop-color="#777"/>
+      <stop offset="75%" stop-color="#333"/>
+      <stop offset="100%" stop-color="#666"/>
+    </linearGradient>
+    <!-- Handle gradient -->
+    <linearGradient id="handle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#666"/>
+      <stop offset="40%" stop-color="#333"/>
+      <stop offset="100%" stop-color="#1A1A1A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sticky-note yellow paper -->
+  <rect width="512" height="512" fill="#FFECB3"/>
+
+  <!-- Math grid cells (clipped to paper) -->
+  <g clip-path="url(#paper)" stroke="#E8D68A" stroke-width="1.2">
+    <line x1="0" y1="48" x2="512" y2="48"/>
+    <line x1="0" y1="96" x2="512" y2="96"/>
+    <line x1="0" y1="144" x2="512" y2="144"/>
+    <line x1="0" y1="192" x2="512" y2="192"/>
+    <line x1="0" y1="240" x2="512" y2="240"/>
+    <line x1="0" y1="288" x2="512" y2="288"/>
+    <line x1="0" y1="336" x2="512" y2="336"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="0" y1="432" x2="512" y2="432"/>
+    <line x1="0" y1="480" x2="512" y2="480"/>
+    <line x1="48" y1="0" x2="48" y2="512"/>
+    <line x1="96" y1="0" x2="96" y2="512"/>
+    <line x1="144" y1="0" x2="144" y2="512"/>
+    <line x1="192" y1="0" x2="192" y2="512"/>
+    <line x1="240" y1="0" x2="240" y2="512"/>
+    <line x1="288" y1="0" x2="288" y2="512"/>
+    <line x1="336" y1="0" x2="336" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+    <line x1="432" y1="0" x2="432" y2="512"/>
+    <line x1="480" y1="0" x2="480" y2="512"/>
+  </g>
+
+  <!-- Tilted grid group — playful doodle -->
+  <g transform="rotate(-4, 256, 256)">
+    <!-- Sloppy outer border — Excalidraw-style sketchy strokes -->
+    <path d="M 84,83 C 180,74 320,86 430,76
+             C 438,180 426,320 435,430
+             C 320,440 180,426 85,438
+             C 74,320 86,180 84,83 Z"
+          fill="none" stroke="#444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.5"/>
+    <path d="M 76,74 C 200,84 340,70 436,82
+             C 428,200 440,340 430,438
+             C 340,428 200,442 74,430
+             C 86,340 72,200 76,74 Z"
+          fill="none" stroke="#444" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.65"/>
+    <path d="M 80,78 C 190,72 330,84 434,78
+             C 440,190 428,330 434,434
+             C 330,440 190,428 80,434
+             C 74,330 84,190 80,78 Z"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Question marks in empty cells below 2 and 7 -->
+    <g fill="#CC2222" font-family="Georgia, serif" font-weight="700" font-size="68" text-anchor="middle" dominant-baseline="central">
+      <text transform="rotate(1, 375, 375)" x="375" y="377">?</text>
+    </g>
+
+    <!-- Thin cell lines (9x9 subdivisions) -->
+    <g fill="none" stroke="#999" stroke-width="1.5" stroke-linecap="round">
+      <!-- vertical thin lines -->
+      <path d="M 118,80 C 115,180 121,300 117,434"/>
+      <path d="M 158,80 C 161,180 155,300 159,434"/>
+      <path d="M 237,80 C 234,180 240,300 236,434"/>
+      <path d="M 277,80 C 280,180 274,300 278,434"/>
+      <path d="M 356,80 C 353,180 359,300 355,434"/>
+      <path d="M 396,80 C 399,180 393,300 397,434"/>
+      <!-- horizontal thin lines -->
+      <path d="M 80,118 C 180,115 300,121 434,117"/>
+      <path d="M 80,158 C 180,161 300,155 434,159"/>
+      <path d="M 80,237 C 180,234 300,240 434,236"/>
+      <path d="M 80,277 C 180,280 300,274 434,278"/>
+      <path d="M 80,356 C 180,353 300,359 434,355"/>
+      <path d="M 80,396 C 180,399 300,393 434,397"/>
+    </g>
+
+    <!-- Sloppy box dividers (3x3) — sketchy double strokes -->
+    <!-- Vertical divider 1 -->
+    <path d="M 194,82 C 190,200 206,330 188,432"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.5"/>
+    <path d="M 206,76 C 202,210 196,300 204,436"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Vertical divider 2 -->
+    <path d="M 322,82 C 318,200 312,330 322,432"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.5"/>
+    <path d="M 312,76 C 318,210 322,300 314,436"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Horizontal divider 1 -->
+    <path d="M 82,194 C 200,188 330,206 432,192"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.5"/>
+    <path d="M 76,206 C 210,202 300,194 436,204"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Horizontal divider 2 -->
+    <path d="M 82,322 C 200,318 330,312 432,322"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.5"/>
+    <path d="M 76,312 C 210,320 300,314 436,310"
+          fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- All hint values from demoPuzzle9x9 -->
+    <g fill="#2255CC" font-family="Georgia, serif" font-weight="700" font-size="22" text-anchor="middle" dominant-baseline="central">
+      <!-- Row 0 -->
+      <text transform="rotate(-2, 98, 98)"   x="98"  y="100">4</text>
+      <text transform="rotate(1.5, 256, 98)"  x="256" y="100">3</text>
+      <!-- Row 1 -->
+      <text transform="rotate(-1, 217, 137)" x="217" y="139">6</text>
+      <text transform="rotate(2, 335, 137)"  x="335" y="139">8</text>
+      <!-- Row 3 -->
+      <text transform="rotate(1, 98, 217)"   x="98"  y="219">1</text>
+      <text transform="rotate(-2, 296, 217)" x="296" y="219">5</text>
+      <text transform="rotate(1.5, 414, 217)" x="414" y="219">9</text>
+      <!-- Row 4 -->
+      <text transform="rotate(-1.5, 177, 256)" x="177" y="258">8</text>
+      <text transform="rotate(2, 375, 256)"  x="375" y="258">6</text>
+      <!-- Row 5 -->
+      <text transform="rotate(1, 177, 296)"  x="177" y="298">7</text>
+      <text transform="rotate(-1.5, 256, 296)" x="256" y="298">2</text>
+      <!-- Row 6 -->
+      <text transform="rotate(2, 256, 335)"  x="256" y="337">1</text>
+      <text transform="rotate(-1, 335, 335)" x="335" y="337">2</text>
+      <text transform="rotate(1.5, 375, 335)" x="375" y="337">7</text>
+      <!-- Row 7 -->
+      <text transform="rotate(-2, 137, 375)" x="137" y="377">5</text>
+      <text transform="rotate(1, 217, 375)"  x="217" y="377">3</text>
+      <text transform="rotate(-1.5, 414, 375)" x="414" y="377">4</text>
+      <!-- Row 8 -->
+      <text transform="rotate(2, 137, 414)"  x="137" y="416">9</text>
+    </g>
+  </g>
+
+  <!-- Magnified view inside lens -->
+  <g clip-path="url(#lens)">
+    <circle cx="375" cy="355" r="110" fill="#FFECB3"/>
+    <!-- Magnified grid cells -->
+    <g transform="translate(375, 355) scale(1.8) translate(-375, -355)">
+      <g stroke="#E8D68A" stroke-width="1.2">
+        <line x1="0" y1="288" x2="512" y2="288"/>
+        <line x1="0" y1="336" x2="512" y2="336"/>
+        <line x1="0" y1="384" x2="512" y2="384"/>
+        <line x1="0" y1="432" x2="512" y2="432"/>
+        <line x1="288" y1="0" x2="288" y2="512"/>
+        <line x1="336" y1="0" x2="336" y2="512"/>
+        <line x1="384" y1="0" x2="384" y2="512"/>
+        <line x1="432" y1="0" x2="432" y2="512"/>
+      </g>
+    </g>
+    <circle cx="375" cy="355" r="110" fill="white" fill-opacity="0.1"/>
+
+    <!-- 1.8x zoom of the tilted grid -->
+    <g transform="translate(375, 355) scale(1.8) translate(-375, -355)">
+      <g transform="rotate(-4, 256, 256)">
+        <!-- Sloppy outer border (magnified — offsets ÷1.8) -->
+        <path d="M 82,82 C 180,77 320,83 432,78
+                 C 436,180 430,320 435,432
+                 C 320,437 180,430 83,436
+                 C 77,320 83,180 82,82 Z"
+              fill="none" stroke="#333" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.5"/>
+        <path d="M 78,77 C 200,82 340,74 435,81
+                 C 431,200 437,340 432,436
+                 C 340,431 200,438 77,432
+                 C 83,340 76,200 78,77 Z"
+              fill="none" stroke="#333" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.65"/>
+        <path d="M 80,79 C 190,76 330,82 434,79
+                 C 437,190 431,330 434,434
+                 C 330,437 190,431 80,434
+                 C 77,330 82,190 80,79 Z"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Question marks in empty cells (magnified) -->
+        <g fill="#CC2222" font-family="Georgia, serif" font-weight="700" font-size="38" text-anchor="middle" dominant-baseline="central">
+          <text transform="rotate(1, 375, 375)" x="375" y="377">?</text>
+        </g>
+
+        <!-- Thin cell lines (magnified — offsets ÷1.8) -->
+        <g fill="none" stroke="#999" stroke-width="0.8" stroke-linecap="round">
+          <path d="M 118,80 C 116,180 120,300 118,434"/>
+          <path d="M 158,80 C 160,180 156,300 159,434"/>
+          <path d="M 237,80 C 235,180 239,300 237,434"/>
+          <path d="M 277,80 C 279,180 275,300 278,434"/>
+          <path d="M 356,80 C 354,180 358,300 356,434"/>
+          <path d="M 396,80 C 398,180 394,300 397,434"/>
+          <path d="M 80,118 C 180,116 300,120 434,118"/>
+          <path d="M 80,158 C 180,160 300,156 434,159"/>
+          <path d="M 80,237 C 180,235 300,239 434,237"/>
+          <path d="M 80,277 C 180,279 300,275 434,278"/>
+          <path d="M 80,356 C 180,354 300,358 434,356"/>
+          <path d="M 80,396 C 180,398 300,394 434,397"/>
+        </g>
+        <!-- Sloppy box dividers (magnified — offsets ÷1.8) -->
+        <path d="M 197,81 C 195,200 203,330 194,432"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+        <path d="M 203,78 C 201,210 198,300 202,436"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M 320,81 C 318,200 315,330 320,432"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+        <path d="M 315,78 C 318,210 320,300 316,436"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M 81,197 C 200,194 330,203 432,196"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+        <path d="M 78,203 C 210,201 300,197 436,202"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M 81,320 C 200,318 330,315 432,320"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+        <path d="M 78,315 C 210,319 300,316 436,314"
+              fill="none" stroke="#333" stroke-width="1.4" stroke-linecap="round"/>
+
+        <!-- Magnified hint digits visible through lens -->
+        <g fill="#2255CC" font-family="Georgia, serif" font-weight="700" font-size="22" text-anchor="middle" dominant-baseline="central">
+          <text transform="rotate(-1, 335, 335)" x="335" y="337">2</text>
+          <text transform="rotate(1.5, 375, 335)" x="375" y="337">7</text>
+          <text transform="rotate(-1.5, 414, 375)" x="414" y="377">4</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+
+  <!-- Metallic rim — gradient ring with highlight edges -->
+  <circle cx="375" cy="355" r="112" fill="none" stroke="url(#rim)" stroke-width="7"/>
+  <circle cx="375" cy="355" r="109" fill="none" stroke="#CCC" stroke-width="1" stroke-opacity="0.5"/>
+  <circle cx="375" cy="355" r="115" fill="none" stroke="#222" stroke-width="1" stroke-opacity="0.4"/>
+
+  <!-- Handle — starts at rim edge, ~48° angle -->
+  <line x1="452" y1="444" x2="500" y2="497" stroke="url(#handle)" stroke-width="20" stroke-linecap="round"/>
+  <line x1="454" y1="442" x2="498" y2="493" stroke="#888" stroke-width="5" stroke-linecap="round" stroke-opacity="0.25"/>
+  <!-- Grip rings -->
+  <line x1="470" y1="462" x2="476" y2="469" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="478" y1="471" x2="484" y2="478" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+  <line x1="486" y1="480" x2="492" y2="487" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+</svg>
