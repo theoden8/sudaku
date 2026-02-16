@@ -32,7 +32,7 @@ Find a pattern, let your logic ripple across the grid, and focus on your next in
 
 ## Technology
 
-Built with [Flutter](https://flutter.dev/) for cross-platform support on Android, iOS, Linux, macOS, and Windows.
+Built with [Flutter](https://flutter.dev/) for cross-platform support on Android, iOS, Linux, macOS, and Windows. Uses [sdsolve](https://github.com/theoden8/sdsolve) for constraint solver implementation.
 
 ## Building
 
