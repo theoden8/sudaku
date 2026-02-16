@@ -3,17 +3,17 @@
 </p>
 
 <p align="center">
-  <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
-    <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
-  </a>
-</p>
-
-<p align="center">
   <a href="https://github.com/theoden8/sudaku/actions/workflows/build.yml">
     <img src="https://github.com/theoden8/sudaku/actions/workflows/build.yml/badge.svg" alt="Build">
   </a>
   <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
     <img src="https://img.shields.io/f-droid/v/com.gitea.theoden8.sudaku" alt="F-Droid">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
+    <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
   </a>
 </p>
 
