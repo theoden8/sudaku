@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://f-droid.org/packages/com.gitea.theoden8.sudaku/">
-    <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
+    <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80" align="middle">
   </a>
   <a href="https://apps.apple.com/app/sudaku/id6758774395">
     <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" width="170" align="middle">
