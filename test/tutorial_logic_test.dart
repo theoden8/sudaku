@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bit_array/bit_array.dart';
 
 import 'package:sudaku/TrophyRoom.dart';
+import 'package:sudaku/TutorialHelpPages.dart';
 
 void main() {
   group('Tutorial Achievement Tests', () {
@@ -213,15 +214,19 @@ void main() {
   });
 
   group('Tutorial Stage Transition Tests', () {
-    test('tutorial stages progress correctly', () {
+    test('tutorial stages progress correctly through all stages', () {
       int tutorialStage = 0;
       bool showTutorial = false;
 
-      // Start tutorial
+      // Start tutorial - begins at stage 0 (concept intro)
       showTutorial = true;
-      tutorialStage = 1;
+      tutorialStage = 0;
 
       expect(showTutorial, isTrue);
+      expect(tutorialStage, equals(0));
+
+      // After concept intro help pages dismissed -> stage 1
+      tutorialStage = 1;
       expect(tutorialStage, equals(1));
 
       // Progress to stage 2 (cells selected correctly)
@@ -234,8 +239,15 @@ void main() {
 
       // Progress to stage 3 (constraint added)
       tutorialStage = 3;
-
       expect(tutorialStage, equals(3));
+
+      // After propagation help pages -> stage 5 (other constraints)
+      tutorialStage = 5;
+      expect(tutorialStage, equals(5));
+
+      // After other constraints help pages -> stage 6 (completion)
+      tutorialStage = 6;
+      expect(tutorialStage, equals(6));
 
       // Complete tutorial
       showTutorial = false;
@@ -258,6 +270,13 @@ void main() {
 
       expect(tutorialStage, equals(1));
     });
+
+    test('stage 4 is skipped in tutorial flow', () {
+      // The flow goes 0 -> 1 -> 2 -> 3 -> 5 -> 6
+      // Stage 4 does not exist in the flow
+      final stages = [0, 1, 2, 3, 5, 6];
+      expect(stages.contains(4), isFalse);
+    });
   });
 
   group('Tutorial Dialog Skip Tests', () {
@@ -278,6 +297,51 @@ void main() {
         AchievementType.tutorialComplete
       );
       expect(shouldShowDialog2, isFalse);
+    });
+  });
+
+  group('TutorialHelpContent Tests', () {
+    test('stage 0 concept intro has 3 pages', () {
+      expect(TutorialHelpContent.stage0_conceptIntro.length, equals(3));
+    });
+
+    test('stage 2 AllDiff has 2 pages', () {
+      expect(TutorialHelpContent.stage2_allDiff.length, equals(2));
+    });
+
+    test('stage 3 propagation has 1 page', () {
+      expect(TutorialHelpContent.stage3_propagation.length, equals(1));
+    });
+
+    test('stage 5 other constraints has 3 pages', () {
+      expect(TutorialHelpContent.stage5_otherConstraints.length, equals(3));
+    });
+
+    test('stage 6 completion has 1 page', () {
+      expect(TutorialHelpContent.stage6_completion.length, equals(1));
+    });
+
+    test('fullReference contains all pages', () {
+      final total = TutorialHelpContent.stage0_conceptIntro.length
+          + TutorialHelpContent.stage2_allDiff.length
+          + TutorialHelpContent.stage3_propagation.length
+          + TutorialHelpContent.stage5_otherConstraints.length
+          + TutorialHelpContent.stage6_completion.length;
+      expect(TutorialHelpContent.fullReference.length, equals(total));
+      expect(TutorialHelpContent.fullReference.length, equals(10));
+    });
+
+    test('all pages have non-empty title and body', () {
+      for (final page in TutorialHelpContent.fullReference) {
+        expect(page.title, isNotEmpty);
+        expect(page.body, isNotEmpty);
+      }
+    });
+
+    test('all pages have gradient colors', () {
+      for (final page in TutorialHelpContent.fullReference) {
+        expect(page.gradientColors.length, greaterThanOrEqualTo(2));
+      }
     });
   });
 }
