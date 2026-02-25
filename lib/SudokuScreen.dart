@@ -1585,7 +1585,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: theme.dialogBackgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1722,10 +1722,12 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Future<void> _showTutorialOfferDialog() async {
-    // Skip if tutorial already completed
-    final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
-    if (tutorialDone) return;
+  Future<void> _showTutorialOfferDialog({bool force = false}) async {
+    // Skip if tutorial already completed (unless forced from menu)
+    if (!force) {
+      final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+      if (tutorialDone) return;
+    }
 
     final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
@@ -2487,7 +2489,7 @@ class SudokuScreenState extends State<SudokuScreen> {
               this._showExitDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
-              this._showTutorialOfferDialog();
+              this._showTutorialOfferDialog(force: true);
             break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
