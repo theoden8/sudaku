@@ -1,0 +1,3 @@
+## changes
+
+* expanded tutorial with illustrated help pages explaining constraints

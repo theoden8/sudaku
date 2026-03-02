@@ -281,22 +281,47 @@ The interface layer has widget tests in `test/widget/tutorial_test.dart` and int
 - App works in portrait and landscape orientations
 
 ### Tutorial Flow
-The tutorial is a multi-stage guided workflow with automatic hints:
-- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial (once per session)
+The tutorial is a multi-stage guided workflow with paginated help page dialogs at contextual moments. Each help page includes an icon, title, body text, and navigation (Back/Next/Dismiss buttons, dot indicators, and optional "Skip Tutorial" to bail out early).
+
+- **Initial Dialog**: When the Sudoku screen opens, a dialog offers to start the tutorial (once per session, skipped if tutorial achievement already unlocked)
+- **Stage 0**: Concept Introduction (3 help pages)
+  - "What is a Constraint?" — explains constraints as rules about cell groups
+  - "Why Constraints Matter" — the assistant eliminates impossible values automatically
+  - "How It Works" — how to select cells and choose constraint types
 - **Stage 1**: Multi-selection mode - user long-presses then taps highlighted cells
   - Tutorial button shows finger icon (orange)
   - Tapping button shows hint: "Long-press a highlighted cell to start selecting, then tap to add more cells to the constraint group."
-- **Stage 2**: Select "All different" constraint from inline options
+- **Stage 2**: AllDiff Explanation (2 help pages) + select "All different" constraint
   - Tutorial button turns green (checkmark) when correct cells selected
-  - Hint auto-shows explaining constraint options
-  - "All different" button is highlighted
-- **Stage 3**: Tutorial completion
-  - Auto-shows explanation of the assistant system
-  - Tutorial ends automatically after final hint
+  - Help pages auto-show explaining the AllDiff constraint
+  - "All different" button is highlighted in constraint panel
+- **Stage 3**: Propagation (1 help page)
+  - Auto-shows explanation of constraint propagation after AllDiff is applied
+- **Stage 5**: Other Constraints overview (3 help pages, informational only)
+  - "One Of" — exactly one cell contains a specific value
+  - "Equivalence" — cells must have the same value
+  - "Eliminate" — manually cross off numbers from possibilities
+- **Stage 6**: Completion (1 help page)
+  - Summary, mentions default rules in Assistant settings and the Constraint Help toolbar item
+  - Tutorial ends after dismissal
+
+(Stage 4 is skipped — reserved for potential future interactive content.)
+
+**Help Page Dialog** (`TutorialHelpDialog`):
+- Paginated using `PageView` + `PageController`
+- Dot indicators show current page position
+- Back/Next navigation buttons
+- "Skip Tutorial" option on every page (during tutorial flow)
+- Matches existing dialog styling (rounded corners, theme colors)
+
+**Standalone Help Access**:
+- "Constraint Help" item in the toolbar popup menu (always visible, not just during tutorial)
+- Opens all help pages combined as a paginated reference dialog
+- Accessible via `TutorialHelpContent.fullReference`
 
 **Tutorial Layout**:
 - Portrait: Constraint list on left, tutorial button on right (Row)
 - Landscape: Constraint list on top, tutorial button at bottom (Column)
 - Both wrapped in scrollable container for overflow safety
 
-The tutorial can be restarted from a fresh puzzle. Reset button now labeled "Reset / Menu" offering both reset and main menu options.
+The tutorial can be restarted from a fresh puzzle via the "Tutorial" option in the toolbar menu.

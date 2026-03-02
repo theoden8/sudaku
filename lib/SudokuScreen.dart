@@ -19,6 +19,7 @@ import 'SudokuDomain.dart';
 import 'SudokuNumpadScreen.dart';
 import 'SudokuAssistScreen.dart';
 import 'TrophyRoom.dart';
+import 'TutorialHelpPages.dart';
 import 'demo_data.dart';
 import 'sudoku_native.dart';
 
@@ -109,20 +110,34 @@ abstract class ConstraintInteraction {
     self.runSetState();
     if(self._showTutorial && self._tutorialStage == 2) {
       self._tutorialStage = 3;
-      // Auto-show final tutorial hint
+      // Auto-show propagation help pages
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        self._showTutorialMessage(
-            title: "New constraint",
-            message: 'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
-            nextFunc: () {
-              self._showTutorialMessage(
-                title: 'Assistant',
-                message: 'Once you get used to using constraints, you should enable default rules through the settings.',
-                nextFunc: () {
-                  self._completeTutorial();
-                }
+        self._showTutorialHelpPages(
+          pages: TutorialHelpContent.stage3_propagation,
+          onDismiss: () {
+            self._tutorialStage = 5;
+            self.runSetState();
+            // Show other constraints overview pages
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              self._showTutorialHelpPages(
+                pages: TutorialHelpContent.stage5_otherConstraints,
+                onDismiss: () {
+                  self._tutorialStage = 6;
+                  self.runSetState();
+                  // Show completion page
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    self._showTutorialHelpPages(
+                      pages: TutorialHelpContent.stage6_completion,
+                      dismissLabel: 'Finish',
+                      onDismiss: () {
+                        self._completeTutorial();
+                      },
+                    );
+                  });
+                },
               );
-            }
+            });
+          },
         );
       });
     }
@@ -317,6 +332,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Future<void> _savePuzzleState() async {
     if (sd == null) return;
+    // Don't save if puzzle hasn't finished loading yet (async setup still pending)
+    if (sd!.hints.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
 
     // Serialize constraints
@@ -1570,7 +1587,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: theme.dialogBackgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1678,10 +1695,41 @@ class SudokuScreenState extends State<SudokuScreen> {
     );
   }
 
-  Future<void> _showTutorialOfferDialog() async {
-    // Skip if tutorial already completed
-    final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
-    if (tutorialDone) return;
+  Future<void> _showTutorialHelpPages({
+    required List<TutorialHelpPage> pages,
+    String dismissLabel = 'Got it',
+    required VoidCallback onDismiss,
+    VoidCallback? onSkip,
+  }) async {
+    await showGeneralDialog(
+      context: this.context,
+      barrierDismissible: false,
+      barrierLabel: 'Tutorial Help',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return TutorialHelpDialog(
+          pages: pages,
+          dismissLabel: dismissLabel,
+          onDismiss: () {
+            Navigator.of(context).pop();
+            onDismiss();
+          },
+          onSkip: onSkip != null ? () {
+            Navigator.of(context).pop();
+            onSkip();
+          } : null,
+        );
+      },
+    );
+  }
+
+  Future<void> _showTutorialOfferDialog({bool force = false}) async {
+    // Skip if tutorial already completed (unless forced from menu)
+    if (!force) {
+      final tutorialDone = await TrophyRoomStorage.isAchievementUnlocked(AchievementType.tutorialComplete);
+      if (tutorialDone) return;
+    }
 
     final theme = widget.sudokuThemeFunc(context);
     return showDialog<void>(
@@ -1756,12 +1804,18 @@ class SudokuScreenState extends State<SudokuScreen> {
                 sd!.assist.autoComplete = false;
                 this._selectTutorialCells();
                 this._showTutorial = true;
-                this._tutorialStage = 1;
+                this._tutorialStage = 0;
                 this.runSetState();
-                this._showTutorialMessage(
-                  title: 'Select cells',
-                  message: 'Long-press a highlighted cell to start selecting, then tap to add more cells to the constraint group.',
-                  nextFunc: (){}
+                // Show Stage 0 concept intro help pages
+                this._showTutorialHelpPages(
+                  pages: TutorialHelpContent.stage0_conceptIntro,
+                  onDismiss: () {
+                    this._tutorialStage = 1;
+                    this.runSetState();
+                  },
+                  onSkip: () {
+                    this._completeTutorial();
+                  },
                 );
               }
             ),
@@ -1788,19 +1842,15 @@ class SudokuScreenState extends State<SudokuScreen> {
     final bool justEnteredStage2 = passCondition && this._tutorialStage == 1;
     this._tutorialStage = !passCondition ? 1 : 2;
 
-    // Auto-show hint when cells are correctly selected
+    // Auto-show AllDiff help pages when cells are correctly selected
     if (justEnteredStage2) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        this._showTutorialMessage(
-            title: 'Constraint Options',
-            message: 'The panel now shows constraint options. Each constraint type works differently.',
-            nextFunc: () {
-              this._showTutorialMessage(
-                title: 'All different',
-                message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
-                nextFunc: () {}
-              );
-            }
+        this._showTutorialHelpPages(
+          pages: TutorialHelpContent.stage2_allDiff,
+          onDismiss: () {},
+          onSkip: () {
+            this._completeTutorial();
+          },
         );
       });
     }
@@ -1813,17 +1863,12 @@ class SudokuScreenState extends State<SudokuScreen> {
       onTap: () {
         if (passCondition) {
           this.runSetState();
-          this._showTutorialMessage(
-              title: 'Constraint Options',
-              message: 'The panel now shows constraint options. Each constraint type works differently.',
-              nextFunc: () {
-                this._showTutorialMessage(
-                  title: 'All different',
-                  message: 'This constraint ensures all selected cells have different values. Tap "All different" to add it.',
-                  nextFunc: () {
-                  }
-                );
-              }
+          this._showTutorialHelpPages(
+            pages: TutorialHelpContent.stage2_allDiff,
+            onDismiss: () {},
+            onSkip: () {
+              this._completeTutorial();
+            },
           );
         } else {
           this._showTutorialMessage(
@@ -1864,19 +1909,34 @@ class SudokuScreenState extends State<SudokuScreen> {
     final iconSize = min(80.0, min(screenWidth, screenHeight) * 0.15);
     return GestureDetector(
       onTap: () {
-        this._showTutorialMessage(
-            title: "New constraint",
-            message: 'Assistant is used to simplify mechanical deductions. It will now account for the new rule.',
-            nextFunc: () {
-              this._showTutorialMessage(
-                title: 'Assistant',
-                message: 'Once you get used to using constraints, you should enable default rules through the settings.',
-                nextFunc: () {
-                }
+        this._showTutorialHelpPages(
+          pages: TutorialHelpContent.stage3_propagation,
+          onDismiss: () {
+            this._tutorialStage = 5;
+            this.runSetState();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              this._showTutorialHelpPages(
+                pages: TutorialHelpContent.stage5_otherConstraints,
+                onDismiss: () {
+                  this._tutorialStage = 6;
+                  this.runSetState();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    this._showTutorialHelpPages(
+                      pages: TutorialHelpContent.stage6_completion,
+                      dismissLabel: 'Finish',
+                      onDismiss: () {
+                        this._completeTutorial();
+                      },
+                    );
+                  });
+                },
               );
-            }
+            });
+          },
+          onSkip: () {
+            this._completeTutorial();
+          },
         );
-        this._completeTutorial();
       },
       child: Container(
         decoration: BoxDecoration(
@@ -1920,6 +1980,11 @@ class SudokuScreenState extends State<SudokuScreen> {
               return this._makeTutorialButtonStage12(ctx);
             case 3:
               return this._makeTutorialButtonStage3(ctx);
+            case 0:
+            case 5:
+            case 6:
+              // These stages auto-show help pages via dialogs; show a waiting indicator
+              return const SizedBox.shrink();
             default:
               return const SizedBox.shrink();
           }
@@ -2380,7 +2445,7 @@ class SudokuScreenState extends State<SudokuScreen> {
     final theme = widget.sudokuThemeFunc(context);
     final iconColor = theme.iconColor;
 
-    if(this._showTutorial && this._tutorialStage >= 1) {
+    if(this._showTutorial && this._tutorialStage >= 0) {
       return <Widget>[];
     }
     const int
@@ -2388,7 +2453,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       TOOLBAR_TUTOR = 1,
       TOOLBAR_RESET = 2,
       TOOLBAR_THEME = 3,
-      TOOLBAR_LICENSE = 4;
+      TOOLBAR_LICENSE = 4,
+      TOOLBAR_HELP = 5;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo_rounded, color: iconColor),
@@ -2425,13 +2491,20 @@ class SudokuScreenState extends State<SudokuScreen> {
               this._showExitDialog(ctx);
             break;
             case TOOLBAR_TUTOR:
-              this._showTutorialOfferDialog();
+              this._showTutorialOfferDialog(force: true);
             break;
             case TOOLBAR_ASSIST:
               this._showAssistantOptions(ctx);
             break;
             case TOOLBAR_THEME:
               this._showThemeDialog(ctx);
+            break;
+            case TOOLBAR_HELP:
+              this._showTutorialHelpPages(
+                pages: TutorialHelpContent.fullReference,
+                dismissLabel: 'Done',
+                onDismiss: () {},
+              );
             break;
             case TOOLBAR_LICENSE:
               showLicensePage(
@@ -2459,6 +2532,16 @@ class SudokuScreenState extends State<SudokuScreen> {
                 Icon(Icons.school_rounded, size: 20),
                 SizedBox(width: 12),
                 Text('Tutorial'),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: TOOLBAR_HELP,
+            child: Row(
+              children: [
+                Icon(Icons.help_outline_rounded, size: 20),
+                SizedBox(width: 12),
+                Text('Constraint Help'),
               ],
             ),
           ),
