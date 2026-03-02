@@ -332,6 +332,8 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   Future<void> _savePuzzleState() async {
     if (sd == null) return;
+    // Don't save if puzzle hasn't finished loading yet (async setup still pending)
+    if (sd!.hints.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
 
     // Serialize constraints
