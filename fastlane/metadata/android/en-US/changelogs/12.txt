@@ -1,7 +1,3 @@
 ## changes
 
 * expanded tutorial with illustrated help pages explaining constraints
-* tutorial can now be restarted from the toolbar menu
-* added Constraint Help reference accessible anytime
-* fixed achievement notification crash
-* fixed puzzle state being lost on resume
