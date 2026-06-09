@@ -1603,7 +1603,16 @@ class SudokuScreenState extends State<SudokuScreen> {
 
   // Highlight an already-existing constraint instead of creating a duplicate,
   // and briefly let the user know it already exists.
+  //
+  // No-op during the tutorial: the guided lesson should never be interrupted by
+  // a duplicate-constraint message. (The duplicate itself is still not added —
+  // the calling interaction returns before addConstraint regardless.)
+  //
+  // Note: default (built-in) row/col/box constraints are handled inline by the
+  // Constrainer and are never stored in the constraint list, so they can never
+  // be matched as duplicates here.
   void _highlightExistingConstraint(Constraint existing) {
+    if (_showTutorial) return;
     this._selectedConstraint = existing;
     this.runSetState();
     if (!mounted) return;

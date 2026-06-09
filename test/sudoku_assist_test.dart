@@ -2897,5 +2897,21 @@ void main() {
       final other = ConstraintOneOf(sd, vars([0, 1, 2]), 7);
       expect(sd.assist.findEquivalentConstraint(other), isNull);
     });
+
+    test('default (built-in) constraints do not participate in dedup', () {
+      // Default row/col/box constraints are handled inline by the Constrainer
+      // and are never stored in the constraint list. Enabling them must not
+      // cause a user AllDiff over a full row to be treated as a duplicate.
+      sd.assist.autoComplete = true;
+      sd.assist.useDefaultConstraints = true;
+
+      final fullRow = sd.iterateRow(0).toList();
+      final rowAllDiff = ConstraintAllDiff(
+        sd,
+        vars(fullRow),
+        domain(List<int>.generate(sd.ne2, (i) => i + 1)),
+      );
+      expect(sd.assist.findEquivalentConstraint(rowAllDiff), isNull);
+    });
   });
 }
