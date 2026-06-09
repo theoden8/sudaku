@@ -2827,4 +2827,75 @@ void main() {
       expect(result, isFalse);
     });
   });
+
+  group('Duplicate Constraint Detection', () {
+    late Sudoku sd;
+
+    setUp(() {
+      final puzzle = parseDemoPuzzle(demoPuzzle9x9);
+      sd = Sudoku.fromList(3, puzzle, () {});
+    });
+
+    BitArray vars(List<int> cells) => BitArray(sd.ne4)..setBits(cells);
+    BitArray domain(List<int> values) => BitArray(sd.ne2 + 1)..setBits(values);
+
+    test('AllDiff equivalent to itself', () {
+      final c = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      expect(c.isEquivalentTo(c), isTrue);
+    });
+
+    test('AllDiff equivalence ignores cell ordering', () {
+      final a = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      final b = ConstraintAllDiff(sd, vars([2, 1, 0]), domain([3, 1, 2]));
+      expect(a.isEquivalentTo(b), isTrue);
+    });
+
+    test('AllDiff with different cells is not equivalent', () {
+      final a = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      final b = ConstraintAllDiff(sd, vars([0, 1, 3]), domain([1, 2, 3]));
+      expect(a.isEquivalentTo(b), isFalse);
+    });
+
+    test('AllDiff with different domain is not equivalent', () {
+      final a = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      final b = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 4]));
+      expect(a.isEquivalentTo(b), isFalse);
+    });
+
+    test('OneOf equivalence considers value', () {
+      final a = ConstraintOneOf(sd, vars([0, 1, 2]), 5);
+      final b = ConstraintOneOf(sd, vars([2, 1, 0]), 5);
+      final c = ConstraintOneOf(sd, vars([0, 1, 2]), 6);
+      expect(a.isEquivalentTo(b), isTrue);
+      expect(a.isEquivalentTo(c), isFalse);
+    });
+
+    test('Equal equivalence considers only cells', () {
+      final a = ConstraintEqual(sd, vars([0, 9, 18]));
+      final b = ConstraintEqual(sd, vars([18, 9, 0]));
+      final c = ConstraintEqual(sd, vars([0, 9, 19]));
+      expect(a.isEquivalentTo(b), isTrue);
+      expect(a.isEquivalentTo(c), isFalse);
+    });
+
+    test('Constraints of different types are not equivalent', () {
+      final a = ConstraintEqual(sd, vars([0, 1, 2]));
+      final b = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      expect(a.isEquivalentTo(b), isFalse);
+    });
+
+    test('findEquivalentConstraint locates the existing duplicate', () {
+      final original = ConstraintAllDiff(sd, vars([0, 1, 2]), domain([1, 2, 3]));
+      sd.assist.addConstraint(original);
+
+      final duplicate = ConstraintAllDiff(sd, vars([2, 1, 0]), domain([3, 2, 1]));
+      expect(sd.assist.findEquivalentConstraint(duplicate), same(original));
+    });
+
+    test('findEquivalentConstraint returns null when no duplicate exists', () {
+      sd.assist.addConstraint(ConstraintOneOf(sd, vars([0, 1, 2]), 5));
+      final other = ConstraintOneOf(sd, vars([0, 1, 2]), 7);
+      expect(sd.assist.findEquivalentConstraint(other), isNull);
+    });
+  });
 }

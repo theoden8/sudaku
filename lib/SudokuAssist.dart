@@ -89,6 +89,27 @@ abstract class Constraint extends DomainFilterer {
 
   Iterable<int> getValues();
 
+  // Whether two BitArrays have exactly the same bits set.
+  static bool sameBits(BitArray a, BitArray b) {
+    if(a.cardinality != b.cardinality) {
+      return false;
+    }
+    for(int bit in a.asIntIterable()) {
+      if(!b[bit]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Whether this constraint expresses the same rule over the same group of
+  // cells as [other]. Subclasses extend this with their value-specific data
+  // so that duplicates can be detected before being added to the list.
+  bool isEquivalentTo(Constraint other) {
+    return this.type == other.type
+      && Constraint.sameBits(this.variables, other.variables);
+  }
+
   bool checkInitialCondition() {
     return this.condition.match(sd.buf);
   }
@@ -222,6 +243,13 @@ class ConstraintOneOf extends Constraint {
     }
     sd.setAssistantChange(remaining, value);
     return Constraint.SUCCESS;
+  }
+
+  @override
+  bool isEquivalentTo(Constraint other) {
+    return super.isEquivalentTo(other)
+      && other is ConstraintOneOf
+      && other.value == this.value;
   }
 
   @override
@@ -456,6 +484,13 @@ class ConstraintAllDiff extends Constraint {
     int code = this._applyCached();
     this.clearDomainCache();
     return code;
+  }
+
+  @override
+  bool isEquivalentTo(Constraint other) {
+    return super.isEquivalentTo(other)
+      && other is ConstraintAllDiff
+      && Constraint.sameBits(this.domain, other.domain);
   }
 
   @override
@@ -876,6 +911,17 @@ class SudokuAssist extends DomainFilterer {
 
   void addConstraint(Constraint ct) {
     constraints.add(ct);
+  }
+
+  // Returns an existing constraint equivalent to [ct] (same type, cells and
+  // values), or null when no such duplicate exists.
+  Constraint? findEquivalentConstraint(Constraint ct) {
+    for(Constraint existing in this.constraints) {
+      if(existing.isEquivalentTo(ct)) {
+        return existing;
+      }
+    }
+    return null;
   }
 
   bool checkConditionChange() {
