@@ -37,6 +37,18 @@ The assist system works through user-defined constraints that filter cell domain
 ### Constraint Lifecycle
 
 1. **Creation**: User selects cells and chooses constraint type
+   - **Duplicate prevention**: Before a constraint is added, the system checks
+     for an identical constraint (same type, same group of cells, and same
+     values — e.g. the OneOf value or the AllDiff domain; cell ordering does
+     not matter). If a duplicate is found, no new constraint is created.
+     Instead the existing constraint is highlighted in the list and a brief
+     message informs the user that it already exists. See
+     `Constraint.isEquivalentTo` and `SudokuAssist.findEquivalentConstraint`.
+     Default (built-in) row/col/box constraints are handled inline by the
+     `Constrainer` and are never stored in the constraint list, so they never
+     participate in this check. During the tutorial the duplicate message is
+     suppressed (the duplicate is still not added) so the guided lesson is not
+     interrupted.
 2. **Condition**: Constraint activates when its preconditions match the current board state
 3. **Propagation**: When active, constraint filters domains of involved cells
 4. **Status Tracking**:

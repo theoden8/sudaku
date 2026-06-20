@@ -160,6 +160,12 @@ class OneofInteraction extends ConstraintInteraction {
       return;
     }
     final constraint = ConstraintOneOf(sd, self._multiSelect!, val);
+    final existing = sd.assist.findEquivalentConstraint(constraint);
+    if(existing != null) {
+      this.finishOnSelection();
+      self._highlightExistingConstraint(existing);
+      return;
+    }
     sd.assist.addConstraint(constraint);
     self._lastUserAddedConstraint = constraint;
     self.runAssistant();
@@ -173,6 +179,12 @@ class EqualInteraction extends ConstraintInteraction {
   @override
   Future<void> onSelection() async {
     final constraint = ConstraintEqual(sd, this.self._multiSelect!);
+    final existing = sd.assist.findEquivalentConstraint(constraint);
+    if(existing != null) {
+      this.finishOnSelection();
+      self._highlightExistingConstraint(existing);
+      return;
+    }
     sd.assist.addConstraint(constraint);
     self._lastUserAddedConstraint = constraint;
     self.runAssistant();
@@ -190,6 +202,12 @@ class AlldiffInteraction extends ConstraintInteraction {
       return;
     }
     final constraint = ConstraintAllDiff(sd, self._multiSelect!, selection);
+    final existing = sd.assist.findEquivalentConstraint(constraint);
+    if(existing != null) {
+      this.finishOnSelection();
+      self._highlightExistingConstraint(existing);
+      return;
+    }
     sd.assist.addConstraint(constraint);
     self._lastUserAddedConstraint = constraint;
     self.runAssistant();
@@ -1581,6 +1599,37 @@ class SudokuScreenState extends State<SudokuScreen> {
     if (achievement != null && mounted) {
       _showAchievementNotification(achievement);
     }
+  }
+
+  // Highlight an already-existing constraint instead of creating a duplicate,
+  // and briefly let the user know it already exists.
+  //
+  // No-op during the tutorial: the guided lesson should never be interrupted by
+  // a duplicate-constraint message. (The duplicate itself is still not added —
+  // the calling interaction returns before addConstraint regardless.)
+  //
+  // Note: default (built-in) row/col/box constraints are handled inline by the
+  // Constrainer and are never stored in the constraint list, so they can never
+  // be matched as duplicates here.
+  void _highlightExistingConstraint(Constraint existing) {
+    if (_showTutorial) return;
+    this._selectedConstraint = existing;
+    this.runSetState();
+    if (!mounted) return;
+    final theme = widget.sudokuThemeFunc(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+        content: Text(
+          'This constraint already exists.',
+          style: TextStyle(color: theme.mutedPrimary),
+        ),
+      ),
+    );
   }
 
   void _showAchievementNotification(Achievement achievement) {

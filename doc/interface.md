@@ -92,6 +92,11 @@ Different constraint types and states are color-coded:
 4. Tap a constraint type to apply it
 5. Constraint propagates automatically
 
+If an identical constraint already exists for the same group of cells (same
+type and values), no duplicate is created. Instead the existing constraint is
+highlighted (selected) in the list and a brief SnackBar message notes that it
+already exists.
+
 ### Inline Constraint Panel
 When cells are selected, the constraint list area transforms into a constraint choice panel:
 - **Responsive layout**: Shows 2×2 grid when width ≥ 280px, single column otherwise
