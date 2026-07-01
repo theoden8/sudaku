@@ -44,6 +44,25 @@ Constraint management interface for:
 ### Numpad Screen
 Input interface for entering values into cells
 
+### Debug Log Screen
+In-app viewer for the runtime log buffer (`lib/DebugLogScreen.dart`). Opened
+from the "Debug logs" entry in the overflow (⋮) menu on both the Menu Screen
+and the Sudoku Screen. Because release builds have no attached console, the app
+captures logs into an in-memory ring buffer (`lib/DebugLog.dart`, `DebugLog`)
+so they can be inspected on-device:
+
+- `DebugLog.instance.install()` (called from `main()`) routes `debugPrint`
+  output, uncaught Flutter framework errors (`FlutterError.onError`) and
+  uncaught async errors (`PlatformDispatcher.onError`) into the buffer.
+- Code logs directly via `DebugLog.instance.i/w/e/d(message, tag: ...)`.
+- The screen supports filtering by minimum level, auto-scroll, copy-all to the
+  clipboard, and clearing. Entries are colour-coded by level and selectable.
+- The buffer keeps the most recent `DebugLog.maxEntries` lines (older lines are
+  dropped).
+
+Notable instrumented flows include saved-puzzle restore (tag `load`) and the
+tutorial lifecycle (tag `tutorial`).
+
 ## Visual Elements
 
 ### Cell Display

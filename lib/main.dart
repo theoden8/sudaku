@@ -15,6 +15,7 @@ import 'SudokuAssistScreen.dart';
 import 'SudokuScreen.dart';
 import 'MenuScreen.dart';
 import 'TrophyRoomScreen.dart';
+import 'DebugLog.dart';
 
 
 /// Custom painter for hand-drawn/sketched grid lines (Excalidraw-style)
@@ -240,6 +241,12 @@ class AppColors {
 }
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Capture debugPrint / framework / async errors into the in-app log buffer
+  // so they can be inspected from within the app (no console on release).
+  DebugLog.instance.install();
+  DebugLog.instance.i('App started', tag: 'app');
+
   LicenseRegistry.addLicense(() async* {
     final license = await rootBundle.loadString('assets/LICENSE');
     yield LicenseEntryWithLineBreaks(['Sudaku Assets'], license);

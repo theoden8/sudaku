@@ -22,6 +22,8 @@ import 'TrophyRoom.dart';
 import 'TutorialHelpPages.dart';
 import 'demo_data.dart';
 import 'sudoku_native.dart';
+import 'DebugLog.dart';
+import 'DebugLogScreen.dart';
 
 
 /// Helper widget that renders text with a slight random wobble for pen-and-paper style
@@ -1579,10 +1581,18 @@ class SudokuScreenState extends State<SudokuScreen> {
     if(this._tutorialCells == null || this._tutorialCells!.isEmpty) {
       this._tutorialCells = BitArray(sd!.ne4);
     }
-    if (kDebugMode) print('tutorialcells ${this._tutorialCells!.asIntIterable()}');
+    DebugLog.instance.d(
+      'tutorial cells selected: ${this._tutorialCells!.asIntIterable().toList()}',
+      tag: 'tutorial',
+    );
   }
 
   Future<void> _completeTutorial() async {
+    DebugLog.instance.i(
+      'Tutorial finished (stage=${this._tutorialStage}), '
+      'restoring autoComplete=${this._tutorialSavedAutoComplete}',
+      tag: 'tutorial',
+    );
     this._showTutorial = false;
     this._tutorialStage = 0;
     this._tutorialCells = null;
@@ -1848,6 +1858,11 @@ class SudokuScreenState extends State<SudokuScreen> {
               child: const Text('Start Tutorial'),
               onPressed: () {
                 Navigator.of(ctx).pop();
+                DebugLog.instance.i(
+                  'Tutorial started (autoComplete was '
+                  '${sd!.assist.autoComplete})',
+                  tag: 'tutorial',
+                );
                 // Disable auto-complete during tutorial to prevent cells from being filled
                 this._tutorialSavedAutoComplete = sd!.assist.autoComplete;
                 sd!.assist.autoComplete = false;
@@ -2503,7 +2518,8 @@ class SudokuScreenState extends State<SudokuScreen> {
       TOOLBAR_RESET = 2,
       TOOLBAR_THEME = 3,
       TOOLBAR_LICENSE = 4,
-      TOOLBAR_HELP = 5;
+      TOOLBAR_HELP = 5,
+      TOOLBAR_DEBUG_LOG = 6;
     return <Widget>[
       IconButton(
         icon: Icon(Icons.undo_rounded, color: iconColor),
@@ -2561,6 +2577,11 @@ class SudokuScreenState extends State<SudokuScreen> {
                 applicationName: 'Sudaku',
               );
             break;
+            case TOOLBAR_DEBUG_LOG:
+              Navigator.of(ctx).push(
+                MaterialPageRoute(builder: (_) => const DebugLogScreen()),
+              );
+            break;
           }
         },
         itemBuilder: (BuildContext ctx) => <PopupMenuEntry<int>>[
@@ -2615,6 +2636,16 @@ class SudokuScreenState extends State<SudokuScreen> {
             ),
           ),
           const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: TOOLBAR_DEBUG_LOG,
+            child: Row(
+              children: [
+                Icon(Icons.bug_report_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Debug logs'),
+              ],
+            ),
+          ),
           const PopupMenuItem(
             value: TOOLBAR_LICENSE,
             child: Row(
@@ -2777,6 +2808,13 @@ class SudokuScreenState extends State<SudokuScreen> {
     if(sd == null || sd!.n != n) {
       if (args.savedBuffer != null && args.savedHints != null) {
         // Restore from saved state
+        final int filledCells =
+            args.savedBuffer!.where((v) => v != 0).length;
+        DebugLog.instance.i(
+          'Restoring saved puzzle n=$n hints=${args.savedHints!.length} '
+          'filled=$filledCells hasFullState=${args.savedState != null}',
+          tag: 'load',
+        );
         sd = Sudoku.fromSaved(n, args.savedBuffer!, args.savedHints!, () {
           this.runSetState();
         });
@@ -2787,6 +2825,10 @@ class SudokuScreenState extends State<SudokuScreen> {
           // Loading from Trophy Room/History without full state - use user's global settings
           _restoreAssistantSettings();
         }
+        DebugLog.instance.i(
+          'Puzzle restored: hint cells=${sd!.hints.cardinality}',
+          tag: 'load',
+        );
       } else if (args.isDemoMode && args.demoPuzzle != null) {
         // Demo mode: use fixed puzzle
         _isDemoMode = true;

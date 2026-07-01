@@ -6,6 +6,7 @@ import 'main.dart';
 import 'SudokuScreen.dart';
 import 'TrophyRoomScreen.dart';
 import 'demo_data.dart';
+import 'DebugLogScreen.dart';
 
 class MenuScreen extends StatefulWidget {
   Function(BuildContext) sudokuThemeFunc;
@@ -555,6 +556,10 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                   context: context,
                   applicationName: 'Sudaku',
                 );
+              } else if (value == 'debug_logs') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DebugLogScreen()),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -565,6 +570,16 @@ class _SizeSelectionContentState extends State<_SizeSelectionContent>
                     Icon(Icons.description_outlined, size: 20),
                     SizedBox(width: 12),
                     Text('Licenses'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'debug_logs',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Debug logs'),
                   ],
                 ),
               ),
@@ -1092,6 +1107,10 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                   context: context,
                   applicationName: 'Sudaku',
                 );
+              } else if (value == 'debug_logs') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DebugLogScreen()),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -1102,6 +1121,16 @@ class MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMi
                     Icon(Icons.description_outlined, size: 20),
                     SizedBox(width: 12),
                     Text('Licenses'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'debug_logs',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Debug logs'),
                   ],
                 ),
               ),

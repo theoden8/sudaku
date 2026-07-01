@@ -50,6 +50,8 @@ Core logic in `lib/`:
 - **SudokuAssist.dart** - Constraint system with propagation
 - **SudokuDomain.dart** - Domain representation using BitArray
 - **sudoku_native.dart** - FFI wrapper for native C solver
+- **DebugLog.dart** - In-app log buffer capturing debugPrint/framework/async errors (no console on release)
+- **DebugLogScreen.dart** - On-device viewer for the log buffer (opened from the ⋮ menu)
 
 Native C code in `native/` - Algorithm X (dancing links) for generation/difficulty.
 
